@@ -297,8 +297,6 @@ button.scard:active{transform:translateY(2px)}
   color:#1A1020;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wheel .lab i.flip{transform:translateY(-50%) rotate(180deg)}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(var(--spin,1260deg))}}
-.wheelNames{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
-.chip .slice{width:10px;height:10px;border-radius:3px;flex:none;background:var(--c)}
 .bigstate{font-size:clamp(26px,7.6vw,34px);margin-bottom:8px}
 .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:8px;
   animation:pulse 1.4s ease-in-out infinite}
@@ -653,8 +651,6 @@ function wheel(){
         <span class="pointer" aria-hidden="true"></span>
         <div class="wheel" style="--spin:${spin.toFixed(1)}deg;--fs:${fs}px;background:conic-gradient(${slices})">${labels}</div>
       </div>
-      <div class="wheelNames">${state.players.map((p,i) =>
-        `<span class="chip"><i class="slice" style="--c:${sliceColor(i)}"></i>${esc(p.name)}</span>`).join('')}</div>
     </div>`;
 }
 
