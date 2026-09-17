@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -32,14 +32,27 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+      - name: Vendor Supabase client
+        run: |
+          mkdir -p vendor
+          curl --fail --silent --show-error --location --retry 3 \
+            'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js' \
+            -o vendor/supabase.js
+          test -s vendor/supabase.js
+      - name: Persist vendored client for branch-based Pages
+        run: |
+          if ! git ls-files --error-unmatch vendor/supabase.js >/dev/null 2>&1; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add vendor/supabase.js
+            git commit -m 'Vendor Supabase client for reliable startup'
+            git push
+          fi
       - name: Build self-contained site
         run: |
           mkdir -p _site/vendor
           cp index.html _site/index.html
-          curl --fail --silent --show-error --location --retry 3 \
-            'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js' \
-            -o _site/vendor/supabase.js
-          test -s _site/vendor/supabase.js
+          cp vendor/supabase.js _site/vendor/supabase.js
           sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js#./vendor/supabase.js#g' _site/index.html
           grep -q './vendor/supabase.js' _site/index.html
       - uses: actions/configure-pages@v5
