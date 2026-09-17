@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- Card content is versioned separately in supabase/seed.sql.
+-- This production migration already exists remotely; this no-op preserves version alignment.

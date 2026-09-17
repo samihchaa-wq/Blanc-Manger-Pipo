@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- The original production migration contained environment-specific admin credential material and is intentionally not reproduced.
+-- Initialize admin_hash per environment as documented in supabase/README.md.

@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- These production hardening changes are already incorporated into 20260917111656_game_schema_and_rpcs.sql.
+-- Kept as a no-op to preserve remote/local migration version alignment.

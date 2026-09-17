@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
 <style>
 :root{
   --night:#2B1330; --night2:#3D1D45; --ink:#1C1320; --paper:#FFF8EC; --paper-dim:#E3D6C2;
@@ -111,7 +111,7 @@ const app = document.getElementById('app');
 let session = load();
 let state = null, lastJson = '', roundKey = '', dealPending = false;
 let selected = null, picked = null, busy = false;
-let channel = null, pollTimer = null, pendingPing = false;
+let channel = null, pollTimer = null, pendingPing = false, refreshDebounce = null;
 
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
 function save(s){ session = s; try { s ? localStorage.setItem('pdcat', JSON.stringify(s)) : localStorage.removeItem('pdcat') } catch {} }
@@ -170,17 +170,23 @@ async function refresh(force){
   }
 }
 
+function scheduleRefresh(){
+  clearTimeout(refreshDebounce);
+  refreshDebounce = setTimeout(() => refresh(), 400);
+}
+
 function connect(){
   disconnect();
   channel = sb.channel('room-' + session.code, { config: { broadcast: { self: false } } });
-  channel.on('broadcast', { event: 'bump' }, () => refresh()).subscribe(st => {
+  channel.on('broadcast', { event: 'bump' }, scheduleRefresh).subscribe(st => {
     if (st === 'SUBSCRIBED' && pendingPing) { pendingPing = false; ping(); }
   });
-  pollTimer = setInterval(() => { if (!document.hidden) refresh() }, 2500);
+  pollTimer = setInterval(() => { if (!document.hidden) refresh() }, 15000);
 }
 function disconnect(){
   if (channel) { sb.removeChannel(channel); channel = null }
   clearInterval(pollTimer);
+  clearTimeout(refreshDebounce);
 }
 function ping(){
   if (channel && channel.state === 'joined') channel.send({ type: 'broadcast', event: 'bump', payload: {} });
@@ -435,7 +441,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]').click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]').click();
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh() });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true) });
 
 const urlCode = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
 if (session && urlCode && urlCode !== session.code) save(null);
