@@ -228,6 +228,18 @@ button.scard:active{transform:translateY(2px)}
 .notice{background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.28);color:#FFE6A8;border-radius:var(--r-md);
   padding:13px 15px;margin:0 0 16px;font-size:15px;font-weight:600}
 
+/* catalogue admin */
+.searchfield{display:block;width:100%;margin:0 0 12px}
+.catlist{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.catlist li{display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 14px;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--hairline);font-size:16px;font-weight:600;line-height:1.35}
+.catlist .ct{flex:1;min-width:0;overflow-wrap:anywhere}
+.catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,138,.16);
+  color:var(--pop);font-size:19px;font-weight:800;line-height:1;display:grid;place-items:center}
+.catlist .del:active{background:var(--pop);color:#2E0715}
+.catlist li.empty{justify-content:center;color:var(--text-faint);font-weight:600;border-style:dashed}
+#cat-more{margin-top:12px}
+
 /* attente + progression */
 .waiting{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:16px;color:var(--text-faint);
   font-size:14px;font-weight:600}
@@ -332,7 +344,8 @@ let session = load(), state = null, busy = false, selected = null, picked = null
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
-let adminOpen = false, adminPwd = '', adminAdded = [];
+let adminOpen = false, adminPwd = '', adminLevel = '';
+let catalog = { total:0, items:[], q:'' }, catTimer = null;
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -422,7 +435,7 @@ function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);
-  if (adminOpen) { app.innerHTML = adminView(); return }
+  if (adminOpen) { app.innerHTML = adminView(); paintCatalog(); return }
   if (!session) { app.innerHTML = home(); return }
   if (!state) { app.innerHTML = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>'; return }
   const view = { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status];
@@ -471,17 +484,19 @@ function home(){
 }
 
 function adminView(){
-  const added = adminAdded.length
-    ? `<h3 class="sec">Ajoutées (${adminAdded.length})</h3>
-       <ul class="plist">${adminAdded.map(t => `<li><span class="who"><span class="nm">${esc(t)}</span></span></li>`).join('')}</ul>`
-    : '';
-  const body = adminPwd
+  const plus = adminLevel === 'plus';
+  const body = adminLevel
     ? `<section class="panel">
          <p class="eyebrow">Catalogue</p><h2>Nouvelle réponse</h2>
          <label><span>Texte de la réponse</span><input id="a-text" maxlength="80" placeholder="Un poney dépressif"></label>
          <p class="meta" style="margin:-6px 0 14px">80 caractères maximum, sans texte à trou.</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
-       </section>${added}`
+       </section>
+       ${plus ? `
+         <h3 class="sec" id="cat-count">Catalogue</h3>
+         <input class="searchfield" id="cat-q" placeholder="Rechercher une réponse" autocomplete="off" value="${esc(catalog.q)}">
+         <ul class="catlist" id="cat-list"></ul>
+         <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
          <p class="eyebrow">Accès réservé</p><h2>Code admin</h2>
          <label><span>Code</span><input id="a-pwd" type="password" autocomplete="off" placeholder="••••••••"></label>
@@ -489,10 +504,37 @@ function adminView(){
        </section>`;
   return `
     <div class="top">
-      <div class="top-l"><span class="round">Admin</span></div>
+      <div class="top-l"><span class="round">${plus ? 'Admin +' : 'Admin'}</span></div>
       <button class="link" data-act="admin-close">Retour</button>
     </div>
     ${body}`;
+}
+
+function paintCatalog(){
+  const list = document.getElementById('cat-list');
+  if (!list) return;
+  const count = document.getElementById('cat-count');
+  if (count) count.textContent = `Catalogue · ${catalog.total} réponse${catalog.total > 1 ? 's' : ''}`;
+  list.innerHTML = catalog.items.length
+    ? catalog.items.map(c => `<li>
+        <span class="ct">${esc(c.text)}</span>
+        <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
+      </li>`).join('')
+    : '<li class="empty">Aucune réponse.</li>';
+  const more = document.getElementById('cat-more');
+  if (more) more.innerHTML = catalog.items.length < catalog.total
+    ? `<button class="btn ghost" data-act="admin-more">Afficher plus (${catalog.total - catalog.items.length})</button>`
+    : '';
+}
+
+async function loadCatalog(offset = 0){
+  if (adminLevel !== 'plus') return;
+  try {
+    const d = await rpc('admin_list_cards', { p_password:adminPwd, p_kind:'a', p_search:catalog.q, p_offset:offset });
+    catalog.total = d.total;
+    catalog.items = offset ? catalog.items.concat(d.items) : d.items;
+    paintCatalog();
+  } catch (e) { toast(e.message) }
 }
 
 function topbar(){
@@ -825,15 +867,24 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin') { adminOpen = true; return render() }
-  if (a === 'admin-close') { adminOpen = false; return render() }
+  if (a === 'admin-close') {
+    adminOpen = false; adminPwd = ''; adminLevel = '';
+    catalog = { total:0, items:[], q:'' };
+    return render();
+  }
   if (a === 'admin-login') {
     const pwd = val('a-pwd');
     if (!pwd) return toast('Entre le code admin.');
     if (busy) return;
     busy = true; el.disabled = true;
     try {
-      if (await rpc('admin_check', { p_password: pwd })) { adminPwd = pwd; render() }
-      else { toast('Code incorrect.'); el.disabled = false }
+      // le serveur seul décide du niveau : 'plus' ouvre la consultation et la suppression
+      const level = await rpc('admin_level', { p_password: pwd });
+      if (level === 'none') { toast('Code incorrect.'); el.disabled = false }
+      else {
+        adminPwd = pwd; adminLevel = level; render();
+        if (level === 'plus') loadCatalog(0);
+      }
     } catch (e) { toast(e.message); el.disabled = false }
     busy = false;
     return;
@@ -845,14 +896,28 @@ document.addEventListener('click', async e => {
     busy = true; el.disabled = true;
     try {
       const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: 'a', p_text: text });
-      adminAdded.unshift(d.text);
       toast(`Ajoutée. ${d.total} réponses au catalogue.`);
-      render();
+      render();                       // vide le champ ; la réponse n'est pas listée ici
+      if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
-      toast(e.message);
-      if (/Mot de passe/i.test(e.message)) { adminPwd = ''; render() } else el.disabled = false;
+      toast(/existe déjà/i.test(e.message) ? 'Réponse déjà existante' : e.message);
+      if (/Mot de passe/i.test(e.message)) { adminPwd = ''; adminLevel = ''; render() } else el.disabled = false;
     }
     busy = false;
+    return;
+  }
+  if (a === 'admin-more') { el.disabled = true; return loadCatalog(catalog.items.length) }
+  if (a === 'admin-del') {
+    const item = catalog.items.find(c => String(c.id) === String(id));
+    if (!confirm(`Supprimer « ${item ? item.text : 'cette réponse'} » du catalogue ?`)) return;
+    el.disabled = true;
+    try {
+      await rpc('admin_delete_card', { p_password: adminPwd, p_kind: 'a', p_id: +id });
+      catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
+      catalog.total = Math.max(0, catalog.total - 1);
+      paintCatalog();
+      toast('Réponse supprimée.');
+    } catch (e) { toast(e.message); el.disabled = false }
     return;
   }
   if (a === 'create') { const n = val('c-name'); if (!n) return toast('Choisis un pseudo.'); return enter(() => rpc('create_room',{ p_name:n, p_target:+val('c-target') }), n) }
@@ -880,6 +945,11 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'j-code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (e.target.id === 'cat-q') {
+    catalog.q = e.target.value;
+    clearTimeout(catTimer);
+    catTimer = setTimeout(() => loadCatalog(0), 300);   // seule la liste est repeinte
+  }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
