@@ -665,7 +665,7 @@ function qselect(){
   if (age < 2000 && !qpick) return wheel();
   const reader = P(r.reader_id);
   if (reader?.is_bot) return waitScreen(`${esc(reader.name)} est le lecteur 🤖`, 'Il choisit sa carte à trou…');
-  if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 4…');
+  if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
   return `
     <h2 class="title">${chosen ? 'Tu dois lire la phrase aux autres joueurs' : 'À toi de lire'}</h2>
