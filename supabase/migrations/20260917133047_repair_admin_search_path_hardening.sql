@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- The repaired admin functions and empty search_path hardening are incorporated into the current sanitized baseline.
+-- Kept as a no-op to preserve migration version alignment.

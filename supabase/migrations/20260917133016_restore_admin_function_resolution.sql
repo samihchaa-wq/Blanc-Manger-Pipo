@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- This was a transient production repair and is superseded by the current sanitized baseline.
+-- Kept as a no-op to preserve migration version alignment.

@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- The effective current schema is defined in 20260917111656_game_schema_and_rpcs.sql.
+-- This production migration already exists remotely; this no-op preserves version alignment without copying historical sensitive material.

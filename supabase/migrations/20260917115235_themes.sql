@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- Theme support was introduced and later removed in production.
+-- Current effective schema is defined in 20260917111656_game_schema_and_rpcs.sql.

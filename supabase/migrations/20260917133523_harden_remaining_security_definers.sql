@@ -1,0 +1,3 @@
+-- Sanitized squashed-baseline marker.
+-- All current SECURITY DEFINER functions already use an empty search_path in the sanitized baseline.
+-- Kept as a no-op to preserve migration version alignment.

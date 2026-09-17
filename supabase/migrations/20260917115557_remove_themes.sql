@@ -1,0 +1,2 @@
+-- Sanitized squashed-baseline marker.
+-- Theme support was removed; the current schema is already represented by the sanitized baseline.
