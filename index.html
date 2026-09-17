@@ -48,7 +48,8 @@ body::before{background:
   linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 100%)}
 body::after{opacity:.5;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E")}
-main{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:14px 18px calc(150px + env(safe-area-inset-bottom))}
+main{position:relative;z-index:1;max-width:520px;margin:0 auto;
+  padding:calc(30px + env(safe-area-inset-top)) 18px calc(150px + env(safe-area-inset-bottom))}
 h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.03em;font-weight:800}
 p{margin:0}
 button,input,select{font:inherit;color:inherit}
@@ -59,7 +60,7 @@ button{cursor:pointer;border:0;background:none}
 .stack{display:grid;gap:16px}
 
 /* ===== Accueil (tient sur un écran, sans défilement) ===== */
-body.is-home main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
 .home{min-height:calc(100vh - 34px);min-height:calc(100dvh - 34px);
   display:flex;flex-direction:column;justify-content:center;gap:22px}
 .home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
@@ -137,17 +138,11 @@ input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);text-transform:uppercase}
 .av.lg{width:34px;height:34px;font-size:15px}
 .av.bot{background:linear-gradient(160deg,#B9A7C4,#8D7B96)}
-.scores{list-style:none;margin:0 -18px 18px;padding:0 18px 6px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
-.scores::-webkit-scrollbar{display:none}
-.scores li{flex:none;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--hairline);
-  border-radius:var(--r-pill);padding:5px 13px 5px 6px;font-size:15px;font-weight:600;white-space:nowrap}
-.scores li.reader{border-color:transparent;box-shadow:0 0 0 2px var(--gold),0 6px 18px -8px rgba(255,201,60,.8)}
-.scores li.done .av::after{content:"";position:absolute;inset:0;border-radius:50%;
-  background:var(--mint-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10' fill='none' stroke='%231A1020' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 5l3.4 3.5L11 1.5'/%3E%3C/svg%3E") center/12px no-repeat}
-.scores b{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums}
 
 /* ===== Cartes ===== */
-.role{font-size:17px;font-weight:600;color:var(--text-dim);margin:2px 0 14px;max-width:34ch}
+/* Deux lignes réservées : la carte tombe à la même hauteur que l'énoncé fasse
+   une ou deux lignes, sinon elle saute d'un écran à l'autre. */
+.role{font-size:17px;font-weight:600;color:var(--text-dim);margin:2px 0 14px;max-width:34ch;min-height:2.9em}
 .role b{color:var(--text);font-weight:800}
 h2.title{font-size:27px;margin:2px 0 14px}
 .qcard{position:relative;background:linear-gradient(168deg,#FFFDF7 0%,var(--paper) 42%,var(--paper-2) 100%);
@@ -255,8 +250,7 @@ button.scard:active{transform:translateY(2px)}
 .bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:14px}
 .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--mint));
   transition:width .35s var(--ease)}
-.readNow{display:flex;flex-direction:column;justify-content:center;min-height:48vh}
-.steps{display:flex;gap:6px;margin:0 0 14px}
+.steps{display:flex;gap:6px;margin:14px 0 0}
 .steps i{flex:1;height:4px;border-radius:99px;background:var(--surface-2)}
 .steps i.on{background:var(--gold)}
 
@@ -296,8 +290,6 @@ button.scard:active{transform:translateY(2px)}
   color:#1A1020;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wheel .lab i.flip{transform:translateY(-50%) rotate(180deg)}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(var(--spin,1260deg))}}
-.wheelNames{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
-.chip .slice{width:10px;height:10px;border-radius:3px;flex:none;background:var(--c)}
 .bigstate{font-size:clamp(26px,7.6vw,34px);margin-bottom:8px}
 .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:8px;
   animation:pulse 1.4s ease-in-out infinite}
@@ -472,6 +464,8 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
+  // Sans barre d'action fixe, les 150px réservés en bas laisseraient un grand vide.
+  document.body.classList.toggle('no-dock', !html.includes('class="dock"'));
   if (html !== lastHtml) {
     lastHtml = html;
     app.innerHTML = html;
@@ -502,7 +496,7 @@ function home(){
       </div>
 
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
-        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Mamie déchaînée" value="${esc(nm)}"></label>
+        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field"><span>Manches à gagner</span>
           <div class="seg" role="group" aria-label="Manches à gagner">
             ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
@@ -513,7 +507,7 @@ function home(){
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
-        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Tonton blagueur" value="${esc(nm)}"></label>
+        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
@@ -576,13 +570,13 @@ async function loadCatalog(offset = 0){
 
 function topbar(){
   const r = state.room;
-  const scores = r.status === 'lobby' ? '' : `<ul class="scores" aria-label="Scores">${state.players.map(p => `
-    <li class="${p.id === r.reader_id && r.status !== 'finished' ? 'reader' : ''} ${p.submitted && r.status === 'answering' ? 'done' : ''}">
-      ${avatar(p)}<span>${esc(p.name)}${p.is_bot ? ' 🤖' : ''}${isMe(p.id) ? ' (toi)' : ''}</span><b>${p.score}</b></li>`).join('')}</ul>`;
+  // Dans le lobby, le code s'affiche déjà en gros juste en dessous : le badge
+  // du haut ferait doublon, seul « Quitter » reste.
+  if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
   return `<div class="top">
       <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}</span>` : ''}</div>
       <button class="link" data-act="leave">Quitter</button>
-    </div>${scores}`;
+    </div>`;
 }
 
 function lobby(){
@@ -597,13 +591,12 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who">${avatar(p,'lg')}<span class="nm">${esc(p.name)}</span>${p.is_bot ? '<span class="tag bot">bot</span>' : ''}${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.is_bot ? '<span class="tag bot">bot</span>' : ''}${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
         <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host ? '<button class="btn ghost" data-act="bot">+ Ajouter un bot</button>' : ''}
-    <p class="meta" style="margin-top:16px">🏆 Premier à ${r.target} points.</p>
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
@@ -648,8 +641,6 @@ function wheel(){
         <span class="pointer" aria-hidden="true"></span>
         <div class="wheel" style="--spin:${spin.toFixed(1)}deg;--fs:${fs}px;background:conic-gradient(${slices})">${labels}</div>
       </div>
-      <div class="wheelNames">${state.players.map((p,i) =>
-        `<span class="chip"><i class="slice" style="--c:${sliceColor(i)}"></i>${esc(p.name)}</span>`).join('')}</div>
     </div>`;
 }
 
@@ -706,11 +697,7 @@ function answering(){
         ${canDrop ? '<span class="cue drop" aria-hidden="true"><span>Jeter</span></span>' : ''}
         <button class="acard ${c.id === selected ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${c.id === selected}">${esc(c.text)}</button>
       </div></li>`).join('')}
-    </ul>
-    <div class="dock">
-      ${state.me.can_discard && selected ? '<button class="btn ghost" data-act="discard">Jeter cette carte</button>' : ''}
-      <button class="btn" data-act="submit" ${dis(!sel)}>${sel ? 'Jouer cette carte' : 'Touche une carte'}</button>
-    </div>`;
+    </ul>`;
 }
 
 function judging(){
@@ -719,10 +706,8 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role">Lis cette réponse <b>à voix haute</b>.</p>
-    <div class="readNow">
-      <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
-      ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text))}
-    </div>
+    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text))}
+    <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `
     <h2 class="title">Laquelle gagne ?</h2>
@@ -988,8 +973,6 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'select') { selected = +id; return render() }
-  if (a === 'discard' && selected) { if (await act('discard_card',{ p_answer_id:selected })) selected = null; return }
-  if (a === 'submit' && selected) { if (await act('submit_answer',{ p_answer_id:selected })) selected = null; return }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
