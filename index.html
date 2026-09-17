@@ -195,6 +195,8 @@ button.scard:active{transform:translateY(2px)}
   padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(255,201,60,.8);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 .qchoice:active{transform:translateY(3px);box-shadow:0 0 0 var(--gold-deep),0 6px 12px -10px rgba(0,0,0,.5)}
+.qchoice.off{opacity:.3;filter:grayscale(.85);box-shadow:0 2px 0 rgba(0,0,0,.3);cursor:default}
+.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(95,227,180,.55)}
 .deal{animation:deal .5s var(--ease) both}
 @keyframes deal{from{transform:translateY(-34px) rotate(-9deg) scale(.96);opacity:0}}
 .hand.deal-in li{animation:rise .42s var(--ease) both;animation-delay:calc(var(--i)*45ms)}
@@ -343,6 +345,7 @@ const app = document.getElementById('app');
 let session = load(), state = null, busy = false, selected = null, picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
+let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
 let catalog = { total:0, items:[], q:'' }, catTimer = null;
@@ -389,7 +392,7 @@ async function refresh(force = false){
     if (!force && j === last) return;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
     state = s; last = j;
-    if (changed) { selected = null; picked = null; readIndex = 0; dealPending = s.room.status === 'answering' }
+    if (changed) { selected = null; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' }
     render(); scheduleAuto();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
@@ -619,16 +622,24 @@ function wheel(){
 function qselect(){
   const r = state.room;
   const age = Date.now() - Date.parse(String(r.updated_at || '').replace(' ','T'));
-  if (age < 2000) return wheel();
+  if (age < 2000 && !qpick) return wheel();
   const reader = P(r.reader_id);
   if (reader?.is_bot) return waitScreen(`${esc(reader.name)} est le lecteur 🤖`, 'Il choisit sa carte à trou…');
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 4…');
+  const chosen = state.question_choices.find(q => q.id === qpick);
   return `
-    <h2 class="title">À toi de lire</h2>
-    <p class="role">Choisis la carte à trou que tu veux faire jouer.</p>
+    <h2 class="title">${chosen ? 'Tu dois lire la phrase aux autres joueurs' : 'À toi de lire'}</h2>
+    ${chosen ? '' : '<p class="role">Choisis la carte à trou que tu veux faire jouer.</p>'}
     <ul class="qchoices">
-      ${state.question_choices.map(q => `<li><button class="qchoice" data-act="question" data-id="${q.id}">${blank(q.text)}</button></li>`).join('')}
-    </ul>`;
+      ${state.question_choices.map(q => {
+        const off = chosen && q.id !== qpick;
+        return `<li><button class="qchoice ${chosen ? (off ? 'off' : 'on') : ''}" data-act="question" data-id="${q.id}" ${off ? 'disabled' : ''}>${blank(q.text)}</button></li>`;
+      }).join('')}
+    </ul>
+    ${chosen ? `<div class="dock">
+      <button class="btn" data-act="question-go" ${dis()}>J'ai lu la phrase</button>
+      <button class="btn ghost" data-act="question-back" ${dis()}>Choisir une autre carte</button>
+    </div>` : ''}`;
 }
 
 function answering(){
@@ -930,7 +941,15 @@ document.addEventListener('click', async e => {
   if (a === 'ready') return act('set_ready',{ p_ready: !state.me.ready });
   if (a === 'bot') return act('add_bot');
   if (a === 'start') return act('start_game');
-  if (a === 'question') return act('select_question',{ p_question_id:+id });
+  // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation
+  if (a === 'question') { qpick = +id; return render() }
+  if (a === 'question-back') { qpick = null; return render() }
+  if (a === 'question-go') {
+    if (!qpick) return;
+    const q = qpick;
+    if (await act('select_question',{ p_question_id:q })) qpick = null;
+    return;
+  }
   if (a === 'select') { selected = +id; return render() }
   if (a === 'discard' && selected) { if (await act('discard_card',{ p_answer_id:selected })) selected = null; return }
   if (a === 'submit' && selected) { if (await act('submit_answer',{ p_answer_id:selected })) selected = null; return }
