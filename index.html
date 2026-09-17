@@ -513,7 +513,7 @@ function home(){
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
-        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Tonton blagueur" value="${esc(nm)}"></label>
+        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
