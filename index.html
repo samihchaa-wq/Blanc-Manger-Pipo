@@ -162,7 +162,22 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .acard,.scard,.qchoice{display:block;width:100%;text-align:left;color:var(--ink);border-radius:15px;padding:15px 17px;
   font-size:18px;font-weight:700;line-height:1.32;letter-spacing:-.01em;background:linear-gradient(170deg,#FFFDF7,var(--paper-2))}
 .acard{position:relative;box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6);
-  transition:transform .14s var(--ease),box-shadow .14s var(--ease),background .14s}
+  transition:transform .14s var(--ease),box-shadow .14s var(--ease),background .14s;
+  touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.acard.dragging{transition:none;cursor:grabbing}
+/* zone de balayage : les repères sont sous la carte, révélés quand elle glisse */
+.swipe{position:relative;border-radius:15px}
+.swipe .cue{position:absolute;inset:0;display:flex;align-items:center;padding:0 18px;border-radius:15px;
+  font-weight:800;font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:0;pointer-events:none}
+.swipe .cue span{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-pill);
+  transition:transform .12s var(--ease)}
+.swipe .cue.play{justify-content:flex-start;background:linear-gradient(90deg,rgba(95,227,180,.5),transparent 72%)}
+.swipe .cue.play span{background:var(--mint);color:#052B20}
+.swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,201,60,.42),transparent 72%)}
+.swipe .cue.drop span{background:var(--gold);color:#2E1D00}
+.swipe .cue.armed span{transform:scale(1.14)}
+.swipehint{margin:14px 0 -4px;color:var(--text-faint);font-size:14px;font-weight:600;text-align:center}
+.swipehint b{color:var(--text-dim)}
 .acard::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:0 4px 4px 0;
   background:var(--paper-edge);transition:background .14s,width .14s}
 .acard:active{transform:translateY(3px);box-shadow:0 0 0 var(--paper-edge),0 4px 10px -8px rgba(0,0,0,.6)}
@@ -313,6 +328,7 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, selected = null, picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
+let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -399,6 +415,8 @@ function qcard(tag, html, cls = '', foot = ''){
 
 /* ---------- Vues ---------- */
 function render(){
+  // un re-rendu pendant un glissement arracherait la carte sous le doigt
+  if (dragging || flying) { pendingRender = true; return }
   if (!session) { app.innerHTML = home(); return }
   if (!state) { app.innerHTML = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>'; return }
   const view = { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status];
@@ -556,11 +574,17 @@ function answering(){
     ${waiting(left)}`;
 
   const sel = state.hand.find(c => c.id === selected);
+  const canDrop = !!state.me.can_discard;
   return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi cette carte. À toi de la compléter.</p>
     ${qcard('Question', sel ? fill(q, sel.text) : blank(q), 'sticky')}
+    <p class="swipehint">Glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}</p>
     <ul class="hand${dealPending ? ' deal-in' : ''}">
-      ${state.hand.map((c,i) => `<li style="--i:${i}"><button class="acard ${c.id === selected ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${c.id === selected}">${esc(c.text)}</button></li>`).join('')}
+      ${state.hand.map((c,i) => `<li style="--i:${i}"><div class="swipe">
+        <span class="cue play" aria-hidden="true"><span>Jouer</span></span>
+        ${canDrop ? '<span class="cue drop" aria-hidden="true"><span>Jeter</span></span>' : ''}
+        <button class="acard ${c.id === selected ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${c.id === selected}">${esc(c.text)}</button>
+      </div></li>`).join('')}
     </ul>
     <div class="dock">
       ${state.me.can_discard && selected ? '<button class="btn ghost" data-act="discard">Jeter cette carte</button>' : ''}
@@ -643,6 +667,84 @@ function confetti(){
   setTimeout(() => wrap.remove(), 4500);
 }
 
+/* ---------- Balayage des cartes ---------- */
+const swipeThreshold = w => Math.max(80, Math.min(140, w * .4));
+
+function paintSwipe(){
+  const s = swipe;
+  if (!s) return;
+  const canDrop = !!state?.me?.can_discard;
+  // échange indisponible : on freine le glissement au lieu de l'interdire sèchement
+  const dx = (s.dx < 0 && !canDrop) ? s.dx / 3.5 : s.dx;
+  const ratio = Math.min(1, Math.abs(dx) / swipeThreshold(s.w));
+  s.el.style.transform = `translateX(${dx.toFixed(1)}px) rotate(${(dx / 28).toFixed(2)}deg)`;
+  const play = s.box.querySelector('.cue.play'), drop = s.box.querySelector('.cue.drop');
+  if (play) { play.style.opacity = dx > 0 ? ratio : 0; play.classList.toggle('armed', dx > 0 && ratio >= 1) }
+  if (drop) { drop.style.opacity = dx < 0 ? ratio : 0; drop.classList.toggle('armed', dx < 0 && ratio >= 1) }
+}
+
+function clearSwipe(s){
+  s.el.classList.remove('dragging');
+  s.el.style.transform = ''; s.el.style.opacity = '';
+  s.box.querySelectorAll('.cue').forEach(c => { c.style.opacity = 0; c.classList.remove('armed') });
+}
+
+function afterSwipe(){
+  dragging = false;
+  if (pendingRender) { pendingRender = false; render() }
+}
+
+async function runSwipe(id, dir){
+  selected = null;
+  await act(dir === 'play' ? 'submit_answer' : 'discard_card', { p_answer_id: id });
+}
+
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.acard');
+  if (!el || busy || flying || e.button > 0) return;
+  swipe = { id:+el.dataset.id, el, box:el.parentElement, pid:e.pointerId,
+            x0:e.clientX, y0:e.clientY, dx:0, on:false, w:el.getBoundingClientRect().width };
+});
+
+document.addEventListener('pointermove', e => {
+  if (!swipe || e.pointerId !== swipe.pid) return;
+  const dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
+  if (!swipe.on) {
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return }  // c'est un défilement
+    if (Math.abs(dx) < 8) return;
+    swipe.on = true; dragging = true;
+    swipe.el.classList.add('dragging');
+    try { swipe.el.setPointerCapture(e.pointerId) } catch {}
+  }
+  swipe.dx = dx;
+  paintSwipe();
+});
+
+function endSwipe(e){
+  const s = swipe;
+  if (!s || (e && e.pointerId !== s.pid)) return;
+  swipe = null;
+  if (!s.on) return;                      // simple appui : le clic s'en charge
+  lastSwipeEnd = Date.now();
+  const canDrop = !!state?.me?.can_discard;
+  const dir = s.dx > 0 ? 'play' : 'drop';
+  const far = Math.abs(s.dx) >= swipeThreshold(s.w);
+
+  if (!far || (dir === 'drop' && !canDrop)) {
+    clearSwipe(s);
+    if (dir === 'drop' && !canDrop && Math.abs(s.dx) > 40) toast('Tu as déjà échangé une carte cette manche.');
+    return afterSwipe();
+  }
+  // la carte part sur le côté, puis on déclenche
+  dragging = false; flying = true;
+  s.el.style.transition = 'transform .17s ease-in, opacity .17s linear';
+  s.el.style.transform = `translateX(${dir === 'play' ? 120 : -120}%) rotate(${dir === 'play' ? 8 : -8}deg)`;
+  s.el.style.opacity = '0';
+  setTimeout(() => { flying = false; pendingRender = false; runSwipe(s.id, dir) }, 170);
+}
+document.addEventListener('pointerup', endSwipe);
+document.addEventListener('pointercancel', endSwipe);
+
 /* ---------- Actions ---------- */
 async function enter(call, name){
   if (busy) return;
@@ -664,6 +766,8 @@ async function share(){
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
+  // un balayage se termine par un clic fantôme : on l'ignore
+  if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
   const a = el.dataset.act, id = el.dataset.id;
   if (a === 'target') {
     const box = document.getElementById('c-target');
