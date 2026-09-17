@@ -502,7 +502,7 @@ function home(){
       </div>
 
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
-        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Mamie déchaînée" value="${esc(nm)}"></label>
+        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field"><span>Manches à gagner</span>
           <div class="seg" role="group" aria-label="Manches à gagner">
             ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
