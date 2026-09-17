@@ -1005,6 +1005,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 const urlCode = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
 if (session && urlCode && urlCode !== session.code) save(null);
 session ? startSession() : render();
+
+// Le service worker retélécharge la page à chaque lancement : sans lui, l'app
+// installée sur l'écran d'accueil reste figée sur la version de son installation.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
 </script>
 </body>
 </html>
