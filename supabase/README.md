@@ -32,7 +32,7 @@ The production database was created before migrations were committed to this pub
 
 `supabase/migrations/20260917111656_game_schema_and_rpcs.sql` is therefore a **sanitized squashed baseline** of the current schema and RPC surface. It contains no admin hash and generates a fresh anti-abuse pepper at install time.
 
-Every later production migration version that already exists remotely is represented by a deliberate no-op marker. This keeps local and remote migration version numbers aligned while avoiding publication of historical sensitive values or replaying changes already folded into the baseline. New migrations created after this baseline must contain their real forward SQL normally.
+Historical production versions whose original SQL is unnecessary or sensitive are represented by deliberate no-op markers. This keeps local and remote migration version numbers aligned while avoiding publication of sensitive values or replaying changes already folded into the baseline. The independently committed `20260917133009_winner_integrity_and_privileged_path_hardening.sql` is intentionally retained with its real, non-secret forward SQL. New migrations created after this baseline must also contain their real forward SQL normally.
 
 `supabase/seed.sql` contains only the active card catalogue (135 questions and 352 answers as of 2026-09-17). It intentionally excludes rooms, players, submissions, tokens and all `app_settings` values.
 
