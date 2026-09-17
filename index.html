@@ -208,10 +208,14 @@ button.scard:active{transform:translateY(2px)}
 @keyframes rise{from{transform:translateY(16px);opacity:0}}
 
 /* ===== Salon ===== */
-.codeblock{margin:6px 0 18px}
-.bigcode{display:flex;gap:8px;margin-top:10px}
+/* Le code et l'invitation se partagent la largeur, à hauteur égale. */
+.lobbytop{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;margin:6px 0 18px}
+.lobbytop .invite{height:100%;margin:0;padding:16px;border-radius:var(--r-lg);
+  font-size:16px;line-height:1.25;text-align:center;text-wrap:balance}
+.codeblock{min-width:0}
+.bigcode{display:flex;gap:6px;margin-top:10px}
 .bigcode .ch{flex:1;display:grid;place-items:center;aspect-ratio:3/4;max-height:104px;border-radius:14px;
-  font-size:clamp(34px,11vw,46px);font-weight:800;color:var(--gold);
+  font-size:clamp(20px,5.4vw,28px);font-weight:800;color:var(--gold);
   background:linear-gradient(170deg,rgba(255,201,60,.16),rgba(255,201,60,.05));
   border:1.5px solid rgba(255,201,60,.32);text-shadow:0 2px 14px rgba(255,201,60,.4)}
 .sec{font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
@@ -588,11 +592,13 @@ function lobby(){
   const r = state.room, host = isMe(r.host_id), n = state.players.length;
   const all = state.players.every(p => p.ready), missing = Math.max(0, 3 - n);
   return `
-    <div class="codeblock">
-      <p class="eyebrow">Code de la partie</p>
-      <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
+    <div class="lobbytop">
+      <div class="codeblock">
+        <p class="eyebrow">Code de la partie</p>
+        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
+      </div>
+      <button class="btn ghost invite" data-act="share">Inviter des joueurs</button>
     </div>
-    <button class="btn ghost" data-act="share">Inviter des joueurs</button>
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
