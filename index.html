@@ -601,13 +601,12 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who">${avatar(p,'lg')}<span class="nm">${esc(p.name)}</span>${p.is_bot ? '<span class="tag bot">bot</span>' : ''}${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.is_bot ? '<span class="tag bot">bot</span>' : ''}${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
         <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host ? '<button class="btn ghost" data-act="bot">+ Ajouter un bot</button>' : ''}
-    <p class="meta" style="margin-top:16px">🏆 Premier à ${r.target} points.</p>
     <p class="leaverow"><button class="link" data-act="leave">Quitter la partie</button></p>
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
