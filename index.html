@@ -264,7 +264,11 @@ button.scard:active{transform:translateY(2px)}
 .steps i.on{background:var(--gold)}
 
 /* ===== Attente & roue ===== */
-.wheelWrap{text-align:center;padding:10px 0 4px}
+/* La roue occupe seule l'écran : on retranche les marges de main et la barre
+   du haut pour la centrer dans ce qui reste, au lieu de la coller en haut. */
+.wheelWrap{--pad:calc(30px + 18px + 58px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
+  display:flex;flex-direction:column;justify-content:center;text-align:center;padding:10px 0 4px}
 .waitScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   min-height:64vh;gap:8px;padding:10px 0}
 .cardback{position:relative;width:118px;height:150px;border-radius:16px;margin-bottom:24px;
