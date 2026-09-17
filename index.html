@@ -140,7 +140,9 @@ input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1
 .av.bot{background:linear-gradient(160deg,#B9A7C4,#8D7B96)}
 
 /* ===== Cartes ===== */
-.role{font-size:17px;font-weight:600;color:var(--text-dim);margin:2px 0 14px;max-width:34ch}
+/* Deux lignes réservées : la carte tombe à la même hauteur que l'énoncé fasse
+   une ou deux lignes, sinon elle saute d'un écran à l'autre. */
+.role{font-size:17px;font-weight:600;color:var(--text-dim);margin:2px 0 14px;max-width:34ch;min-height:2.9em}
 .role b{color:var(--text);font-weight:800}
 h2.title{font-size:27px;margin:2px 0 14px}
 .qcard{position:relative;background:linear-gradient(168deg,#FFFDF7 0%,var(--paper) 42%,var(--paper-2) 100%);
@@ -248,8 +250,7 @@ button.scard:active{transform:translateY(2px)}
 .bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:14px}
 .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--mint));
   transition:width .35s var(--ease)}
-.readNow{display:flex;flex-direction:column;justify-content:center;min-height:48vh}
-.steps{display:flex;gap:6px;margin:0 0 14px}
+.steps{display:flex;gap:6px;margin:14px 0 0}
 .steps i{flex:1;height:4px;border-radius:99px;background:var(--surface-2)}
 .steps i.on{background:var(--gold)}
 
@@ -705,10 +706,8 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role">Lis cette réponse <b>à voix haute</b>.</p>
-    <div class="readNow">
-      <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
-      ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text))}
-    </div>
+    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text))}
+    <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `
     <h2 class="title">Laquelle gagne ?</h2>
