@@ -57,7 +57,6 @@ button{cursor:pointer;border:0;background:none}
 :focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
 .muted{color:var(--text-dim)}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
-.stack{display:grid;gap:16px}
 
 /* ===== Accueil (tient sur un écran, sans défilement) ===== */
 body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
@@ -231,8 +230,6 @@ button.scard:active{transform:translateY(2px)}
 .tag.host{background:rgba(255,201,60,.18);color:var(--gold)}
 .tag.bot{background:rgba(255,255,255,.1);color:var(--text-dim)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px;font-weight:600}
-.notice{background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.28);color:#FFE6A8;border-radius:var(--r-md);
-  padding:13px 15px;margin:0 0 16px;font-size:15px;font-weight:600}
 
 /* catalogue admin */
 .searchfield{display:block;width:100%;margin:0 0 12px}
@@ -326,7 +323,6 @@ button.scard:active{transform:translateY(2px)}
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to top,#000 55%,transparent);
   mask-image:linear-gradient(to top,#000 55%,transparent)}
 .dock>*{position:relative;z-index:1;max-width:484px;margin-left:auto;margin-right:auto}
-.hint{text-align:center;color:var(--text-dim);font-size:15px;font-weight:600;padding:6px 0}
 .center{text-align:center;padding-top:34vh;color:var(--text-dim)}
 .spin{display:block;width:26px;height:26px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--hairline);
   border-top-color:var(--gold);animation:rot .8s linear infinite}
