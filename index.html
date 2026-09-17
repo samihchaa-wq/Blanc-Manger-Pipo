@@ -60,7 +60,7 @@ button{cursor:pointer;border:0;background:none}
 .stack{display:grid;gap:16px}
 
 /* ===== Accueil (tient sur un écran, sans défilement) ===== */
-body.is-home main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
 .home{min-height:calc(100vh - 34px);min-height:calc(100dvh - 34px);
   display:flex;flex-direction:column;justify-content:center;gap:22px}
 .home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
@@ -473,6 +473,8 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
+  // Sans barre d'action fixe, les 150px réservés en bas laisseraient un grand vide.
+  document.body.classList.toggle('no-dock', !html.includes('class="dock"'));
   if (html !== lastHtml) {
     lastHtml = html;
     app.innerHTML = html;
@@ -709,11 +711,7 @@ function answering(){
         ${canDrop ? '<span class="cue drop" aria-hidden="true"><span>Jeter</span></span>' : ''}
         <button class="acard ${c.id === selected ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${c.id === selected}">${esc(c.text)}</button>
       </div></li>`).join('')}
-    </ul>
-    <div class="dock">
-      ${state.me.can_discard && selected ? '<button class="btn ghost" data-act="discard">Jeter cette carte</button>' : ''}
-      <button class="btn" data-act="submit" ${dis(!sel)}>${sel ? 'Jouer cette carte' : 'Touche une carte'}</button>
-    </div>`;
+    </ul>`;
 }
 
 function judging(){
@@ -991,8 +989,6 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'select') { selected = +id; return render() }
-  if (a === 'discard' && selected) { if (await act('discard_card',{ p_answer_id:selected })) selected = null; return }
-  if (a === 'submit' && selected) { if (await act('submit_answer',{ p_answer_id:selected })) selected = null; return }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
