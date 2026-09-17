@@ -57,9 +57,9 @@ jobs:
           mkdir -p _site/vendor
           cp index.html _site/index.html
           cp vendor/supabase.js _site/vendor/supabase.js
-          cp manifest.webmanifest favicon-32.png icon-180.png icon-192.png icon-512.png _site/
+          cp sw.js manifest.webmanifest favicon-32.png icon-180.png icon-192.png icon-512.png _site/
           grep -q './vendor/supabase.js' _site/index.html
-          for f in manifest.webmanifest favicon-32.png icon-180.png icon-192.png icon-512.png; do
+          for f in sw.js manifest.webmanifest favicon-32.png icon-180.png icon-192.png icon-512.png; do
             test -s "_site/$f" || { echo "manquant dans _site : $f"; exit 1; }
           done
       - uses: actions/configure-pages@v5
