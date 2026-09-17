@@ -162,6 +162,9 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .hand,.subs,.qchoices{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px}
 .acard,.scard,.qchoice{display:block;width:100%;text-align:left;color:var(--ink);border-radius:15px;padding:15px 17px;
   font-size:18px;font-weight:700;line-height:1.32;letter-spacing:-.01em;background:linear-gradient(170deg,#FFFDF7,var(--paper-2))}
+/* Les réponses sont stockées en minuscule, prêtes à s'insérer en milieu de
+   phrase ; seule leur présentation en carte reprend une majuscule. */
+.acard::first-letter{text-transform:uppercase}
 .acard{position:relative;box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease),background .14s;
   touch-action:pan-y;user-select:none;-webkit-user-select:none}
@@ -441,8 +444,11 @@ function blank(q){ return esc(q).replace('____','<span class="blank"></span>') }
 function fill(q, a){
   const i = q.indexOf('____');
   if (i < 0) return esc(q) + ' <span class="fill">' + esc(a) + '</span>';
-  let x = a;
-  if (i > 0 && !/^[A-Z]{2}/.test(x)) x = x.charAt(0).toLowerCase() + x.slice(1);
+  // La réponse est stockée telle que son autrice l'a tapée, donc en milieu de
+  // phrase on n'y touche pas : abaisser l'initiale cassait « Jean-Michel » et
+  // les sigles accentués, que l'ancien garde-fou /^[A-Z]{2}/ ne voyait pas.
+  // Seul le trou en tête de phrase impose une majuscule.
+  const x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1) : a;
   return esc(q.slice(0,i)) + '<span class="fill">' + esc(x) + '</span>' + esc(q.slice(i + 4));
 }
 function qcard(tag, html, cls = '', foot = ''){
