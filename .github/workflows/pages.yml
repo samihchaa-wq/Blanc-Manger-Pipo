@@ -32,10 +32,20 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+      - name: Build self-contained site
+        run: |
+          mkdir -p _site/vendor
+          cp index.html _site/index.html
+          curl --fail --silent --show-error --location --retry 3 \
+            'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js' \
+            -o _site/vendor/supabase.js
+          test -s _site/vendor/supabase.js
+          sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js#./vendor/supabase.js#g' _site/index.html
+          grep -q './vendor/supabase.js' _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
