@@ -132,6 +132,7 @@ input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1
   background:var(--surface);border:1px solid var(--hairline);padding:6px 10px 6px 12px;border-radius:10px}
 .code::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);letter-spacing:0}
 .round{font-size:13px;font-weight:700;color:var(--text-faint);white-space:nowrap}
+.leaverow{margin:18px 0 0;text-align:center}
 .av{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;position:relative;
   background:hsl(var(--h) 72% 64%);color:#1A1020;font-size:12px;font-weight:800;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);text-transform:uppercase}
@@ -579,6 +580,9 @@ function topbar(){
   const scores = r.status === 'lobby' ? '' : `<ul class="scores" aria-label="Scores">${state.players.map(p => `
     <li class="${p.id === r.reader_id && r.status !== 'finished' ? 'reader' : ''} ${p.submitted && r.status === 'answering' ? 'done' : ''}">
       ${avatar(p)}<span>${esc(p.name)}${p.is_bot ? ' 🤖' : ''}${isMe(p.id) ? ' (toi)' : ''}</span><b>${p.score}</b></li>`).join('')}</ul>`;
+  // Dans le lobby, le code s'affiche déjà en gros et « Quitter » vit en bas de
+  // page : la barre du haut n'aurait plus rien à montrer.
+  if (r.status === 'lobby') return '';
   return `<div class="top">
       <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}</span>` : ''}</div>
       <button class="link" data-act="leave">Quitter</button>
@@ -604,6 +608,7 @@ function lobby(){
     </ul>
     ${host ? '<button class="btn ghost" data-act="bot">+ Ajouter un bot</button>' : ''}
     <p class="meta" style="margin-top:16px">🏆 Premier à ${r.target} points.</p>
+    <p class="leaverow"><button class="link" data-act="leave">Quitter la partie</button></p>
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
