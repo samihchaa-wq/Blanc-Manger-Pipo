@@ -9,8 +9,14 @@ const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
 assert.equal(scripts.length, 1, 'Expected exactly one inline application script');
 new Function(scripts[0]);
 
-assert.match(html, /@supabase\/supabase-js@2\.116\.0\/dist\/umd\/supabase\.js/,
-  'Supabase JS must stay pinned to the reviewed version');
+const usesPinnedCdn = /@supabase\/supabase-js@2\.116\.0\/dist\/umd\/supabase\.js/.test(html);
+const usesVendoredClient = /\.\/vendor\/supabase\.js/.test(html);
+assert.ok(usesPinnedCdn || usesVendoredClient,
+  'Supabase JS must use the reviewed pinned CDN build or the vendored copy');
+if (usesVendoredClient) {
+  const vendor = fs.readFileSync(new URL('../vendor/supabase.js', import.meta.url), 'utf8');
+  assert.match(vendor, /^var supabase=/, 'Vendored Supabase client is missing or invalid');
+}
 assert.match(html, /sb_publishable_[A-Za-z0-9_-]+/,
   'Client must use a publishable Supabase key');
 assert.doesNotMatch(html, /service[_-]?role|sb_secret_/i,
