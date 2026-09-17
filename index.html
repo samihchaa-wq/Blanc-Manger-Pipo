@@ -330,10 +330,16 @@ button.scard:active{transform:translateY(2px)}
 .spin{display:block;width:26px;height:26px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--hairline);
   border-top-color:var(--gold);animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-180%);
+/* Le retrait doit franchir la hauteur du message ET tout ce qui le sépare du
+   bord : -180% de sa propre hauteur ne suffisait pas dès que l'encoche
+   décalait le point de départ, et le message restait affiché, rogné en haut.
+   L'opacité sert de garde-fou si la translation tombe encore juste. */
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));
+  transform:translate(-50%,calc(-100% - 24px - env(safe-area-inset-top)));opacity:0;pointer-events:none;
   background:var(--paper);color:var(--ink);padding:13px 18px;border-radius:14px;font-weight:700;font-size:15px;
-  transition:transform .28s var(--ease);z-index:20;max-width:92vw;text-align:center;box-shadow:0 14px 34px rgba(0,0,0,.55)}
-#toast.on{transform:translate(-50%,0)}
+  transition:transform .28s var(--ease),opacity .2s var(--ease);z-index:20;max-width:92vw;text-align:center;
+  box-shadow:0 14px 34px rgba(0,0,0,.55)}
+#toast.on{transform:translate(-50%,0);opacity:1}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .wheel{transform:rotate(var(--spin,0deg))}
