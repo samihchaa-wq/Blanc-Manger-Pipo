@@ -119,6 +119,7 @@ input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1
 .btn.on{background:linear-gradient(180deg,#8CF0CD,var(--mint-2));color:#052B20;
   box-shadow:0 5px 0 var(--mint-deep),0 16px 30px -12px rgba(95,227,180,.55)}
 .btn:disabled{opacity:.42;cursor:default;box-shadow:none;filter:saturate(.6)}
+.btn.pending{opacity:.72;box-shadow:none;transform:translateY(2px)}
 .btn+.btn{margin-top:10px}
 .link{color:var(--text-faint);padding:8px 10px;font-size:14px;font-weight:600;border-radius:var(--r-pill);
   transition:color var(--dur),background var(--dur)}
@@ -350,6 +351,7 @@ let session = load(), state = null, busy = false, selected = null, picked = null
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
+let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
 let catalog = { total:0, items:[], q:'' }, catTimer = null;
@@ -384,10 +386,22 @@ function toast(m){
 async function rpc(fn, args){ const { data, error } = await sb.rpc(fn, args); if (error) throw Error(error.message); return data }
 async function act(fn, extra = {}){
   if (busy) return false;
-  busy = true; render();
+  busy = true;
+  // On marque le bouton touché plutôt que de reconstruire tout l'écran : le
+  // retour est immédiat, et le reste de la page ne bouge pas sous le doigt.
+  const el = pressedEl; pressedEl = null;
+  if (el && el.isConnected) { el.disabled = true; el.classList.add('pending') }
   try { await rpc(fn, { p_code: session.code, p_token: session.token, ...extra }); ping(); await refresh(true); return true }
   catch (e) { toast(e.message); return false }
   finally { busy = false; render() }
+}
+
+// Les bots tournent en tâche de fond : ni busy, ni rendu forcé. Sinon chaque
+// passage bloquait les clics et faisait clignoter les boutons.
+async function botTick(){
+  if (!session || busy) return;
+  try { await rpc('bot_step', { p_code: session.code, p_token: session.token }); ping(); await refresh() }
+  catch {}   // un échec est rattrapé par le sondage suivant
 }
 async function refresh(force = false){
   if (!session) return;
@@ -418,9 +432,18 @@ function leaveLocal(){ disconnect(); save(null); state = null; history.replaceSt
 function scheduleAuto(){
   clearTimeout(auto); clearTimeout(wheelTimer);
   if (!state) return;
-  if (state.room.status === 'question_select') { wheelTimer = setTimeout(render, 2100); auto = setTimeout(() => act('bot_step'), 2300) }
-  else if (state.room.status === 'answering') auto = setTimeout(() => act('bot_step'), 700);
-  else if (state.room.status === 'judging' && P(state.room.reader_id)?.is_bot) auto = setTimeout(() => act('bot_step'), 900);
+  const r = state.room;
+  if (r.status === 'question_select') wheelTimer = setTimeout(render, 2100);
+  // Un seul appareil pilote les bots : sinon chaque téléphone appelle bot_step en parallèle.
+  const driver = state.players.find(p => p.id === r.host_id && !p.is_bot) || state.players.find(p => !p.is_bot);
+  if (!driver || !isMe(driver.id)) return;
+  if (r.status === 'question_select') {
+    if (P(r.reader_id)?.is_bot) auto = setTimeout(botTick, 2300);
+  } else if (r.status === 'answering') {
+    if (state.players.some(p => p.is_bot && p.id !== r.reader_id && !p.submitted)) auto = setTimeout(botTick, 700);
+  } else if (r.status === 'judging' && P(r.reader_id)?.is_bot) {
+    auto = setTimeout(botTick, 900);
+  }
 }
 
 /* ---------- Cartes ---------- */
@@ -442,12 +465,19 @@ function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);
-  if (adminOpen) { app.innerHTML = adminView(); paintCatalog(); return }
-  if (!session) { app.innerHTML = home(); return }
-  if (!state) { app.innerHTML = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>'; return }
-  const view = { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status];
-  app.innerHTML = topbar() + view();
-  if (state.room.status === 'finished') confetti();
+  let html;
+  if (adminOpen) html = adminView();
+  else if (!session) html = home();
+  else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
+  else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
+  // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
+  // la plupart des rafraîchissements ne changent rien à l'écran.
+  if (html !== lastHtml) {
+    lastHtml = html;
+    app.innerHTML = html;
+    if (adminOpen) paintCatalog();
+    else if (session && state && state.room.status === 'finished') confetti();
+  }
   dealPending = false;
 }
 
@@ -859,6 +889,7 @@ document.addEventListener('click', async e => {
   if (!el || el.disabled) return;
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
+  pressedEl = el;
   const a = el.dataset.act, id = el.dataset.id;
   if (a === 'target') {
     const box = document.getElementById('c-target');
@@ -912,7 +943,9 @@ document.addEventListener('click', async e => {
     try {
       const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: 'a', p_text: text });
       toast(`Ajoutée. ${d.total} réponses au catalogue.`);
-      render();                       // vide le champ ; la réponse n'est pas listée ici
+      const champ = document.getElementById('a-text');
+      if (champ) champ.value = '';     // le rendu identique n'écrit plus le DOM
+      el.disabled = false;
       if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
       toast(/existe déjà/i.test(e.message) ? 'Réponse déjà existante' : e.message);
