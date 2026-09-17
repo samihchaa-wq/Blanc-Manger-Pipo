@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#120714">
 <meta name="description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Pas de ça à table</title>
+<title>Blanc Manger Pipo</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,35 +54,37 @@ button{cursor:pointer;border:0;background:none}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
 .stack{display:grid;gap:16px}
 
-/* ===== Accueil ===== */
-.hero{padding:22px 0 4px}
-.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:var(--r-pill);
-  background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);letter-spacing:.06em;font-size:11.5px}
-.hero .dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(95,227,180,.16)}
-.hero h1{margin:18px 0 0;font-size:clamp(46px,13.5vw,68px);letter-spacing:-.045em}
-.hero h1 em{font-style:normal;display:inline-block;background:linear-gradient(100deg,var(--gold) 10%,var(--pop) 90%);
+/* ===== Accueil (tient sur un écran, sans défilement) ===== */
+body.is-home main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+.home{min-height:calc(100vh - 34px);min-height:calc(100dvh - 34px);
+  display:flex;flex-direction:column;justify-content:center;gap:22px}
+.home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
+.iconbtn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px 8px 11px;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
+  font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.iconbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
+.iconbtn:active{background:var(--surface-2);color:var(--text)}
+.home h1{font-size:clamp(40px,12.5vw,58px);letter-spacing:-.045em;line-height:.98}
+.home h1 em{font-style:normal;display:block;background:linear-gradient(100deg,var(--gold) 10%,var(--pop) 90%);
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{max-width:27ch;color:var(--text-dim);margin-top:14px}
-.fan{position:relative;height:212px;margin:24px 0 4px;display:flex;justify-content:center}
-.fan figure{position:absolute;top:16px;width:150px;height:176px;margin:0;padding:15px;border-radius:16px;overflow:hidden;
-  color:var(--ink);font-size:15px;font-weight:700;line-height:1.26;letter-spacing:-.015em;
-  box-shadow:var(--shadow-card);display:flex;flex-direction:column;justify-content:space-between}
-.fan figure::after{content:"";position:absolute;inset:0;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.09)}
-.fan .f1{background:linear-gradient(165deg,#FFE7A3,var(--gold));transform:rotate(-7deg) translate(-68px,0);z-index:2}
-.fan .f2{background:linear-gradient(165deg,#FFD3E0,var(--pop));transform:rotate(8deg) translate(68px,12px);z-index:3}
-.fan .f3{width:132px;height:162px;top:22px;background:repeating-linear-gradient(135deg,#F1E2CC 0 7px,#FFF8EB 7px 14px);
-  transform:rotate(-17deg) translate(-104px,6px);z-index:1}
-.fan .sig{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.45}
-.fan u{display:inline-block;width:3.2em;text-decoration:none;border-bottom:2.5px solid currentColor;opacity:.75}
+
+/* barre à deux onglets */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
+  border:1.5px solid var(--hairline);border-radius:var(--r-pill)}
+.tab{padding:13px 6px;border-radius:var(--r-pill);font-size:clamp(13px,3.6vw,15px);font-weight:700;
+  white-space:nowrap;color:var(--text-dim);
+  transition:background var(--dur),color var(--dur),transform var(--dur)}
+.tab.on{background:linear-gradient(180deg,#FFDC7A,var(--gold-2));color:#2E1D00;font-weight:800;
+  box-shadow:0 3px 12px -4px rgba(255,201,60,.7)}
+.tab:active{transform:scale(.97)}
+.pane[hidden]{display:none}
+.home .panel{margin-top:0}
 
 /* ===== Panneaux & champs ===== */
 .panel{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);
   padding:22px;margin-top:16px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 18px 40px -24px rgba(0,0,0,.9)}
 .panel h2{font-size:25px;margin:6px 0 18px}
 .panel .eyebrow{color:var(--gold)}
-.or{display:flex;align-items:center;gap:14px;margin:22px 2px 6px;color:var(--text-faint);
-  font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
-.or::before,.or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--hairline),transparent)}
 label,.field{display:block;margin-bottom:16px}
 label>span,.field>span{display:block;font-size:12px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
@@ -329,6 +331,8 @@ const app = document.getElementById('app');
 let session = load(), state = null, busy = false, selected = null, picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
+// le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
+let adminOpen = false, adminPwd = '', adminAdded = [];
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -417,6 +421,8 @@ function qcard(tag, html, cls = '', foot = ''){
 function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
+  document.body.classList.toggle('is-home', !session && !adminOpen);
+  if (adminOpen) { app.innerHTML = adminView(); return }
   if (!session) { app.innerHTML = home(); return }
   if (!state) { app.innerHTML = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>'; return }
   const view = { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status];
@@ -428,37 +434,65 @@ function render(){
 function home(){
   const code = (new URLSearchParams(location.search).get('code') || '').toUpperCase().slice(0,4);
   let nm = ''; try { nm = localStorage.getItem('pdcat-name') || '' } catch {}
-  const create = `
-    <section class="panel">
-      <p class="eyebrow">Hôte</p><h2>Nouvelle partie</h2>
-      <label><span>Ton pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Mamie déchaînée" value="${esc(nm)}"></label>
-      <div class="field"><span>Points pour gagner</span>
-        <div class="seg" role="group" aria-label="Points pour gagner">
-          ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
-        </div>
-        <input type="hidden" id="c-target" value="5">
-      </div>
-      <button class="btn" data-act="create">Créer la partie</button>
-    </section>`;
-  const join = `
-    <section class="panel">
-      <p class="eyebrow">Invité</p><h2>Rejoindre une partie</h2>
-      <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
-      <label><span>Ton pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Tonton blagueur" value="${esc(nm)}"></label>
-      <button class="btn alt" data-act="join">Rejoindre</button>
-    </section>`;
+  const join = !!code;            // arrivé par un lien d'invitation : on ouvre le bon onglet
   return `
-    <header class="hero">
-      <p class="eyebrow"><span class="dot"></span>3 à 12 joueurs · 1 téléphone chacun</p>
-      <h1>Pas de ça<br><em>à table</em></h1>
-      <p class="lead">Le jeu de cartes qui gâche les repas de famille.</p>
-      <div class="fan" aria-hidden="true">
-        <figure class="f3"></figure>
-        <figure class="f1"><span>Ce qui a ruiné Noël : <u></u>.</span><span class="sig">Question</span></figure>
-        <figure class="f2"><span>Un poney dépressif</span><span class="sig">Réponse</span></figure>
+    <div class="home">
+      <div class="home-top">
+        <button class="iconbtn" data-act="admin">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/><path d="M9.5 12l1.8 1.8 3.5-3.6"/></svg>
+          Admin
+        </button>
       </div>
-    </header>
-    ${code ? join + '<div class="or">ou</div>' + create : create + '<div class="or">ou</div>' + join}`;
+
+      <h1>Blanc Manger<em>Pipo</em></h1>
+
+      <div class="tabs" role="tablist">
+        <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer une partie</button>
+        <button class="tab ${join ? 'on' : ''}" data-act="tab" data-tab="join" role="tab" aria-selected="${join}">Rejoindre une partie</button>
+      </div>
+
+      <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
+        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Mamie déchaînée" value="${esc(nm)}"></label>
+        <div class="field"><span>Manches à gagner</span>
+          <div class="seg" role="group" aria-label="Manches à gagner">
+            ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
+          </div>
+          <input type="hidden" id="c-target" value="5">
+        </div>
+        <button class="btn" data-act="create">Créer la partie</button>
+      </section>
+
+      <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
+        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Tonton blagueur" value="${esc(nm)}"></label>
+        <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
+        <button class="btn" data-act="join">Rejoindre la partie</button>
+      </section>
+    </div>`;
+}
+
+function adminView(){
+  const added = adminAdded.length
+    ? `<h3 class="sec">Ajoutées (${adminAdded.length})</h3>
+       <ul class="plist">${adminAdded.map(t => `<li><span class="who"><span class="nm">${esc(t)}</span></span></li>`).join('')}</ul>`
+    : '';
+  const body = adminPwd
+    ? `<section class="panel">
+         <p class="eyebrow">Catalogue</p><h2>Nouvelle réponse</h2>
+         <label><span>Texte de la réponse</span><input id="a-text" maxlength="80" placeholder="Un poney dépressif"></label>
+         <p class="meta" style="margin:-6px 0 14px">80 caractères maximum, sans texte à trou.</p>
+         <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
+       </section>${added}`
+    : `<section class="panel">
+         <p class="eyebrow">Accès réservé</p><h2>Code admin</h2>
+         <label><span>Code</span><input id="a-pwd" type="password" autocomplete="off" placeholder="••••••••"></label>
+         <button class="btn" data-act="admin-login">Entrer</button>
+       </section>`;
+  return `
+    <div class="top">
+      <div class="top-l"><span class="round">Admin</span></div>
+      <button class="link" data-act="admin-close">Retour</button>
+    </div>
+    ${body}`;
 }
 
 function topbar(){
@@ -759,7 +793,7 @@ async function enter(call, name){
 }
 async function share(){
   const url = location.origin + location.pathname + '?code=' + session.code;
-  if (navigator.share) { try { return await navigator.share({ text:'Rejoins ma partie avec le code ' + session.code, url }) } catch {} }
+  if (navigator.share) { try { return await navigator.share({ title:'Blanc Manger Pipo', text:'Rejoins ma partie de Blanc Manger Pipo avec le code ' + session.code, url }) } catch {} }
   try { await navigator.clipboard.writeText(url); toast('Lien copié.') } catch { toast(url) }
 }
 
@@ -775,6 +809,50 @@ document.addEventListener('click', async e => {
     el.parentElement.querySelectorAll('.seg-b').forEach(b => {
       const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     });
+    return;
+  }
+  if (a === 'tab') {
+    const want = el.dataset.tab;
+    // les deux volets restent dans le DOM : on ne re-rend pas, sinon on perd la saisie
+    document.querySelectorAll('.tab').forEach(t => {
+      const on = t === el; t.classList.toggle('on', on); t.setAttribute('aria-selected', on);
+    });
+    const from = document.getElementById(want === 'join' ? 'c-name' : 'j-name');
+    const to = document.getElementById(want === 'join' ? 'j-name' : 'c-name');
+    if (from && to && from.value.trim()) to.value = from.value;   // le pseudo suit l'onglet
+    document.getElementById('pane-create').hidden = want !== 'create';
+    document.getElementById('pane-join').hidden = want !== 'join';
+    return;
+  }
+  if (a === 'admin') { adminOpen = true; return render() }
+  if (a === 'admin-close') { adminOpen = false; return render() }
+  if (a === 'admin-login') {
+    const pwd = val('a-pwd');
+    if (!pwd) return toast('Entre le code admin.');
+    if (busy) return;
+    busy = true; el.disabled = true;
+    try {
+      if (await rpc('admin_check', { p_password: pwd })) { adminPwd = pwd; render() }
+      else { toast('Code incorrect.'); el.disabled = false }
+    } catch (e) { toast(e.message); el.disabled = false }
+    busy = false;
+    return;
+  }
+  if (a === 'admin-add') {
+    const text = val('a-text');
+    if (!text) return toast('Écris une réponse.');
+    if (busy) return;
+    busy = true; el.disabled = true;
+    try {
+      const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: 'a', p_text: text });
+      adminAdded.unshift(d.text);
+      toast(`Ajoutée. ${d.total} réponses au catalogue.`);
+      render();
+    } catch (e) {
+      toast(e.message);
+      if (/Mot de passe/i.test(e.message)) { adminPwd = ''; render() } else el.disabled = false;
+    }
+    busy = false;
     return;
   }
   if (a === 'create') { const n = val('c-name'); if (!n) return toast('Choisis un pseudo.'); return enter(() => rpc('create_room',{ p_name:n, p_target:+val('c-target') }), n) }
@@ -806,6 +884,8 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#a-pwd')) document.querySelector('[data-act=admin-login]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#a-text')) document.querySelector('[data-act=admin-add]')?.click();
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true) });
 
