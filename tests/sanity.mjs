@@ -15,11 +15,13 @@ assert.match(html, /sb_publishable_[A-Za-z0-9_-]+/,
   'Client must use a publishable Supabase key');
 assert.doesNotMatch(html, /service[_-]?role|sb_secret_/i,
   'Never expose a service-role or secret key in the browser');
-assert.match(html, /setInterval\(\(\) => \{ if \(!document\.hidden\) refresh\(\) \}, 15000\)/,
-  'Fallback polling must remain at 15 seconds');
-assert.match(html, /setTimeout\(\(\) => refresh\(\), 400\)/,
+assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},12000\)/,
+  'Fallback polling must remain at 12 seconds');
+assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
 assert.match(html, /<option>3<\/option><option selected>5<\/option><option>7<\/option><option>10<\/option>/,
   'Supported target scores changed unexpectedly');
+assert.match(html, /data-act="bot"/, 'Bot control must remain available');
+assert.match(html, /data-act="ready"/, 'Ready control must remain available');
 
 console.log('Frontend sanity checks passed.');
