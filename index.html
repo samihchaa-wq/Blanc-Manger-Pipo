@@ -61,8 +61,13 @@ button{cursor:pointer;border:0;background:none}
 
 /* ===== Accueil (tient sur un écran, sans défilement) ===== */
 body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
-.home{min-height:calc(100vh - 34px);min-height:calc(100dvh - 34px);
-  display:flex;flex-direction:column;justify-content:center;gap:22px}
+/* La hauteur doit retrancher exactement les marges de main, sinon le bloc
+   dépasse l'écran : il se centre alors trop bas et laisse un grand vide en
+   haut, avec du défilement en prime. */
+.home{--pad:calc(30px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
+  display:flex;flex-direction:column;justify-content:center;gap:22px;
+  padding-bottom:7vh}  /* centrage optique : à égalité parfaite le bloc paraît trop bas */
 .home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
 .iconbtn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px 8px 11px;border-radius:var(--r-pill);
   background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
