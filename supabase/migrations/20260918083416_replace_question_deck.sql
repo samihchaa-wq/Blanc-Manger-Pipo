@@ -1,8 +1,10 @@
--- Contenu des cartes « question », snapshot du 2026-09-18.
--- Source : deck_phrases_a_trou.csv (180 cartes DECK PREMIUM + 20 cartes RESERVE).
--- Exclut volontairement rooms, players, submissions, tokens et app_settings.
--- Le seed est un remplacement complet : il repart d'une table vide pour qu'un
--- rejeu ne laisse jamais traîner une carte retirée du deck.
+-- Remplacement intégral du deck de questions par le deck fourni
+-- (deck_phrases_a_trou.csv : 180 cartes DECK PREMIUM + 20 cartes RESERVE).
+-- Les anciennes questions sont supprimées définitivement : les parties en cours
+-- perdent la question tirée et repartent d'un historique vierge.
+-- Les identifiants sont volontairement laissés à la séquence (et non forcés via
+-- « overriding system value ») : la colonne est une identity dans le dépôt mais
+-- un serial en production, seul ce formulaire fonctionne des deux côtés.
 
 update public.rooms set question_id = null, used_questions = '{}';
 
