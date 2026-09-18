@@ -188,6 +188,9 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .acard.sel{background:linear-gradient(170deg,#FF8CAE,var(--pop));color:#2E0715;transform:translateX(7px) rotate(.7deg);
   box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(255,92,138,.8)}
 .acard.sel::before{background:#2E0715;width:5px}
+.acard .rang{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;
+  border-radius:50%;background:#2E0715;color:var(--paper);font-style:normal;font-size:13px;font-weight:800;
+  vertical-align:-3px}
 .scard{position:relative;box-shadow:0 2px 0 var(--paper-edge),0 8px 18px -12px rgba(0,0,0,.55)}
 button.scard{transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 button.scard:active{transform:translateY(2px)}
@@ -240,10 +243,12 @@ button.scard:active{transform:translateY(2px)}
 .catlist li{display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 14px;border-radius:var(--r-md);
   background:var(--surface);border:1px solid var(--hairline);font-size:16px;font-weight:600;line-height:1.35}
 .catlist .ct{flex:1;min-width:0;overflow-wrap:anywhere}
-.catlist .form{flex:none;width:30px;height:30px;border-radius:9px;font-size:12px;font-weight:800;
+.catlist .form{flex:none;min-width:30px;height:30px;padding:0 7px;border-radius:9px;font-size:12px;font-weight:800;
   border:1.5px solid var(--hairline-2);background:rgba(255,255,255,.05);color:var(--text-dim)}
 .catlist .form.v{background:rgba(95,227,180,.16);border-color:rgba(95,227,180,.45);color:var(--mint)}
 .catlist .form.n{background:rgba(255,201,60,.14);border-color:rgba(255,201,60,.4);color:var(--gold)}
+.catlist .form.two{display:inline-flex;align-items:center;letter-spacing:.02em;
+  background:rgba(155,123,255,.16);border-color:rgba(155,123,255,.48);color:#BCA6FF}
 .catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,138,.16);
   color:var(--pop);font-size:19px;font-weight:800;line-height:1;display:grid;place-items:center}
 .catlist .del:active{background:var(--pop);color:#2E0715}
@@ -356,14 +361,15 @@ button.scard:active{transform:translateY(2px)}
 <script>
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
 const app = document.getElementById('app');
-let session = load(), state = null, busy = false, selected = null, picked = null, readIndex = 0;
+let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
-let catalog = { total:0, items:[], q:'' }, catTimer = null;
+let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses
+let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -413,7 +419,7 @@ async function refresh(force = false){
     if (!force && j === last) return;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
     state = s; last = j;
-    if (changed) { selected = null; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' }
+    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' }
     render(); scheduleAuto();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
@@ -450,7 +456,9 @@ function scheduleAuto(){
 }
 
 /* ---------- Cartes ---------- */
-function blank(q){ return esc(q).replace('____','<span class="blank"></span>') }
+// replaceAll, pas replace : une phrase à deux trous n'en montrait qu'un, le
+// second restant affiché en quatre tirets bas bruts.
+function blank(q){ return esc(q).replaceAll('____','<span class="blank"></span>') }
 // Mots qui s'élident devant une voyelle. Sans ça « on a arrêté de ____ » suivi
 // de « aller chez le kiné » donne « arrêté de aller ». Le h est traité comme
 // aspiré (« de Hitler ») : le catalogue n'a aucune réponse à h muet en tête.
@@ -477,34 +485,45 @@ const CONTRACT = [
   [/(^|\s)de\s+$/i, /^des\b\s*/i, 'des '],
 ];
 
-function fill(q, a, form){
-  const i = q.indexOf('____');
-  if (i < 0) return esc(q) + ' <span class="fill">' + esc(a) + '</span>';
-  // La réponse est stockée telle que son autrice l'a tapée, donc en milieu de
-  // phrase on n'y touche pas : abaisser l'initiale cassait « Jean-Michel » et
-  // les sigles accentués, que l'ancien garde-fou /^[A-Z]{2}/ ne voyait pas.
-  // Seul le trou en tête de phrase impose une majuscule.
-  // Le trou en tête de phrase impose la majuscule ; ailleurs on l'abaisse, mais
-  // seulement quand la réponse ne peut pas être un nom propre : « Jean-Michel »
-  // et « Hitler » gardent la leur, « Un Ricard tiède » la perd.
-  let x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1)
-        : (form === 'v' || DET.test(a)) ? a.charAt(0).toLowerCase() + a.slice(1)
-        : a;
-  let before = q.slice(0,i), fondu = false;
-  for (const [prep, art, sortie] of CONTRACT) {
-    const mp = before.match(prep);
-    if (mp && art.test(x)) {
-      before = before.slice(0, mp.index + mp[1].length);
-      x = sortie + x.replace(art, '');
-      fondu = true;
-      break;
+// `cartes` est la liste des réponses, une par trou. Une case vide reste un trou,
+// ce qui donne l'aperçu au fur et à mesure que le joueur choisit.
+function fill(q, cartes){
+  const liste = Array.isArray(cartes) ? cartes : [cartes];
+  const morceaux = String(q).split('____');
+  if (morceaux.length < 2) return esc(q) + ' <span class="fill">' + esc(liste[0]?.text ?? '') + '</span>';
+
+  let html = '', avant = morceaux[0];
+  for (let k = 0; k < morceaux.length - 1; k++) {
+    const c = liste[k] || {};
+    if (!c.text) { html += esc(avant) + '<span class="blank"></span>'; avant = morceaux[k + 1]; continue }
+
+    // La réponse est stockée telle que son autrice l'a tapée. Le trou en tête de
+    // phrase impose la majuscule ; ailleurs on l'abaisse, mais seulement quand la
+    // réponse ne peut pas être un nom propre : « Jean-Michel » et « Hitler »
+    // gardent la leur, « Un Ricard tiède » la perd.
+    let x = (k === 0 && avant === '') ? c.text.charAt(0).toUpperCase() + c.text.slice(1)
+          : (c.form === 'v' || DET.test(c.text)) ? c.text.charAt(0).toLowerCase() + c.text.slice(1)
+          : c.text;
+
+    let fondu = false;
+    for (const [prep, art, sortie] of CONTRACT) {
+      const mp = avant.match(prep);
+      if (mp && art.test(x)) {
+        avant = avant.slice(0, mp.index + mp[1].length);
+        x = sortie + x.replace(art, '');
+        fondu = true;
+        break;
+      }
     }
+    // Une contraction a déjà absorbé la préposition : plus rien à élider.
+    const el = fondu ? null : avant.match(ELIDE);
+    // « de » → « d' », « que » → « qu' », « la » → « l' » : on retire la voyelle finale.
+    if (el && VOYELLE.test(x)) avant = avant.slice(0, el.index) + el[1].slice(0,-1) + '’';
+
+    html += esc(avant) + '<span class="fill">' + esc(x) + '</span>';
+    avant = morceaux[k + 1];
   }
-  // Une contraction a déjà absorbé la préposition : plus rien à élider.
-  const el = fondu ? null : before.match(ELIDE);
-  // « de » → « d' », « que » → « qu' », « la » → « l' » : on retire la voyelle finale.
-  if (el && VOYELLE.test(x)) before = before.slice(0, el.index) + el[1].slice(0,-1) + '’';
-  return esc(before) + '<span class="fill">' + esc(x) + '</span>' + esc(q.slice(i + 4));
+  return html + esc(avant);
 }
 function qcard(tag, html, cls = '', foot = ''){
   return `<div class="qcard ${cls}${dealPending ? ' deal' : ''}"><span class="qtag">${tag}</span>
@@ -575,16 +594,23 @@ function home(){
 
 function adminView(){
   const plus = adminLevel === 'plus';
+  const q = adminTab === 'q';
   const body = adminLevel
-    ? `<section class="panel">
-         <p class="eyebrow">Catalogue</p><h2>Nouvelle réponse</h2>
-         <label><span>Texte de la réponse</span><input id="a-text" maxlength="80"></label>
-         <p class="meta" style="margin:-6px 0 14px">80 caractères maximum, sans texte à trou.</p>
+    ? `<div class="tabs" role="tablist">
+         <button class="tab ${q ? 'on' : ''}" data-act="admin-tab" data-tab="q" role="tab" aria-selected="${q}">Phrases</button>
+         <button class="tab ${q ? '' : 'on'}" data-act="admin-tab" data-tab="a" role="tab" aria-selected="${!q}">Réponses</button>
+       </div>
+       <section class="panel">
+         <p class="eyebrow">Catalogue</p><h2>${q ? 'Nouvelle phrase' : 'Nouvelle réponse'}</h2>
+         <label><span>${q ? 'Texte de la phrase' : 'Texte de la réponse'}</span><input id="a-text" maxlength="${q ? 150 : 80}"></label>
+         <p class="meta" style="margin:-6px 0 14px">${q
+           ? '150 caractères maximum. Écris <b>____</b> à l’endroit du trou, deux au maximum.'
+           : '80 caractères maximum, sans texte à trou.'}</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="Rechercher une réponse" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="${q ? 'Rechercher une phrase' : 'Rechercher une réponse'}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -603,16 +629,19 @@ function adminView(){
 function paintCatalog(){
   const list = document.getElementById('cat-list');
   if (!list) return;
+  const q = catalog.kind === 'q';
+  const mot = q ? 'phrase' : 'réponse';
   const count = document.getElementById('cat-count');
-  if (count) count.textContent = `Catalogue · ${catalog.total} réponse${catalog.total > 1 ? 's' : ''}`;
+  if (count) count.textContent = `Catalogue · ${catalog.total} ${mot}${catalog.total > 1 ? 's' : ''}`;
   list.innerHTML = catalog.items.length
     ? catalog.items.map(c => `<li>
-        <button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
-          aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>
+        ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
+            : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
+          aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
         <span class="ct">${esc(c.text)}</span>
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
       </li>`).join('')
-    : '<li class="empty">Aucune réponse.</li>';
+    : `<li class="empty">Aucune ${mot}.</li>`;
   const more = document.getElementById('cat-more');
   if (more) more.innerHTML = catalog.items.length < catalog.total
     ? `<button class="btn ghost" data-act="admin-more">Afficher plus (${catalog.total - catalog.items.length})</button>`
@@ -622,7 +651,7 @@ function paintCatalog(){
 async function loadCatalog(offset = 0){
   if (adminLevel !== 'plus') return;
   try {
-    const d = await rpc('admin_list_cards', { p_password:adminPwd, p_kind:'a', p_search:catalog.q, p_offset:offset });
+    const d = await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
     catalog.total = d.total;
     catalog.items = offset ? catalog.items.concat(d.items) : d.items;
     paintCatalog();
@@ -742,25 +771,39 @@ function answering(){
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
 
-  if (state.my_submission) return `
-    <p class="role"><b>Carte envoyée.</b></p>
-    ${qcard('Ta réponse', fill(q, state.my_submission, state.my_submission_form))}
+  const cartes = state.my_cards || [];
+  if (cartes.length) return `
+    <p class="role"><b>${cartes.length > 1 ? 'Cartes envoyées.' : 'Carte envoyée.'}</b></p>
+    ${qcard(cartes.length > 1 ? 'Tes réponses' : 'Ta réponse', fill(q, cartes))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
 
-  const sel = state.hand.find(c => c.id === selected);
+  const n = state.blanks || 1;
+  const choisies = picks.map(id => state.hand.find(c => c.id === id)).filter(Boolean);
   const canDrop = !!state.me.can_discard;
+  const reste = n - choisies.length;
   return `
-    <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi cette carte. À toi de la compléter.</p>
-    ${qcard('Question', sel ? fill(q, sel.text, sel.form) : blank(q), 'sticky')}
-    <p class="swipehint">Glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}</p>
+    <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi cette carte. À toi de la compléter${n > 1 ? ' — elle a <b>deux trous</b>' : ''}.</p>
+    ${qcard('Question', fill(q, choisies), 'sticky')}
+    <p class="swipehint">${n > 1
+      ? `Touche <b>${n}</b> cartes dans l'ordre des trous${canDrop ? ', glisse <b>←</b> pour jeter' : ''}`
+      : `Glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}`}</p>
     <ul class="hand${dealPending ? ' deal-in' : ''}">
-      ${state.hand.map((c,i) => `<li style="--i:${i}"><div class="swipe">
-        <span class="cue play" aria-hidden="true"><span>Jouer</span></span>
+      ${state.hand.map((c,i) => {
+        const rang = picks.indexOf(c.id) + 1;
+        return `<li style="--i:${i}"><div class="swipe">
+        ${n > 1 ? '' : '<span class="cue play" aria-hidden="true"><span>Jouer</span></span>'}
         ${canDrop ? '<span class="cue drop" aria-hidden="true"><span>Jeter</span></span>' : ''}
-        <button class="acard ${c.id === selected ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${c.id === selected}">${esc(c.text)}</button>
-      </div></li>`).join('')}
-    </ul>`;
+        <button class="acard ${rang ? 'sel' : ''}" data-act="select" data-id="${c.id}" aria-pressed="${!!rang}">${
+          rang && n > 1 ? `<i class="rang">${rang}</i>` : ''}${esc(c.text)}</button>
+      </div></li>`;
+      }).join('')}
+    </ul>
+    ${n > 1 ? `<div class="dock">
+      <button class="btn" data-act="send" ${dis(reste > 0)}>${reste > 0
+        ? `Choisis ${reste} carte${reste > 1 ? 's' : ''}`
+        : 'Envoyer mes deux cartes'}</button>
+    </div>` : ''}`;
 }
 
 function judging(){
@@ -769,14 +812,14 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role">Lis cette réponse <b>à voix haute</b>.</p>
-    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text, subs[readIndex].form))}
+    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards))}
     <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `
     <h2 class="title">Laquelle gagne ?</h2>
     <p class="role">Touche la réponse la plus drôle.</p>
     <ul class="subs">
-      ${subs.map(s => `<li><button class="scard ${s.id === picked ? 'sel' : ''}" data-act="pick" data-id="${s.id}" aria-pressed="${s.id === picked}">${fill(q, s.text, s.form)}</button></li>`).join('')}
+      ${subs.map(s => `<li><button class="scard ${s.id === picked ? 'sel' : ''}" data-act="pick" data-id="${s.id}" aria-pressed="${s.id === picked}">${fill(q, s.cards)}</button></li>`).join('')}
     </ul>
     <div class="dock"><button class="btn" data-act="confirm" ${dis(!picked)}>${picked ? 'Donner le point' : 'Touche ta réponse préférée'}</button></div>`;
 }
@@ -784,7 +827,7 @@ function judging(){
 function result(){
   const r = state.room, q = state.question || '';
   const w = state.submissions.find(s => s.id === r.winning_submission_id);
-  return qcard('Réponse gagnante', w ? fill(q, w.text, w.form) : blank(q), 'win',
+  return qcard('Réponse gagnante', w ? fill(q, w.cards) : blank(q), 'win',
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
 function rank(){
@@ -864,7 +907,7 @@ function afterSwipe(){
 }
 
 async function runSwipe(id, dir){
-  selected = null;
+  picks = [];
   await act(dir === 'play' ? 'submit_answer' : 'discard_card', { p_answer_id: id });
 }
 
@@ -898,10 +941,14 @@ function endSwipe(e){
   const canDrop = !!state?.me?.can_discard;
   const dir = s.dx > 0 ? 'play' : 'drop';
   const far = Math.abs(s.dx) >= swipeThreshold(s.w);
+  // À deux trous le geste ne dit pas quelle carte va où : on passe par la
+  // sélection et le bouton d'envoi.
+  const deuxTrous = (state?.blanks || 1) > 1;
 
-  if (!far || (dir === 'drop' && !canDrop)) {
+  if (!far || (dir === 'drop' && !canDrop) || (dir === 'play' && deuxTrous)) {
     clearSwipe(s);
-    if (dir === 'drop' && !canDrop && Math.abs(s.dx) > 40) toast('Tu as déjà échangé une carte cette manche.');
+    if (dir === 'play' && deuxTrous && Math.abs(s.dx) > 40) toast('Deux trous : touche deux cartes, puis envoie.');
+    else if (dir === 'drop' && !canDrop && Math.abs(s.dx) > 40) toast('Tu as déjà échangé une carte cette manche.');
     return afterSwipe();
   }
   // la carte part sur le côté, puis on déclenche
@@ -960,11 +1007,20 @@ document.addEventListener('click', async e => {
     document.getElementById('pane-join').hidden = want !== 'join';
     return;
   }
-  if (a === 'admin') { adminOpen = true; return render() }
+  if (a === 'admin') { adminOpen = true; adminTab = 'a'; catalog = { kind:'a', total:0, items:[], q:'' }; return render() }
   if (a === 'admin-close') {
-    adminOpen = false; adminPwd = ''; adminLevel = '';
-    catalog = { total:0, items:[], q:'' };
+    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'a';
+    catalog = { kind:'a', total:0, items:[], q:'' };
     return render();
+  }
+  if (a === 'admin-tab') {
+    const veut = el.dataset.tab;
+    if (veut === adminTab) return;
+    adminTab = veut;
+    catalog = { kind:veut, total:0, items:[], q:'' };
+    render();
+    if (adminLevel === 'plus') loadCatalog(0);
+    return;
   }
   if (a === 'admin-login') {
     const pwd = val('a-pwd');
@@ -984,13 +1040,13 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const text = val('a-text');
-    if (!text) return toast('Écris une réponse.');
+    const text = val('a-text'), mot = adminTab === 'q' ? 'phrase' : 'réponse';
+    if (!text) return toast(`Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
     try {
-      const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: 'a', p_text: text });
-      toast(`Ajoutée. ${d.total} réponses au catalogue.`);
+      const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: adminTab, p_text: text });
+      toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
       const champ = document.getElementById('a-text');
       if (champ) champ.value = '';     // le rendu identique n'écrit plus le DOM
       el.disabled = false;
@@ -1018,14 +1074,15 @@ document.addEventListener('click', async e => {
   if (a === 'admin-more') { el.disabled = true; return loadCatalog(catalog.items.length) }
   if (a === 'admin-del') {
     const item = catalog.items.find(c => String(c.id) === String(id));
-    if (!confirm(`Supprimer « ${item ? item.text : 'cette réponse'} » du catalogue ?`)) return;
+    const mot = catalog.kind === 'q' ? 'phrase' : 'réponse';
+    if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
     el.disabled = true;
     try {
-      await rpc('admin_delete_card', { p_password: adminPwd, p_kind: 'a', p_id: +id });
+      await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
       paintCatalog();
-      toast('Réponse supprimée.');
+      toast(catalog.kind === 'q' ? 'Phrase supprimée.' : 'Réponse supprimée.');
     } catch (e) { toast(e.message); el.disabled = false }
     return;
   }
@@ -1048,7 +1105,18 @@ document.addEventListener('click', async e => {
     if (await act('select_question',{ p_question_id:q })) qpick = null;
     return;
   }
-  if (a === 'select') { selected = +id; return render() }
+  if (a === 'select') {
+    const n = state?.blanks || 1, carte = +id, rang = picks.indexOf(carte);
+    if (rang >= 0) picks.splice(rang, 1);          // re-toucher retire la carte
+    else if (n === 1) picks = [carte];             // un seul trou : une seule carte
+    else if (picks.length < n) picks.push(carte);  // sinon on remplit dans l'ordre
+    else { picks.shift(); picks.push(carte) }      // main pleine : la plus ancienne saute
+    return render();
+  }
+  if (a === 'send') {
+    if (picks.length < (state?.blanks || 1)) return;
+    return act('submit_answer', { p_answer_id: picks[0], p_answer_id2: picks[1] ?? null });
+  }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
