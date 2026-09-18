@@ -80,7 +80,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    écran court le logo pousse le bloc au-delà de la fenêtre et l'accueil se met
    à défiler. Les marges négatives rattrapent la marge transparente du fichier. */
 .home h1{margin:-8px 0}
-.home h1 img{display:block;width:min(100%,400px,40vh);height:auto;margin:0 auto}
+.home h1 img{display:block;width:min(100%,286px,34vh);height:auto;margin:0 auto}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
@@ -554,7 +554,7 @@ function home(){
         </button>
       </div>
 
-      <h1><img src="logo.webp" width="720" height="301" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
+      <h1><img src="logo.webp" width="860" height="360" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer une partie</button>
