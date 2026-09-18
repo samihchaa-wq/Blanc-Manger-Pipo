@@ -86,7 +86,14 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 .tab.on{background:linear-gradient(180deg,#FFDC7A,var(--gold-2));color:#2E1D00;font-weight:800;
   box-shadow:0 3px 12px -4px rgba(255,201,60,.7)}
 .tab:active{transform:scale(.97)}
-.pane[hidden]{display:none}
+/* Les deux volets sont superposés dans la même cellule de grille : le bloc
+   garde la hauteur du plus grand, donc changer d'onglet ne fait plus sauter
+   la mise en page. Le volet masqué reste en place mais invisible (donc ni
+   cliquable, ni tabulable, ni lu par les lecteurs d'écran). */
+.panes{display:grid}
+.panes>.pane{grid-area:1/1;display:flex;flex-direction:column}
+.pane[hidden]{visibility:hidden;pointer-events:none}
+.pane>.btn{margin-top:auto}   /* le bouton reste à la même hauteur d'un onglet à l'autre */
 .home .panel{margin-top:0}
 
 /* ===== Panneaux & champs ===== */
@@ -505,22 +512,24 @@ function home(){
         <button class="tab ${join ? 'on' : ''}" data-act="tab" data-tab="join" role="tab" aria-selected="${join}">Rejoindre une partie</button>
       </div>
 
-      <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
-        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
-        <div class="field"><span>Manches à gagner</span>
-          <div class="seg" role="group" aria-label="Manches à gagner">
-            ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
+      <div class="panes">
+        <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
+          <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+          <div class="field"><span>Manches à gagner</span>
+            <div class="seg" role="group" aria-label="Manches à gagner">
+              ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
+            </div>
+            <input type="hidden" id="c-target" value="5">
           </div>
-          <input type="hidden" id="c-target" value="5">
-        </div>
-        <button class="btn" data-act="create">Créer la partie</button>
-      </section>
+          <button class="btn" data-act="create">Créer la partie</button>
+        </section>
 
-      <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
-        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
-        <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
-        <button class="btn" data-act="join">Rejoindre la partie</button>
-      </section>
+        <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
+          <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+          <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
+          <button class="btn" data-act="join">Rejoindre la partie</button>
+        </section>
+      </div>
     </div>`;
 }
 
