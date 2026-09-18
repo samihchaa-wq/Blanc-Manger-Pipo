@@ -238,6 +238,8 @@ button.scard:active{transform:translateY(2px)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px;font-weight:600}
 
 /* catalogue admin */
+.holebar{display:flex;align-items:center;gap:12px;margin:-4px 0 14px}
+.btn.small{width:auto;flex:none;padding:10px 16px;font-size:15px}
 .searchfield{display:block;width:100%;margin:0 0 12px}
 .catlist{list-style:none;padding:0;margin:0;display:grid;gap:8px}
 .catlist li{display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 14px;border-radius:var(--r-md);
@@ -547,7 +549,7 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     app.innerHTML = html;
-    if (adminOpen) paintCatalog();
+    if (adminOpen) { paintCatalog(); majTrous() }
     else if (session && state && state.room.status === 'finished') confetti();
   }
   dealPending = false;
@@ -603,8 +605,12 @@ function adminView(){
        <section class="panel">
          <p class="eyebrow">Catalogue</p><h2>${q ? 'Nouvelle phrase' : 'Nouvelle réponse'}</h2>
          <label><span>${q ? 'Texte de la phrase' : 'Texte de la réponse'}</span><input id="a-text" maxlength="${q ? 150 : 80}"></label>
+         ${q ? `<div class="holebar">
+           <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
+           <span class="meta" id="hole-count">0 trou sur 2</span>
+         </div>` : ''}
          <p class="meta" style="margin:-6px 0 14px">${q
-           ? '150 caractères maximum. Écris <b>____</b> à l’endroit du trou, deux au maximum.'
+           ? '150 caractères maximum, deux trous au maximum. Le trou se pose là où se trouve le curseur.'
            : '80 caractères maximum, sans texte à trou.'}</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
        </section>
@@ -624,6 +630,19 @@ function adminView(){
       <button class="link" data-act="admin-close">Retour</button>
     </div>
     ${body}`;
+}
+
+// On compte les suites de deux tirets bas et plus : c'est ce que le serveur
+// normalise ensuite en « ____ ».
+const compteTrous = t => (String(t || '').match(/_{2,}/g) || []).length;
+
+function majTrous(){
+  const champ = document.getElementById('a-text'), etiq = document.getElementById('hole-count');
+  if (!champ || !etiq) return;
+  const n = compteTrous(champ.value);
+  etiq.textContent = `${n} trou${n > 1 ? 's' : ''} sur 2`;
+  const b = document.querySelector('[data-act="hole-add"]');
+  if (b) b.disabled = n >= 2;
 }
 
 function paintCatalog(){
@@ -1039,6 +1058,21 @@ document.addEventListener('click', async e => {
     busy = false;
     return;
   }
+  if (a === 'hole-add') {
+    const champ = document.getElementById('a-text');
+    if (!champ) return;
+    if (compteTrous(champ.value) >= 2) return toast('Deux trous au maximum.');
+    const d = champ.selectionStart ?? champ.value.length, f = champ.selectionEnd ?? d;
+    // Sans l'espace, cliquer après « de » donnerait « de____ ». Pas d'espace
+    // après en revanche : la suite est souvent une virgule.
+    const bout = (champ.value.slice(0, d) && !/\s$/.test(champ.value.slice(0, d)) ? ' ' : '') + '____';
+    // maxlength ne retient que la frappe, pas une insertion par script.
+    if (champ.value.length - (f - d) + bout.length > 150) return toast('La phrase dépasse 150 caractères.');
+    champ.focus();
+    champ.setRangeText(bout, d, f, 'end');
+    majTrous();
+    return;
+  }
   if (a === 'admin-add') {
     const text = val('a-text'), mot = adminTab === 'q' ? 'phrase' : 'réponse';
     if (!text) return toast(`Écris une ${mot}.`);
@@ -1049,6 +1083,7 @@ document.addEventListener('click', async e => {
       toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
       const champ = document.getElementById('a-text');
       if (champ) champ.value = '';     // le rendu identique n'écrit plus le DOM
+      majTrous();
       el.disabled = false;
       if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
@@ -1128,6 +1163,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'j-code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (e.target.id === 'a-text') majTrous();
   if (e.target.id === 'cat-q') {
     catalog.q = e.target.value;
     clearTimeout(catTimer);
