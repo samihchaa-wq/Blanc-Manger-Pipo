@@ -51,7 +51,7 @@ assert.match(scripts[0], /\[3,\s*5,\s*7,\s*10\]\s*\.map/,
   'Supported target scores changed unexpectedly');
 assert.match(html, /data-act="target"/, 'Target-score control must remain available');
 assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
-assert.match(html, /data-act="bot"/, 'Bot control must remain available');
+assert.doesNotMatch(html, /data-act="bot"|bot_step|is_bot/, 'Bots were removed: no bot control or bot RPC in the client');
 assert.match(html, /data-act="ready"/, 'Ready control must remain available');
 
 console.log('Frontend sanity checks passed.');
