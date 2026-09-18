@@ -463,7 +463,10 @@ const DET = /^(un|une|des|le|la|les|du|de|mon|ma|mes|ton|ta|tes|son|sa|ses|notre
 // Articles contractés. « pour en arriver à » + « les années 39-45 » ne donne pas
 // « à les années » mais « aux années ». La préposition et l'article fusionnent
 // en un seul mot, qui part donc avec la réponse et non avec la question.
-// « de » + « des » se réduit à « de » : « à cause de capotes XXL ».
+// « de » + « des » : la règle stricte réduit à « de » (« à cause de capotes
+// XXL »), mais ça se lit comme un mot manquant. On absorbe le « de » de la
+// question à la place, en lisant le « des » de la carte comme « de les ».
+// Laisser les deux donnerait « à cause de des capotes XXL ».
 // Le \b d'usage ne marche pas devant « à », que JavaScript ne compte pas comme
 // une lettre : on capture l'espace qui précède pour retrouver où couper.
 const CONTRACT = [
@@ -471,7 +474,7 @@ const CONTRACT = [
   [/(^|\s)à\s+$/i,  /^le\b\s*/i,  'au '],
   [/(^|\s)de\s+$/i, /^les\b\s*/i, 'des '],
   [/(^|\s)de\s+$/i, /^le\b\s*/i,  'du '],
-  [/(^|\s)de\s+$/i, /^des\b\s*/i, 'de '],
+  [/(^|\s)de\s+$/i, /^des\b\s*/i, 'des '],
 ];
 
 function fill(q, a, form){
