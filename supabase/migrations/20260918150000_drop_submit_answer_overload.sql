@@ -1,0 +1,14 @@
+-- La migration précédente gardait l'ancienne signature à trois arguments en
+-- relais, au motif qu'une page pas encore rechargée casserait sans elle. C'est
+-- exactement ce relais qui a tout cassé :
+--
+--   Could not choose the best candidate function between:
+--     public.submit_answer(p_code, p_token, p_answer_id),
+--     public.submit_answer(p_code, p_token, p_answer_id, p_answer_id2)
+--
+-- Un appel à trois arguments correspond aux deux fonctions — la seconde ayant
+-- une valeur par défaut sur le quatrième — et PostgREST refuse de trancher.
+--
+-- Le relais était de toute façon inutile : c'est le DEFAULT NULL qui assure la
+-- compatibilité avec les pages déjà ouvertes, pas une seconde signature.
+drop function if exists public.submit_answer(text, uuid, integer);
