@@ -460,6 +460,22 @@ const VOYELLE = /^[aeiouyàâäéèêëîïôöùûü]/i;
 // son initiale peut redescendre en milieu de phrase. Un infinitif non plus,
 // mais ça le serveur seul le sait, d'où le champ « form ».
 const DET = /^(un|une|des|le|la|les|du|de|mon|ma|mes|ton|ta|tes|son|sa|ses|notre|nos|votre|vos|leur|leurs|ce|cet|cette|ces|deux|trois|quatre)\b/i;
+// Articles contractés. « pour en arriver à » + « les années 39-45 » ne donne pas
+// « à les années » mais « aux années ». La préposition et l'article fusionnent
+// en un seul mot, qui part donc avec la réponse et non avec la question.
+// « de » + « des » : la règle stricte réduit à « de » (« à cause de capotes
+// XXL »), mais ça se lit comme un mot manquant. On absorbe le « de » de la
+// question à la place, en lisant le « des » de la carte comme « de les ».
+// Laisser les deux donnerait « à cause de des capotes XXL ».
+// Le \b d'usage ne marche pas devant « à », que JavaScript ne compte pas comme
+// une lettre : on capture l'espace qui précède pour retrouver où couper.
+const CONTRACT = [
+  [/(^|\s)à\s+$/i,  /^les\b\s*/i, 'aux '],
+  [/(^|\s)à\s+$/i,  /^le\b\s*/i,  'au '],
+  [/(^|\s)de\s+$/i, /^les\b\s*/i, 'des '],
+  [/(^|\s)de\s+$/i, /^le\b\s*/i,  'du '],
+  [/(^|\s)de\s+$/i, /^des\b\s*/i, 'des '],
+];
 
 function fill(q, a, form){
   const i = q.indexOf('____');
@@ -471,11 +487,21 @@ function fill(q, a, form){
   // Le trou en tête de phrase impose la majuscule ; ailleurs on l'abaisse, mais
   // seulement quand la réponse ne peut pas être un nom propre : « Jean-Michel »
   // et « Hitler » gardent la leur, « Un Ricard tiède » la perd.
-  const x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1)
-          : (form === 'v' || DET.test(a)) ? a.charAt(0).toLowerCase() + a.slice(1)
-          : a;
-  let before = q.slice(0,i);
-  const el = before.match(ELIDE);
+  let x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1)
+        : (form === 'v' || DET.test(a)) ? a.charAt(0).toLowerCase() + a.slice(1)
+        : a;
+  let before = q.slice(0,i), fondu = false;
+  for (const [prep, art, sortie] of CONTRACT) {
+    const mp = before.match(prep);
+    if (mp && art.test(x)) {
+      before = before.slice(0, mp.index + mp[1].length);
+      x = sortie + x.replace(art, '');
+      fondu = true;
+      break;
+    }
+  }
+  // Une contraction a déjà absorbé la préposition : plus rien à élider.
+  const el = fondu ? null : before.match(ELIDE);
   // « de » → « d' », « que » → « qu' », « la » → « l' » : on retire la voyelle finale.
   if (el && VOYELLE.test(x)) before = before.slice(0, el.index) + el[1].slice(0,-1) + '’';
   return esc(before) + '<span class="fill">' + esc(x) + '</span>' + esc(q.slice(i + 4));
