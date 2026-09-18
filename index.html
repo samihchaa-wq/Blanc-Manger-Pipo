@@ -236,7 +236,6 @@ button.scard:active{transform:translateY(2px)}
 .state.no{background:var(--surface-2);color:var(--text-faint)}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .tag.host{background:rgba(255,201,60,.18);color:var(--gold)}
-.tag.bot{background:rgba(255,255,255,.1);color:var(--text-dim)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
 
 /* catalogue admin */
@@ -366,7 +365,7 @@ button.scard:active{transform:translateY(2px)}
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0;
-let last = '', channel = null, poll = null, deb = null, auto = null, wheelTimer = null, dealPending = false;
+let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let pressedEl = null, lastHtml = '';
@@ -409,13 +408,6 @@ async function act(fn, extra = {}){
   finally { busy = false; render() }
 }
 
-// Les bots tournent en tâche de fond : ni busy, ni rendu forcé. Sinon chaque
-// passage bloquait les clics et faisait clignoter les boutons.
-async function botTick(){
-  if (!session || busy) return;
-  try { await rpc('bot_step', { p_code: session.code, p_token: session.token }); ping(); await refresh() }
-  catch {}   // un échec est rattrapé par le sondage suivant
-}
 async function refresh(force = false){
   if (!session) return;
   try {
@@ -437,26 +429,15 @@ function connect(){
 }
 function disconnect(){
   if (channel) sb.removeChannel(channel);
-  channel = null; clearInterval(poll); clearTimeout(auto); clearTimeout(wheelTimer);
+  channel = null; clearInterval(poll); clearTimeout(wheelTimer);
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
 function startSession(){ state = null; last = ''; render(); connect(); refresh(true) }
 function leaveLocal(){ disconnect(); save(null); state = null; history.replaceState(null,'',location.pathname); render() }
 function scheduleAuto(){
-  clearTimeout(auto); clearTimeout(wheelTimer);
-  if (!state) return;
-  const r = state.room;
-  if (r.status === 'question_select') wheelTimer = setTimeout(render, 2100);
-  // Un seul appareil pilote les bots : sinon chaque téléphone appelle bot_step en parallèle.
-  const driver = state.players.find(p => p.id === r.host_id && !p.is_bot) || state.players.find(p => !p.is_bot);
-  if (!driver || !isMe(driver.id)) return;
-  if (r.status === 'question_select') {
-    if (P(r.reader_id)?.is_bot) auto = setTimeout(botTick, 2300);
-  } else if (r.status === 'answering') {
-    if (state.players.some(p => p.is_bot && p.id !== r.reader_id && !p.submitted)) auto = setTimeout(botTick, 700);
-  } else if (r.status === 'judging' && P(r.reader_id)?.is_bot) {
-    auto = setTimeout(botTick, 900);
-  }
+  clearTimeout(wheelTimer);
+  // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
+  if (state?.room.status === 'question_select') wheelTimer = setTimeout(render, 2100);
 }
 
 /* ---------- Cartes ---------- */
@@ -713,12 +694,11 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.is_bot ? '<span class="tag bot">bot</span>' : ''}${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
         <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
-    ${host ? '<button class="btn ghost" data-act="bot">+ Ajouter un bot</button>' : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
@@ -771,7 +751,6 @@ function qselect(){
   const age = Date.now() - Date.parse(String(r.updated_at || '').replace(' ','T'));
   if (age < 2000 && !qpick) return wheel();
   const reader = P(r.reader_id);
-  if (reader?.is_bot) return waitScreen(`${esc(reader.name)} est le lecteur 🤖`, 'Il choisit sa carte à trou…');
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
   return `
@@ -868,7 +847,7 @@ function rank(){
 }
 
 function reveal(){
-  const r = state.room, pending = state.players.filter(p => !p.is_bot && p.next_ack !== r.round);
+  const r = state.room, pending = state.players.filter(p => p.next_ack !== r.round);
   const acked = state.me.next_ack === r.round;
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
@@ -1142,7 +1121,6 @@ document.addEventListener('click', async e => {
     return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
   }
   if (a === 'ready') return act('set_ready',{ p_ready: !state.me.ready });
-  if (a === 'bot') return act('add_bot');
   if (a === 'start') return act('start_game');
   // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation
   if (a === 'question') { qpick = +id; return render() }
