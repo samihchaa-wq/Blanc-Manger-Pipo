@@ -52,7 +52,7 @@ main{position:relative;z-index:1;max-width:520px;margin:0 auto;
   padding:calc(30px + env(safe-area-inset-top)) 18px calc(150px + env(safe-area-inset-bottom))}
 h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.03em;font-weight:800}
 p{margin:0}
-button,input,select{font:inherit;color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 :focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
 .muted{color:var(--text-dim)}
@@ -97,10 +97,12 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 label,.field{display:block;margin-bottom:16px}
 label>span,.field>span{display:block;font-size:12px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
-input{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:rgba(255,255,255,.06);
+input,textarea{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:rgba(255,255,255,.06);
   border:1.5px solid var(--hairline);font-size:17px;font-weight:600;transition:border-color var(--dur),background var(--dur)}
-input::placeholder{color:var(--text-faint);font-weight:500}
-input:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1)}
+input::placeholder,textarea::placeholder{color:var(--text-faint);font-weight:500}
+input:focus,textarea:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1)}
+/* la hauteur est pilotée par autoGrow : ni poignée, ni barre de défilement */
+textarea{resize:none;overflow:hidden;line-height:1.35}
 #j-code{text-align:center;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;font-weight:800;font-size:30px;padding:16px 14px}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:5px;background:rgba(255,255,255,.05);
   border:1.5px solid var(--hairline);border-radius:var(--r-sm)}
@@ -549,7 +551,7 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     app.innerHTML = html;
-    if (adminOpen) { paintCatalog(); majTrous() }
+    if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     else if (session && state && state.room.status === 'finished') confetti();
   }
   dealPending = false;
@@ -604,7 +606,7 @@ function adminView(){
        </div>
        <section class="panel">
          <p class="eyebrow">Catalogue</p><h2>${q ? 'Nouvelle phrase' : 'Nouvelle réponse'}</h2>
-         <label><span>${q ? 'Texte de la phrase' : 'Texte de la réponse'}</span><input id="a-text" maxlength="${q ? 150 : 80}"></label>
+         <label><span>${q ? 'Texte de la phrase' : 'Texte de la réponse'}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
            <span class="meta" id="hole-count">0 trou sur 2</span>
@@ -630,6 +632,15 @@ function adminView(){
       <button class="link" data-act="admin-close">Retour</button>
     </div>
     ${body}`;
+}
+
+// La zone grandit avec son contenu plutôt que de faire défiler le texte vers la
+// droite. offsetHeight - clientHeight rend les bordures, que scrollHeight ne
+// compte pas alors que box-sizing:border-box les inclut dans la hauteur.
+function autoGrow(el){
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
 }
 
 // On compte les suites de deux tirets bas et plus : c'est ce que le serveur
@@ -1071,6 +1082,7 @@ document.addEventListener('click', async e => {
     champ.focus();
     champ.setRangeText(bout, d, f, 'end');
     majTrous();
+    autoGrow(champ);
     return;
   }
   if (a === 'admin-add') {
@@ -1084,6 +1096,7 @@ document.addEventListener('click', async e => {
       const champ = document.getElementById('a-text');
       if (champ) champ.value = '';     // le rendu identique n'écrit plus le DOM
       majTrous();
+      autoGrow(champ);
       el.disabled = false;
       if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
@@ -1163,7 +1176,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'j-code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if (e.target.id === 'a-text') majTrous();
+  if (e.target.id === 'a-text') { majTrous(); autoGrow(e.target) }
   if (e.target.id === 'cat-q') {
     catalog.q = e.target.value;
     clearTimeout(catTimer);
@@ -1174,7 +1187,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#a-pwd')) document.querySelector('[data-act=admin-login]')?.click();
-  if (e.key === 'Enter' && e.target.matches('#a-text')) document.querySelector('[data-act=admin-add]')?.click();
+  // Une phrase tient sur une ligne logique : Entrée valide au lieu d'ajouter un
+  // saut de ligne, que _clean_card écraserait de toute façon.
+  if (e.key === 'Enter' && e.target.matches('#a-text')) {
+    e.preventDefault();
+    document.querySelector('[data-act=admin-add]')?.click();
+  }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true) });
 
