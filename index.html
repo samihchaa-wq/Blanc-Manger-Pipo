@@ -240,6 +240,10 @@ button.scard:active{transform:translateY(2px)}
 .catlist li{display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 14px;border-radius:var(--r-md);
   background:var(--surface);border:1px solid var(--hairline);font-size:16px;font-weight:600;line-height:1.35}
 .catlist .ct{flex:1;min-width:0;overflow-wrap:anywhere}
+.catlist .form{flex:none;width:30px;height:30px;border-radius:9px;font-size:12px;font-weight:800;
+  border:1.5px solid var(--hairline-2);background:rgba(255,255,255,.05);color:var(--text-dim)}
+.catlist .form.v{background:rgba(95,227,180,.16);border-color:rgba(95,227,180,.45);color:var(--mint)}
+.catlist .form.n{background:rgba(255,201,60,.14);border-color:rgba(255,201,60,.4);color:var(--gold)}
 .catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,138,.16);
   color:var(--pop);font-size:19px;font-weight:800;line-height:1;display:grid;place-items:center}
 .catlist .del:active{background:var(--pop);color:#2E0715}
@@ -447,15 +451,34 @@ function scheduleAuto(){
 
 /* ---------- Cartes ---------- */
 function blank(q){ return esc(q).replace('____','<span class="blank"></span>') }
-function fill(q, a){
+// Mots qui s'élident devant une voyelle. Sans ça « on a arrêté de ____ » suivi
+// de « aller chez le kiné » donne « arrêté de aller ». Le h est traité comme
+// aspiré (« de Hitler ») : le catalogue n'a aucune réponse à h muet en tête.
+const ELIDE = /\b(de|ce|je|le|la|me|ne|se|te|que|jusque|lorsque|puisque|quoique)\s+$/i;
+const VOYELLE = /^[aeiouyàâäéèêëîïôöùûü]/i;
+// Un groupe nominal qui s'ouvre sur un déterminant n'est jamais un nom propre :
+// son initiale peut redescendre en milieu de phrase. Un infinitif non plus,
+// mais ça le serveur seul le sait, d'où le champ « form ».
+const DET = /^(un|une|des|le|la|les|du|de|mon|ma|mes|ton|ta|tes|son|sa|ses|notre|nos|votre|vos|leur|leurs|ce|cet|cette|ces|deux|trois|quatre)\b/i;
+
+function fill(q, a, form){
   const i = q.indexOf('____');
   if (i < 0) return esc(q) + ' <span class="fill">' + esc(a) + '</span>';
   // La réponse est stockée telle que son autrice l'a tapée, donc en milieu de
   // phrase on n'y touche pas : abaisser l'initiale cassait « Jean-Michel » et
   // les sigles accentués, que l'ancien garde-fou /^[A-Z]{2}/ ne voyait pas.
   // Seul le trou en tête de phrase impose une majuscule.
-  const x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1) : a;
-  return esc(q.slice(0,i)) + '<span class="fill">' + esc(x) + '</span>' + esc(q.slice(i + 4));
+  // Le trou en tête de phrase impose la majuscule ; ailleurs on l'abaisse, mais
+  // seulement quand la réponse ne peut pas être un nom propre : « Jean-Michel »
+  // et « Hitler » gardent la leur, « Un Ricard tiède » la perd.
+  const x = i === 0 ? a.charAt(0).toUpperCase() + a.slice(1)
+          : (form === 'v' || DET.test(a)) ? a.charAt(0).toLowerCase() + a.slice(1)
+          : a;
+  let before = q.slice(0,i);
+  const el = before.match(ELIDE);
+  // « de » → « d' », « que » → « qu' », « la » → « l' » : on retire la voyelle finale.
+  if (el && VOYELLE.test(x)) before = before.slice(0, el.index) + el[1].slice(0,-1) + '’';
+  return esc(before) + '<span class="fill">' + esc(x) + '</span>' + esc(q.slice(i + 4));
 }
 function qcard(tag, html, cls = '', foot = ''){
   return `<div class="qcard ${cls}${dealPending ? ' deal' : ''}"><span class="qtag">${tag}</span>
@@ -558,6 +581,8 @@ function paintCatalog(){
   if (count) count.textContent = `Catalogue · ${catalog.total} réponse${catalog.total > 1 ? 's' : ''}`;
   list.innerHTML = catalog.items.length
     ? catalog.items.map(c => `<li>
+        <button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
+          aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>
         <span class="ct">${esc(c.text)}</span>
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
       </li>`).join('')
@@ -693,7 +718,7 @@ function answering(){
 
   if (state.my_submission) return `
     <p class="role"><b>Carte envoyée.</b></p>
-    ${qcard('Ta réponse', fill(q, state.my_submission))}
+    ${qcard('Ta réponse', fill(q, state.my_submission, state.my_submission_form))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
 
@@ -701,7 +726,7 @@ function answering(){
   const canDrop = !!state.me.can_discard;
   return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi cette carte. À toi de la compléter.</p>
-    ${qcard('Question', sel ? fill(q, sel.text) : blank(q), 'sticky')}
+    ${qcard('Question', sel ? fill(q, sel.text, sel.form) : blank(q), 'sticky')}
     <p class="swipehint">Glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}</p>
     <ul class="hand${dealPending ? ' deal-in' : ''}">
       ${state.hand.map((c,i) => `<li style="--i:${i}"><div class="swipe">
@@ -718,14 +743,14 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role">Lis cette réponse <b>à voix haute</b>.</p>
-    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text))}
+    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].text, subs[readIndex].form))}
     <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `
     <h2 class="title">Laquelle gagne ?</h2>
     <p class="role">Touche la réponse la plus drôle.</p>
     <ul class="subs">
-      ${subs.map(s => `<li><button class="scard ${s.id === picked ? 'sel' : ''}" data-act="pick" data-id="${s.id}" aria-pressed="${s.id === picked}">${fill(q, s.text)}</button></li>`).join('')}
+      ${subs.map(s => `<li><button class="scard ${s.id === picked ? 'sel' : ''}" data-act="pick" data-id="${s.id}" aria-pressed="${s.id === picked}">${fill(q, s.text, s.form)}</button></li>`).join('')}
     </ul>
     <div class="dock"><button class="btn" data-act="confirm" ${dis(!picked)}>${picked ? 'Donner le point' : 'Touche ta réponse préférée'}</button></div>`;
 }
@@ -733,7 +758,7 @@ function judging(){
 function result(){
   const r = state.room, q = state.question || '';
   const w = state.submissions.find(s => s.id === r.winning_submission_id);
-  return qcard('Réponse gagnante', w ? fill(q, w.text) : blank(q), 'win',
+  return qcard('Réponse gagnante', w ? fill(q, w.text, w.form) : blank(q), 'win',
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
 function rank(){
@@ -949,6 +974,19 @@ document.addEventListener('click', async e => {
       if (/Mot de passe/i.test(e.message)) { adminPwd = ''; adminLevel = ''; render() } else el.disabled = false;
     }
     busy = false;
+    return;
+  }
+  if (a === 'admin-form') {
+    // Le classement automatique se trompe sur les noms propres qui finissent
+    // comme un infinitif (« Vladimir Poutine ») : on corrige d'une touche.
+    const next = el.dataset.form === 'v' ? 'n' : 'v';
+    el.disabled = true;
+    try {
+      await rpc('admin_set_card_form', { p_password: adminPwd, p_id: +id, p_form: next });
+      const item = catalog.items.find(c => String(c.id) === String(id));
+      if (item) item.form = next;
+      paintCatalog();
+    } catch (e) { toast(e.message); el.disabled = false }
     return;
   }
   if (a === 'admin-more') { el.disabled = true; return loadCatalog(catalog.items.length) }
