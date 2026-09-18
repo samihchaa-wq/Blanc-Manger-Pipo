@@ -75,12 +75,11 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 .iconbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
 .iconbtn:active{background:var(--surface-2);color:var(--text)}
-/* Le titre est une image (logo néon) : le halo est dans le fichier, inutile
-   d'ajouter une ombre en CSS. La largeur est aussi bornée en vh, sinon sur un
-   écran court le logo pousse le bloc au-delà de la fenêtre et l'accueil se met
-   à défiler. Les marges négatives rattrapent la marge transparente du fichier. */
-.home h1{margin:-8px 0}
-.home h1 img{display:block;width:min(100%,286px,34vh);height:auto;margin:0 auto}
+/* Le titre est une image (le lettrage seul, sans halo). La largeur est plafonnée
+   pour que le fichier ne soit jamais agrandi : au-delà, le navigateur l'étire et
+   le rendu devient flou sur un écran à forte densité. */
+.home h1{margin:2px 0}
+.home h1 img{display:block;width:min(100%,255px);height:auto;margin:0 auto}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
@@ -554,7 +553,7 @@ function home(){
         </button>
       </div>
 
-      <h1><img src="logo.webp" width="860" height="360" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
+      <h1><img src="logo.webp" width="766" height="128" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer une partie</button>
