@@ -107,7 +107,7 @@ input::placeholder,textarea::placeholder{color:var(--text-faint)}
 input:focus,textarea:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1)}
 /* la hauteur est pilotée par autoGrow : ni poignée, ni barre de défilement */
 textarea{resize:none;overflow:hidden;line-height:1.35}
-#j-code{text-align:center;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;font-size:30px;padding:16px 14px}
+#j-code{text-align:center;letter-spacing:.42em;text-indent:.42em;font-size:30px;padding:16px 14px}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:5px;background:rgba(255,255,255,.05);
   border:1.5px solid var(--hairline);border-radius:var(--r-sm)}
 .seg-b{padding:11px 4px;border-radius:9px;font-size:16px;color:var(--text-dim);
@@ -541,7 +541,7 @@ function render(){
 }
 
 function home(){
-  const code = (new URLSearchParams(location.search).get('code') || '').toUpperCase().slice(0,4);
+  const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,4);
   let nm = ''; try { nm = localStorage.getItem('pdcat-name') || '' } catch {}
   const join = !!code;            // arrivé par un lien d'invitation : on ouvre le bon onglet
   return `
@@ -573,7 +573,7 @@ function home(){
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
         <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
-        <label><span>Code de la partie</span><input id="j-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
+        <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
     </div>`;
@@ -1117,8 +1117,8 @@ document.addEventListener('click', async e => {
   }
   if (a === 'create') { const n = val('c-name'); if (!n) return toast('Choisis un pseudo.'); return enter(() => rpc('create_room',{ p_name:n, p_target:+val('c-target') }), n) }
   if (a === 'join') {
-    const c = val('j-code').toUpperCase(), n = val('j-name');
-    if (c.length !== 4) return toast('Le code fait 4 caractères.');
+    const c = val('j-code').replace(/\D/g,''), n = val('j-name');
+    if (c.length !== 4) return toast('Le code fait 4 chiffres.');
     if (!n) return toast('Choisis un pseudo.');
     return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
   }
@@ -1155,7 +1155,7 @@ document.addEventListener('click', async e => {
   if (a === 'leave') { try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {} return leaveLocal() }
 });
 document.addEventListener('input', e => {
-  if (e.target.id === 'j-code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (e.target.id === 'j-code') e.target.value = e.target.value.replace(/\D/g,'');
   if (e.target.id === 'a-text') { majTrous(); autoGrow(e.target) }
   if (e.target.id === 'cat-q') {
     catalog.q = e.target.value;
@@ -1176,7 +1176,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true) });
 
-const urlCode = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
+const urlCode = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'');
 if (session && urlCode && urlCode !== session.code) save(null);
 session ? startSession() : render();
 
