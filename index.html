@@ -414,7 +414,7 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
-let reapTimer = null, tickTimer = null, renderedKey = '';
+let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let pressedEl = null, lastHtml = '';
@@ -486,7 +486,7 @@ function connect(){
 function disconnect(){
   if (channel) sb.removeChannel(channel);
   channel = null; clearInterval(poll); clearInterval(tickTimer);
-  clearTimeout(wheelTimer); clearTimeout(reapTimer);
+  clearTimeout(wheelTimer); clearTimeout(reapTimer); clearTimeout(botTimer);
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
 function startSession(){ state = null; last = ''; render(); connect(); refresh(true) }
@@ -496,6 +496,28 @@ function scheduleAuto(){
   // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
   if (state?.room.status === 'question_select') wheelTimer = setTimeout(render, 2100);
   scheduleReap();
+  scheduleBots();
+}
+
+// Les bots sont pilotés par le client de l'hôte : dès qu'un bot a quelque chose
+// à faire dans la phase courante, on appelle bot_step après un court délai
+// (effet « il réfléchit »). Le serveur n'agit que sur les bots.
+function scheduleBots(){
+  clearTimeout(botTimer);
+  if (!state || !session || !isMe(state.room.host_id)) return;
+  const r = state.room, bots = state.players.filter(p => p.is_bot && p.active);
+  if (!bots.length) return;
+  let todo = false;
+  if (r.status === 'question_select') todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
+  else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'reveal')     todo = bots.some(b => b.next_ack !== r.round);
+  else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
+  if (!todo) return;
+  botTimer = setTimeout(async () => {
+    try { await rpc('bot_step', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
+    catch {}
+  }, 900);
 }
 
 // Phases où un joueur passif peut bloquer la partie : 2 min avant déblocage.
@@ -791,11 +813,12 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
         <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
+    ${host && n < 12 ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
@@ -1228,6 +1251,7 @@ document.addEventListener('click', async e => {
     if (!n) return toast('Choisis un pseudo.');
     return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
   }
+  if (a === 'bot') return act('add_bot');
   if (a === 'ready') return act('set_ready',{ p_ready: !state.me.ready });
   if (a === 'start') return act('start_game');
   // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation
