@@ -6,11 +6,19 @@
 <meta name="theme-color" content="#120714">
 <meta name="description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Le Soulieteur</title>
+<title>Le Soulièteur</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Le Soulièteur">
+<meta property="og:description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
+<meta property="og:image" content="icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Le Soulièteur">
+<meta name="twitter:description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
+<meta name="twitter:image" content="icon-512.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Le Soulieteur">
+<meta name="apple-mobile-web-app-title" content="Le Soulièteur">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,7 +78,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   display:flex;flex-direction:column;justify-content:center;gap:22px;
   padding-bottom:7vh}  /* centrage optique : à égalité parfaite le bloc paraît trop bas */
 .home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
-.iconbtn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px 8px 11px;border-radius:var(--r-pill);
+.iconbtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 16px 8px 13px;border-radius:var(--r-pill);
   background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
   font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 .iconbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
@@ -78,8 +86,14 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* Le titre est un tracé vectoriel : net à n'importe quelle taille d'écran et à
    n'importe quel zoom, contrairement à l'image d'origine que le navigateur
    devait étirer. Le plafond en vh garde l'accueil sur un seul écran. */
-.home h1{margin:0}
-.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto}
+.home h1{margin:0;position:relative}
+/* halo doux qui respire derrière le logo */
+.home h1::before{content:"";position:absolute;left:50%;top:50%;width:78%;height:150%;transform:translate(-50%,-50%);
+  z-index:-1;pointer-events:none;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,201,60,.28),rgba(255,92,138,.14) 55%,transparent 72%);
+  filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
+@keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
+.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
@@ -354,6 +368,38 @@ button.scard:active{transform:translateY(2px)}
   transition:transform .28s var(--ease),opacity .2s var(--ease);z-index:20;max-width:92vw;text-align:center;
   box-shadow:0 14px 34px rgba(0,0,0,.55)}
 #toast.on{transform:translate(-50%,0);opacity:1}
+
+/* ===== Minuteur de phase (anneau qui se vide) ===== */
+.cdring{display:inline-flex;width:32px;height:32px}
+.cdring svg{width:32px;height:32px;transform:rotate(-90deg)}   /* départ à midi */
+.cdring circle{fill:none;stroke-width:3.4}
+.cdring .trk{stroke:rgba(255,255,255,.13)}
+.cdring .arc{stroke:var(--gold);stroke-linecap:round;
+  transition:stroke-dashoffset 1s linear,stroke .3s}
+.cdring.low .arc{stroke:var(--pop)}
+.cdring.low{animation:pulse 1.2s ease-in-out infinite}
+/* Sur les très petits écrans, le minuteur prime sur le numéro de manche. */
+@media (max-width:360px){.top .round{display:none}}
+
+/* ===== Transition entre écrans (changement de phase seulement) ===== */
+#app.enter{animation:screenIn .24s var(--ease)}
+@keyframes screenIn{from{opacity:0;transform:translateY(8px)}}
+
+/* ===== « prêt » qui s'installe ===== */
+.state.yes{animation:readyPop .32s var(--ease)}
+@keyframes readyPop{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.12)}}
+
+/* ===== Réponses révélées (toutes, avec auteurs) ===== */
+.reveals{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:9px}
+.reveals li{background:linear-gradient(170deg,#FFFDF7,var(--paper-2));color:var(--ink);border-radius:14px;
+  padding:12px 15px;font-size:16px;line-height:1.3;box-shadow:0 2px 0 var(--paper-edge),0 8px 16px -12px rgba(0,0,0,.5);
+  opacity:.82}
+.reveals li.won{opacity:1;background:linear-gradient(168deg,#EAFFF7,var(--mint) 135%);
+  box-shadow:0 0 0 2px rgba(95,227,180,.5),0 2px 0 var(--paper-edge),0 10px 22px -12px rgba(95,227,180,.5)}
+.reveals li.won .fill{background:var(--ink);color:var(--paper)}
+.reveals .who{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:13px;color:var(--ink-soft)}
+.reveals li.won .who{color:var(--mint-deep)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .wheel{transform:rotate(var(--spin,0deg))}
@@ -368,6 +414,7 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0;
 let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
+let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let pressedEl = null, lastHtml = '';
@@ -416,6 +463,10 @@ async function refresh(force = false){
     const s = await rpc('get_state', { p_code: session.code, p_token: session.token }), j = JSON.stringify(s);
     if (!force && j === last) return;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
+    const prevStatus = state?.room.status;
+    // Retour brutal au salon en pleine partie = on est tombé sous 3 joueurs.
+    if (prevStatus && prevStatus !== 'lobby' && s.room.status === 'lobby')
+      toast('Un joueur est parti : il faut au moins 3 joueurs, la partie est arrêtée.');
     state = s; last = j;
     if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' }
     render(); scheduleAuto();
@@ -427,11 +478,15 @@ function connect(){
   disconnect();
   channel = sb.channel('room-' + session.code, { config:{ broadcast:{ self:false } } });
   channel.on('broadcast', { event:'bump' }, () => { clearTimeout(deb); deb = setTimeout(refresh,250) }).subscribe();
-  poll = setInterval(()=>{if(!document.hidden)refresh()},12000);
+  // Repli si le temps-réel échoue. 4 s : assez court pour que l'attente ne
+  // paraisse pas figée, sans marteler le serveur.
+  poll = setInterval(()=>{if(!document.hidden)refresh()},4000);
+  clearInterval(tickTimer); tickTimer = setInterval(updateCountdown,500);
 }
 function disconnect(){
   if (channel) sb.removeChannel(channel);
-  channel = null; clearInterval(poll); clearTimeout(wheelTimer);
+  channel = null; clearInterval(poll); clearInterval(tickTimer);
+  clearTimeout(wheelTimer); clearTimeout(reapTimer); clearTimeout(botTimer);
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
 function startSession(){ state = null; last = ''; render(); connect(); refresh(true) }
@@ -440,6 +495,59 @@ function scheduleAuto(){
   clearTimeout(wheelTimer);
   // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
   if (state?.room.status === 'question_select') wheelTimer = setTimeout(render, 2100);
+  scheduleReap();
+  scheduleBots();
+}
+
+// Les bots sont pilotés par le client de l'hôte : dès qu'un bot a quelque chose
+// à faire dans la phase courante, on appelle bot_step après un court délai
+// (effet « il réfléchit »). Le serveur n'agit que sur les bots.
+function scheduleBots(){
+  clearTimeout(botTimer);
+  if (!state || !session || !isMe(state.room.host_id)) return;
+  const r = state.room, bots = state.players.filter(p => p.is_bot && p.active);
+  if (!bots.length) return;
+  let todo = false;
+  if (r.status === 'question_select') todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
+  else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'reveal')     todo = bots.some(b => b.next_ack !== r.round);
+  else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
+  if (!todo) return;
+  botTimer = setTimeout(async () => {
+    try { await rpc('bot_step', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
+    catch {}
+  }, 900);
+}
+
+// Phases où un joueur passif peut bloquer la partie : 2 min avant déblocage.
+const TIMED = ['question_select','answering','judging','reveal'];
+function phaseDeadline(){
+  if (!state || !TIMED.includes(state.room.status)) return 0;
+  const t = Date.parse(String(state.room.phase_at || '').replace(' ','T'));
+  return t ? t + 120000 : 0;
+}
+// Le premier client qui constate l'expiration appelle reap_idle ; le serveur
+// revérifie le délai, donc plusieurs appels simultanés sont sans danger.
+function scheduleReap(){
+  clearTimeout(reapTimer);
+  const dl = phaseDeadline();
+  if (!dl || !session) return;
+  reapTimer = setTimeout(async () => {
+    try { await rpc('reap_idle', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
+    catch {}
+  }, Math.max(0, dl - Date.now()) + 500);
+}
+function updateCountdown(){
+  const el = document.getElementById('cd');
+  if (!el) return;
+  const dl = phaseDeadline();
+  if (!dl) { el.hidden = true; return }
+  el.hidden = false;
+  let ms = dl - Date.now(); if (ms < 0) ms = 0;
+  // pathLength=100 : l'arc part plein (offset 0) et se vide (offset 100).
+  el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - ms / 120000)).toFixed(2);
+  el.classList.toggle('low', ms < 30000);
 }
 
 /* ---------- Cartes ---------- */
@@ -534,9 +642,17 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     app.innerHTML = html;
+    // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
+    // rafraîchissement (sinon toute la page tremble sous les yeux).
+    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status;
+    if (key !== renderedKey) {
+      renderedKey = key;
+      app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
+    }
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     else if (session && state && state.room.status === 'finished') confetti();
   }
+  updateCountdown();
   dealPending = false;
 }
 
@@ -678,6 +794,7 @@ function topbar(){
   if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
   return `<div class="top">
       <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}</span>` : ''}</div>
+      <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg></span>
       <button class="link" data-act="leave">Quitter</button>
     </div>`;
 }
@@ -696,11 +813,12 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
         <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
+    ${host && n < 12 ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
@@ -841,6 +959,15 @@ function result(){
   return qcard('Réponse gagnante', w ? fill(q, w.cards) : blank(q), 'win',
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
+// Toutes les réponses de la manche, la gagnante mise en avant, avec les auteurs :
+// c'est souvent là que se trouvent les meilleures répliques, pas seulement la gagnante.
+function allReveals(){
+  const r = state.room, q = state.question || '', subs = state.submissions || [];
+  if (subs.length <= 1) return '';
+  return `<h3 class="sec">Toutes les réponses</h3>
+    <ul class="reveals">${subs.map(s => `<li class="${s.id === r.winning_submission_id ? 'won' : ''}">${
+      fill(q, s.cards)}<span class="who">${esc(s.author || '')}</span></li>`).join('')}</ul>`;
+}
 function rank(){
   return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
     <span class="pos">${i + 1}</span>
@@ -854,6 +981,7 @@ function reveal(){
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
     ${result()}
+    ${allReveals()}
     <h3 class="sec">Classement</h3>${rank()}
     ${waiting(pending, 'Tout le monde est prêt.')}
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : 'Manche suivante'}</button></div>`;
@@ -865,6 +993,7 @@ function finished(){
     <p class="eyebrow">Partie terminée</p>
     <h1 class="bigwin">${isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !'}</h1>
     ${result()}
+    ${allReveals()}
     <h3 class="sec">Classement final</h3>${rank()}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
@@ -986,7 +1115,7 @@ async function enter(call, name){
 }
 async function share(){
   const url = location.origin + location.pathname + '?code=' + session.code;
-  if (navigator.share) { try { return await navigator.share({ title:'Le Soulieteur', text:'Rejoins ma partie du Soulieteur avec le code ' + session.code, url }) } catch {} }
+  if (navigator.share) { try { return await navigator.share({ title:'Le Soulièteur', text:'Rejoins ma partie du Soulièteur avec le code ' + session.code, url }) } catch {} }
   try { await navigator.clipboard.writeText(url); toast('Lien copié.') } catch { toast(url) }
 }
 
@@ -1122,6 +1251,7 @@ document.addEventListener('click', async e => {
     if (!n) return toast('Choisis un pseudo.');
     return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
   }
+  if (a === 'bot') return act('add_bot');
   if (a === 'ready') return act('set_ready',{ p_ready: !state.me.ready });
   if (a === 'start') return act('start_game');
   // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation

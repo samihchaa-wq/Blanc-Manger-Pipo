@@ -43,15 +43,16 @@ assert.match(html, /sb_publishable_[A-Za-z0-9_-]+/,
   'Client must use a publishable Supabase key');
 assert.doesNotMatch(html, /service[_-]?role|sb_secret_/i,
   'Never expose a service-role or secret key in the browser');
-assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},12000\)/,
-  'Fallback polling must remain at 12 seconds');
+assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},4000\)/,
+  'Fallback polling must remain at 4 seconds');
 assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
 assert.match(scripts[0], /\[3,\s*5,\s*7,\s*10\]\s*\.map/,
   'Supported target scores changed unexpectedly');
 assert.match(html, /data-act="target"/, 'Target-score control must remain available');
 assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
-assert.doesNotMatch(html, /data-act="bot"|bot_step|is_bot/, 'Bots were removed: no bot control or bot RPC in the client');
+assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
+assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
 assert.match(html, /data-act="ready"/, 'Ready control must remain available');
 
 console.log('Frontend sanity checks passed.');

@@ -43,6 +43,9 @@ Current production migration tail:
 - `20260917133016_restore_admin_function_resolution` (transient repair, superseded)
 - `20260917133047_repair_admin_search_path_hardening`
 - `20260917133523_harden_remaining_security_definers`
+- `20260920120000_phase_timeouts_cleanup_admin_hardening` (minuteurs de phase via `rooms.phase_at` + `reap_idle`, retrait de `skip_question`/`add_reward_card`/`_draw_question` et des colonnes `skips_used`/`reward_*`, sérialisation globale de l'auth admin, `cf-connecting-ip` prioritaire dans `_client_hash`)
+- `20260920140000_reintroduce_bots` (colonne `players.is_bot`, `add_bot`, `bot_step`, `is_bot` exposé par `get_state` — pour tester une partie en solo)
+- `20260920150000_bot_step_advance_after_ack` (les bots relancent la manche / la partie quand ils sont les derniers à valider)
 
 ## Change workflow
 
