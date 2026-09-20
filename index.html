@@ -105,17 +105,25 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   background:radial-gradient(closest-side,rgba(255,182,31,.28),rgba(255,61,119,.14) 55%,transparent 72%);
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
-.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
-/* néon qui respire léger : le tracé du logo garde sa propre lueur, dorée au
-   ras des lettres et rose plus loin, dont l'intensité monte et redescend au
-   même rythme que le halo — la lueur de base reste allumée, donc le titre
-   garde son néon même quand l'animation est coupée (mouvement réduit). */
-.home h1 img{filter:drop-shadow(0 0 5px rgba(255,182,31,.34)) drop-shadow(0 0 17px rgba(255,61,119,.20));
-  animation:neon 5.5s ease-in-out infinite;will-change:filter}
-@keyframes neon{
-  0%,100%{filter:drop-shadow(0 0 4px rgba(255,182,31,.26)) drop-shadow(0 0 13px rgba(255,61,119,.14))}
-  50%{filter:drop-shadow(0 0 9px rgba(255,182,31,.52)) drop-shadow(0 0 26px rgba(255,61,119,.28))}
-}
+.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative;z-index:1}
+/* Néon qui respire léger. Le tube et sa lueur sont deux couches distinctes :
+   le logo lui-même ne porte aucun filtre, donc ses contours restent nets, et
+   la lueur est un second exemplaire du tracé, flouté, posé derrière — seul ce
+   qui déborde des lettres se voit. Filtrer le logo directement le rendait
+   cotonneux : le flou mordait aussi sur l'intérieur des lettres, et animer un
+   filter force le navigateur à re-rastériser le titre à chaque image.
+   Ici le filtre est fixe et seule l'opacité respire, ce que le compositeur
+   sait faire sans toucher au rendu. La lueur reprend le dégradé du logo
+   (jaune à gauche, rose à droite) et le prolonge. */
+.home h1::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(100%,340px,38vh);aspect-ratio:801/303;z-index:0;pointer-events:none;
+  background:url(logo.svg) center/contain no-repeat;
+  filter:blur(3px) saturate(1.7) brightness(1.15)
+    drop-shadow(0 0 9px rgba(253,133,79,.5)) drop-shadow(0 0 22px rgba(252,42,153,.32));
+  opacity:.72;animation:neon 5.5s ease-in-out infinite}
+/* L'animation ne touche qu'à l'opacité ; hors animation (mouvement réduit) la
+   valeur de base ci-dessus garde le néon allumé. */
+@keyframes neon{0%,100%{opacity:.5}50%{opacity:1}}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
