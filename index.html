@@ -106,6 +106,28 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
 .home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
+/* Amorçage : le titre s'allume comme un tube — deux hésitations, puis il
+   tient. Joué une fois, à l'arrivée sur l'accueil, jamais en boucle. */
+.home h1{animation:ignite 1.3s both}
+@keyframes ignite{
+  0%{opacity:0}
+  8%{opacity:.9}   11%{opacity:.08}
+  19%{opacity:.75} 23%{opacity:.12}
+  34%{opacity:1}   38%{opacity:.45}
+  46%,100%{opacity:1}
+}
+/* Le dégradé qui migre : un ruban repris de la palette du logo, découpé par le
+   logo lui-même (le masque), qui glisse lentement. Seules les couleurs se
+   déplacent — la forme ne bouge pas d'un pixel et rien ne peut sortir des
+   lettres, le masque s'en charge. En « color », le ruban ne donne que sa
+   teinte : le modelé et les ombres du tracé restent ceux du logo. */
+.home h1 .shift{position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:min(100%,340px,38vh);aspect-ratio:801/303;pointer-events:none;
+  background:linear-gradient(100deg,#FEDD26,#FC4184,#FC27AB,#FD854F,#FEDD26);
+  background-size:280% 100%;opacity:.38;mix-blend-mode:color;
+  -webkit-mask:url(logo.svg) center/contain no-repeat;mask:url(logo.svg) center/contain no-repeat;
+  animation:migrate 16s linear infinite}
+@keyframes migrate{to{background-position:280% 0}}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
@@ -704,7 +726,7 @@ function home(){
         </button>
       </div>
 
-      <h1><img src="logo.svg" width="801" height="303" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
+      <h1><img src="logo.svg" width="801" height="303" alt="Le Soulièteur" decoding="async" fetchpriority="high"><span class="shift" aria-hidden="true"></span></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer une partie</button>
