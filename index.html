@@ -27,19 +27,22 @@
 <style>
 /* ===== Jetons ===== */
 :root{
-  --bg-0:#120714; --bg-1:#1B0A22;
+  --bg-0:#110519; --bg-1:#21092C;
   --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.10);
   --hairline:rgba(255,255,255,.13); --hairline-2:rgba(255,255,255,.22);
   --ink:#1A1020; --ink-soft:#6B5A73;
-  --paper:#FFF7EA; --paper-2:#F6E9D6; --paper-edge:#D4C0A6;
-  --gold:#FFC93C; --gold-2:#FFB114; --gold-deep:#B77A05;
+  /* Le crème des réponses est franchement chaud : sur le fond sombre, un blanc
+     cassé passait pour du papier délavé. */
+  --paper:#FFE9C6; --paper-2:#EFD2A4; --paper-edge:#B8925F;
+  --gold:#FFB61F; --gold-2:#F79A00; --gold-deep:#95590A;
   /* La phrase à trou est dorée partout : au choix du lecteur, pendant qu'on la
      complète, à la lecture et jusqu'à la révélation. Les réponses en main
-     restent crème, ce qui sépare d'un coup d'œil l'énoncé et les cartes. */
-  --gold-paper:#FFEDB6; --gold-paper-2:#FFF3CE;
-  --gold-ink:#3A2600; --gold-ink-soft:rgba(58,38,0,.66);
-  --pop:#FF5C8A; --pop-2:#F53A6E; --pop-deep:#A81D45;
-  --mint:#5FE3B4; --mint-2:#2FCB94; --mint-deep:#12795A;
+     restent crème, ce qui sépare d'un coup d'œil l'énoncé et les cartes. Le
+     doré est saturé, sinon les deux familles de cartes se confondent en pâle. */
+  --gold-paper:#FFD156; --gold-paper-2:#FFE18C;
+  --gold-ink:#3A2000; --gold-ink-soft:rgba(58,32,0,.7);
+  --pop:#FF3D77; --pop-2:#E81E5C; --pop-deep:#8E1038;
+  --mint:#3FE0A8; --mint-2:#12C489; --mint-deep:#0A6B4E;
   --text:#FDF4E7; --text-dim:#C6B2CE; --text-faint:#95819E;
   --r-sm:12px; --r-md:18px; --r-lg:26px; --r-pill:999px;
   --shadow-card:0 2px 2px rgba(0,0,0,.18), 0 12px 28px -6px rgba(0,0,0,.55);
@@ -57,11 +60,11 @@ body{margin:0;min-height:100%;background:transparent;color:var(--text);font-size
 /* calques de fond fixes : couvrent toujours la fenêtre, sans background-attachment (bogué sur iOS) */
 body::before,body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none}
 body::before{background:
-  radial-gradient(72% 52% at 10% -8%, #4E1C61 0%, rgba(78,28,97,0) 62%),
-  radial-gradient(62% 44% at 104% 4%, #7E2050 0%, rgba(126,32,80,0) 58%),
-  radial-gradient(96% 52% at 50% 106%, #25103A 0%, rgba(37,16,58,0) 64%),
+  radial-gradient(72% 52% at 10% -8%, #6A1E8E 0%, rgba(106,30,142,0) 62%),
+  radial-gradient(62% 44% at 104% 4%, #A41C62 0%, rgba(164,28,98,0) 58%),
+  radial-gradient(96% 52% at 50% 106%, #33124F 0%, rgba(51,18,79,0) 64%),
   linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 100%)}
-body::after{opacity:.5;mix-blend-mode:overlay;
+body::after{opacity:.34;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E")}
 /* La réserve du bas doit valoir la hauteur RÉELLE de la barre d'action : une
    valeur devinée laisse le bouton recouvrir la fin du contenu dès qu'il y a
@@ -99,7 +102,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* halo doux qui respire derrière le logo */
 .home h1::before{content:"";position:absolute;left:50%;top:50%;width:78%;height:150%;transform:translate(-50%,-50%);
   z-index:-1;pointer-events:none;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(255,201,60,.28),rgba(255,92,138,.14) 55%,transparent 72%);
+  background:radial-gradient(closest-side,rgba(255,182,31,.28),rgba(255,61,119,.14) 55%,transparent 72%);
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
 .home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
@@ -110,8 +113,8 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 .tab{padding:13px 6px;border-radius:var(--r-pill);font-size:clamp(13px,3.6vw,15px);
   white-space:nowrap;color:var(--text-dim);
   transition:background var(--dur),color var(--dur),transform var(--dur)}
-.tab.on{background:linear-gradient(180deg,#FFDC7A,var(--gold-2));color:#2E1D00;
-  box-shadow:0 3px 12px -4px rgba(255,201,60,.7)}
+.tab.on{background:linear-gradient(180deg,#FFC94E,var(--gold-2));color:#2E1D00;
+  box-shadow:0 3px 12px -4px rgba(255,182,31,.7)}
 .tab:active{transform:scale(.97)}
 .pane[hidden]{display:none}
 .home .panel{margin-top:0}
@@ -135,23 +138,23 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
   border:1.5px solid var(--hairline);border-radius:var(--r-sm)}
 .seg-b{padding:11px 4px;border-radius:9px;font-size:16px;color:var(--text-dim);
   transition:background var(--dur),color var(--dur),transform var(--dur)}
-.seg-b.on{background:var(--gold);color:var(--ink);box-shadow:0 2px 10px -2px rgba(255,201,60,.6)}
+.seg-b.on{background:var(--gold);color:var(--ink);box-shadow:0 2px 10px -2px rgba(255,182,31,.6)}
 .seg-b:active{transform:scale(.95)}
 
 /* ===== Boutons ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:var(--r-pill);
   padding:16px 22px;font-size:18px;letter-spacing:-.01em;
-  background:linear-gradient(180deg,#FF7AA0,var(--pop-2));color:#2E0715;
-  box-shadow:0 5px 0 var(--pop-deep), 0 16px 30px -12px rgba(255,92,138,.7);
+  background:linear-gradient(180deg,#FF5C86,var(--pop-2));color:#2E0715;
+  box-shadow:0 5px 0 var(--pop-deep), 0 16px 30px -12px rgba(255,61,119,.7);
   transition:transform .08s var(--ease),box-shadow .08s var(--ease),filter var(--dur)}
-.btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--pop-deep),0 8px 16px -12px rgba(255,92,138,.7)}
-.btn.alt{background:linear-gradient(180deg,#FFDC7A,var(--gold-2));color:#2E1D00;
-  box-shadow:0 5px 0 var(--gold-deep), 0 16px 30px -12px rgba(255,201,60,.6)}
-.btn.alt:active:not(:disabled){box-shadow:0 1px 0 var(--gold-deep),0 8px 16px -12px rgba(255,201,60,.6)}
+.btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--pop-deep),0 8px 16px -12px rgba(255,61,119,.7)}
+.btn.alt{background:linear-gradient(180deg,#FFC94E,var(--gold-2));color:#2E1D00;
+  box-shadow:0 5px 0 var(--gold-deep), 0 16px 30px -12px rgba(255,182,31,.6)}
+.btn.alt:active:not(:disabled){box-shadow:0 1px 0 var(--gold-deep),0 8px 16px -12px rgba(255,182,31,.6)}
 .btn.ghost{background:var(--surface);color:var(--text);border:1.5px solid var(--hairline-2);box-shadow:none}
 .btn.ghost:active:not(:disabled){transform:translateY(2px);background:var(--surface-2)}
 .btn.on{background:linear-gradient(180deg,#8CF0CD,var(--mint-2));color:#052B20;
-  box-shadow:0 5px 0 var(--mint-deep),0 16px 30px -12px rgba(95,227,180,.55)}
+  box-shadow:0 5px 0 var(--mint-deep),0 16px 30px -12px rgba(63,224,168,.55)}
 .btn:disabled{opacity:.42;cursor:default;box-shadow:none;filter:saturate(.6)}
 .btn.pending{opacity:.72;box-shadow:none;transform:translateY(2px)}
 .btn+.btn{margin-top:10px}
@@ -186,7 +189,7 @@ h2.title{font-size:27px;margin:2px 0 14px}
 /* La carte gagnante garde le doré : c'est l'anneau menthe qui dit « gagné »,
    comme l'anneau menthe de la carte que le lecteur vient de choisir. */
 .qcard.win{transform:rotate(.8deg);
-  box-shadow:0 0 0 3px var(--mint),0 4px 0 var(--gold-deep),0 18px 42px -14px rgba(95,227,180,.6)}
+  box-shadow:0 0 0 3px var(--mint),0 4px 0 var(--gold-deep),0 18px 42px -14px rgba(63,224,168,.6)}
 .qcard.win .qtag{color:var(--mint-deep)}
 .blank{display:inline-block;width:4.2em;border-bottom:4px solid rgba(58,38,0,.72);margin:0 .06em}
 .fill{background:var(--pop);color:#2E0715;padding:.02em .2em;border-radius:6px;
@@ -196,7 +199,7 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .hand,.subs,.qchoices{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px}
 .acard,.scard,.qchoice{display:block;width:100%;text-align:left;border-radius:15px;padding:15px 17px;
   font-size:18px;line-height:1.32;letter-spacing:-.01em}
-.acard{color:var(--ink);background:linear-gradient(170deg,#FFFDF7,var(--paper-2))}
+.acard{color:var(--ink);background:linear-gradient(170deg,var(--paper),var(--paper-2))}
 /* Les réponses sont stockées en minuscule, prêtes à s'insérer en milieu de
    phrase ; seule leur présentation en carte reprend une majuscule. */
 .acard::first-letter{text-transform:uppercase}
@@ -209,9 +212,9 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .swipe .cue{position:absolute;inset:0;display:flex;align-items:center;padding:0 18px;border-radius:15px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:0;pointer-events:none}
 .swipe .cue span{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-pill);
   transition:transform .12s var(--ease)}
-.swipe .cue.play{justify-content:flex-start;background:linear-gradient(90deg,rgba(95,227,180,.5),transparent 72%)}
+.swipe .cue.play{justify-content:flex-start;background:linear-gradient(90deg,rgba(63,224,168,.5),transparent 72%)}
 .swipe .cue.play span{background:var(--mint);color:#052B20}
-.swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,201,60,.42),transparent 72%)}
+.swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,182,31,.42),transparent 72%)}
 .swipe .cue.drop span{background:var(--gold);color:#2E1D00}
 .swipe .cue.armed span{transform:scale(1.14)}
 .swipehint{margin:14px 0 -4px;color:var(--text-faint);font-size:14px;text-align:center}
@@ -219,8 +222,8 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .acard::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:0 4px 4px 0;
   background:var(--paper-edge);transition:background .14s,width .14s}
 .acard:active{transform:translateY(3px);box-shadow:0 0 0 var(--paper-edge),0 4px 10px -8px rgba(0,0,0,.6)}
-.acard.sel{background:linear-gradient(170deg,#FF8CAE,var(--pop));color:#2E0715;transform:translateX(7px) rotate(.7deg);
-  box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(255,92,138,.8)}
+.acard.sel{background:linear-gradient(170deg,#FF6E97,var(--pop));color:#2E0715;transform:translateX(7px) rotate(.7deg);
+  box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(255,61,119,.8)}
 .acard.sel::before{background:#2E0715;width:5px}
 .acard .rang{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;
   border-radius:50%;background:#2E0715;color:var(--paper);font-style:normal;font-size:13px;
@@ -230,14 +233,14 @@ h2.title{font-size:27px;margin:2px 0 14px}
 button.scard{transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 button.scard:active{transform:translateY(2px)}
 .scard.sel{background:linear-gradient(168deg,var(--gold-paper-2),var(--gold) 130%);
-  box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(95,227,180,.55)}
+  box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,224,168,.55)}
 .scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:9px}
-.qchoice{color:var(--gold-ink);background:linear-gradient(168deg,#FFE9AE,var(--gold));font-size:19px;line-height:1.26;
-  padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(255,201,60,.8);
+.qchoice{color:var(--gold-ink);background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));font-size:19px;line-height:1.26;
+  padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(255,182,31,.8);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 .qchoice:active{transform:translateY(3px);box-shadow:0 0 0 var(--gold-deep),0 6px 12px -10px rgba(0,0,0,.5)}
 .qchoice.off{opacity:.3;filter:grayscale(.85);box-shadow:0 2px 0 rgba(0,0,0,.3);cursor:default}
-.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(95,227,180,.55)}
+.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,224,168,.55)}
 .deal{animation:deal .5s var(--ease) both}
 @keyframes deal{from{transform:translateY(-34px) rotate(-9deg) scale(.96);opacity:0}}
 .hand.deal-in li{animation:rise .42s var(--ease) both;animation-delay:calc(var(--i)*45ms)}
@@ -252,23 +255,23 @@ button.scard:active{transform:translateY(2px)}
 .bigcode{display:flex;gap:6px;margin-top:10px}
 .bigcode .ch{flex:1;display:grid;place-items:center;aspect-ratio:3/4;max-height:104px;border-radius:14px;
   font-size:clamp(20px,5.4vw,28px);color:var(--gold);
-  background:linear-gradient(170deg,rgba(255,201,60,.16),rgba(255,201,60,.05));
-  border:1.5px solid rgba(255,201,60,.32);text-shadow:0 2px 14px rgba(255,201,60,.4)}
+  background:linear-gradient(170deg,rgba(255,182,31,.16),rgba(255,182,31,.05));
+  border:1.5px solid rgba(255,182,31,.32);text-shadow:0 2px 14px rgba(255,182,31,.4)}
 .sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:8px}
 .plist li{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 10px 8px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:17px}
-.plist li.is-ready{border-color:rgba(95,227,180,.34);background:linear-gradient(90deg,rgba(95,227,180,.1),var(--surface) 60%)}
+.plist li.is-ready{border-color:rgba(63,224,168,.34);background:linear-gradient(90deg,rgba(63,224,168,.1),var(--surface) 60%)}
 .plist .who{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
 .plist .rt{display:flex;align-items:center;gap:6px;flex:none}
 .plist li.empty{background:transparent;border-style:dashed;border-color:rgba(255,255,255,.1);color:var(--text-faint);
   font-size:15px;justify-content:center;min-height:48px}
 .state{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill)}
-.state.yes{background:rgba(95,227,180,.16);color:var(--mint)}
+.state.yes{background:rgba(63,224,168,.16);color:var(--mint)}
 .state.no{background:var(--surface-2);color:var(--text-faint)}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.tag.host{background:rgba(255,201,60,.18);color:var(--gold)}
+.tag.host{background:rgba(255,182,31,.18);color:var(--gold)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
 
 /* catalogue admin */
@@ -281,11 +284,11 @@ button.scard:active{transform:translateY(2px)}
 .catlist .ct{flex:1;min-width:0;overflow-wrap:anywhere}
 .catlist .form{flex:none;min-width:30px;height:30px;padding:0 7px;border-radius:9px;font-size:12px;
   border:1.5px solid var(--hairline-2);background:rgba(255,255,255,.05);color:var(--text-dim)}
-.catlist .form.v{background:rgba(95,227,180,.16);border-color:rgba(95,227,180,.45);color:var(--mint)}
-.catlist .form.n{background:rgba(255,201,60,.14);border-color:rgba(255,201,60,.4);color:var(--gold)}
+.catlist .form.v{background:rgba(63,224,168,.16);border-color:rgba(63,224,168,.45);color:var(--mint)}
+.catlist .form.n{background:rgba(255,182,31,.14);border-color:rgba(255,182,31,.4);color:var(--gold)}
 .catlist .form.two{display:inline-flex;align-items:center;letter-spacing:.02em;
   background:rgba(155,123,255,.16);border-color:rgba(155,123,255,.48);color:#BCA6FF}
-.catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,138,.16);
+.catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,61,119,.16);
   color:var(--pop);font-size:19px;line-height:1;display:grid;place-items:center}
 .catlist .del:active{background:var(--pop);color:#2E0715}
 .catlist li.empty{justify-content:center;color:var(--text-faint);border-style:dashed}
@@ -312,7 +315,7 @@ button.scard:active{transform:translateY(2px)}
 .waitScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   min-height:64vh;gap:8px;padding:10px 0}
 .cardback{position:relative;width:118px;height:150px;border-radius:16px;margin-bottom:24px;
-  background:repeating-linear-gradient(135deg,#EFE0C9 0 8px,#FFF8EB 8px 16px);
+  background:repeating-linear-gradient(135deg,#E2C392 0 8px,#FFE9C6 8px 16px);
   box-shadow:var(--shadow-card);animation:float 3.4s ease-in-out infinite}
 .cardback::after{content:"";position:absolute;inset:0;border-radius:16px;
   box-shadow:inset 0 0 0 1px rgba(26,16,32,.12),inset 0 0 0 7px rgba(255,255,255,.5)}
@@ -358,7 +361,7 @@ button.scard:active{transform:translateY(2px)}
 .rank .nm{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
 .rank .nm span.who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank b{color:var(--gold);font-variant-numeric:tabular-nums}
-.rank li:first-child{background:linear-gradient(100deg,rgba(255,201,60,.18),rgba(255,92,138,.12));border-color:rgba(255,201,60,.38)}
+.rank li:first-child{background:linear-gradient(100deg,rgba(255,182,31,.18),rgba(255,61,119,.12));border-color:rgba(255,182,31,.38)}
 .rank li:first-child .pos{color:var(--gold)}
 .confetti{position:fixed;inset:0 0 auto;height:0;z-index:2;pointer-events:none}
 .confetti i{position:absolute;top:-20px;width:8px;height:12px;border-radius:2px;animation:fall linear forwards}
@@ -868,8 +871,8 @@ function waitScreen(title, sub, stack = 1){
 
 // 12 teintes distinctes : au-delà de 6 joueurs, deux parts reprenaient la même
 // couleur et la légende devenait ambiguë. Toutes assez claires pour du texte sombre.
-const WHEEL_COLORS = ['#FFC93C','#FF5C8A','#5FE3B4','#9B7BFF','#FF9F45','#4CC9F0',
-                      '#E3DA6A','#D96BC6','#86D957','#6C8CFF','#FF8271','#39C7A8'];
+const WHEEL_COLORS = ['#FFB61F','#FF3D77','#3FE0A8','#8B5CFF','#FF8A12','#22B8F0',
+                      '#D8C93A','#CE49B4','#6BCE35','#4C6FFF','#FF6250','#12B894'];
 const sliceColor = i => WHEEL_COLORS[i % WHEEL_COLORS.length];
 
 function wheel(){
@@ -1027,7 +1030,7 @@ function confetti(){
   document.getElementById('confetti')?.remove();
   const wrap = document.createElement('div');
   wrap.className = 'confetti'; wrap.id = 'confetti'; wrap.setAttribute('aria-hidden','true');
-  const colors = ['#FFC93C','#FF5C8A','#5FE3B4','#FFF7EA'];
+  const colors = ['#FFB61F','#FF3D77','#3FE0A8','#FFE9C6'];
   for (let i = 0; i < 26; i++) {
     const s = document.createElement('i');
     s.style.left = Math.random() * 100 + 'vw';
