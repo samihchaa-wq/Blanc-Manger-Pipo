@@ -63,8 +63,12 @@ body::before{background:
   linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 100%)}
 body::after{opacity:.5;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E")}
+/* La réserve du bas doit valoir la hauteur RÉELLE de la barre d'action : une
+   valeur devinée laisse le bouton recouvrir la fin du contenu dès qu'il y a
+   deux boutons ou une police plus grande. --dock-h est mesuré après chaque
+   rendu (voir fitDock) et contient déjà l'encoche du bas. */
 main{position:relative;z-index:1;max-width:520px;margin:0 auto;
-  padding:calc(30px + env(safe-area-inset-top)) 18px calc(150px + env(safe-area-inset-bottom))}
+  padding:calc(30px + env(safe-area-inset-top)) 18px calc(var(--dock-h,150px) + 18px)}
 h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.03em}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -367,6 +371,18 @@ button.scard:active{transform:translateY(2px)}
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to top,#000 55%,transparent);
   mask-image:linear-gradient(to top,#000 55%,transparent)}
 .dock>*{position:relative;z-index:1;max-width:484px;margin-left:auto;margin-right:auto}
+
+/* ===== Haut d'écran ===== */
+/* En appli installée, la barre d'état d'iOS est translucide et se superpose à
+   la page : sans ce voile, le contenu qui défile passe derrière l'heure, le
+   réseau et la batterie, et les deux se chevauchent, illisibles. Même
+   traitement qu'en bas, retourné. */
+.scrim{position:fixed;left:0;right:0;top:0;z-index:6;pointer-events:none;
+  height:calc(env(safe-area-inset-top) + 10px);
+  background:linear-gradient(to bottom,var(--bg-0) 62%,rgba(18,7,20,.88) 82%,rgba(18,7,20,0))}
+.scrim::before{content:"";position:absolute;inset:0;backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent);
+  mask-image:linear-gradient(to bottom,#000 62%,transparent)}
 .center{text-align:center;padding-top:34vh;color:var(--text-dim)}
 .spin{display:block;width:26px;height:26px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--hairline);
   border-top-color:var(--gold);animation:rot .8s linear infinite}
@@ -421,6 +437,7 @@ button.scard:active{transform:translateY(2px)}
 </head>
 <body>
 <main id="app"></main>
+<div class="scrim" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
@@ -650,7 +667,7 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
-  // Sans barre d'action fixe, les 150px réservés en bas laisseraient un grand vide.
+  // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
   document.body.classList.toggle('no-dock', !html.includes('class="dock"'));
   if (html !== lastHtml) {
     lastHtml = html;
@@ -664,10 +681,23 @@ function render(){
     }
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     else if (session && state && state.room.status === 'finished') confetti();
+    fitDock();
   }
   updateCountdown();
   dealPending = false;
 }
+
+// La barre d'action est fixe : elle recouvre la fin du contenu si la page ne
+// réserve pas sa hauteur. Un écran à deux boutons est bien plus haut qu'un
+// écran à un seul, et la police réglée par le système change encore la donne :
+// on mesure au lieu de deviner.
+function fitDock(){
+  const dock = app.querySelector('.dock');
+  document.documentElement.style.setProperty('--dock-h', (dock ? dock.offsetHeight : 0) + 'px');
+}
+// La rotation et la barre d'URL de Safari changent la hauteur du bouton
+// (retour à la ligne du libellé) : la réserve doit suivre.
+addEventListener('resize', fitDock);
 
 function home(){
   const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,4);
