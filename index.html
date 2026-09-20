@@ -98,32 +98,18 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* Le titre est un tracé vectoriel : net à n'importe quelle taille d'écran et à
    n'importe quel zoom, contrairement à l'image d'origine que le navigateur
    devait étirer. Le plafond en vh garde l'accueil sur un seul écran. */
-.home h1{margin:0;position:relative}
-/* halo doux qui respire derrière le logo */
-.home h1::before{content:"";position:absolute;left:50%;top:50%;width:78%;height:150%;transform:translate(-50%,-50%);
-  z-index:-1;pointer-events:none;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(255,182,31,.28),rgba(255,61,119,.14) 55%,transparent 72%);
-  filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
-@keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
-.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative;z-index:1}
-/* Néon qui respire léger. Le tube et sa lueur sont deux couches distinctes :
-   le logo lui-même ne porte aucun filtre, donc ses contours restent nets, et
-   la lueur est un second exemplaire du tracé, flouté, posé derrière — seul ce
-   qui déborde des lettres se voit. Filtrer le logo directement le rendait
-   cotonneux : le flou mordait aussi sur l'intérieur des lettres, et animer un
-   filter force le navigateur à re-rastériser le titre à chaque image.
-   Ici le filtre est fixe et seule l'opacité respire, ce que le compositeur
-   sait faire sans toucher au rendu. La lueur reprend le dégradé du logo
-   (jaune à gauche, rose à droite) et le prolonge. */
-.home h1::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:min(100%,340px,38vh);aspect-ratio:801/303;z-index:0;pointer-events:none;
-  background:url(logo.svg) center/contain no-repeat;
-  filter:blur(3px) saturate(1.7) brightness(1.15)
-    drop-shadow(0 0 9px rgba(253,133,79,.5)) drop-shadow(0 0 22px rgba(252,42,153,.32));
-  opacity:.72;animation:neon 5.5s ease-in-out infinite}
-/* L'animation ne touche qu'à l'opacité ; hors animation (mouvement réduit) la
-   valeur de base ci-dessus garde le néon allumé. */
-@keyframes neon{0%,100%{opacity:.5}50%{opacity:1}}
+/* Le néon est taillé DANS le tracé, jamais posé autour : à cette taille, la
+   moindre lueur au-delà des lettres se lit comme un flou. Le titre est donc
+   deux images superposées — le logo, net et jamais filtré, et son cœur
+   incandescent (logo-glow.svg) dont seule l'opacité respire. Une opacité, le
+   compositeur la fait varier sans retoucher au rendu ; un filtre CSS, lui,
+   obligerait le navigateur à re-rastériser le titre à chaque image. */
+.home h1{margin:0;position:relative;display:flex;justify-content:center}
+.home h1 img{display:block;width:min(100%,340px,38vh);height:auto}
+.home h1 .glow{position:absolute;top:0;pointer-events:none;opacity:.6;
+  animation:breathe 5.6s ease-in-out infinite}
+/* hors animation (mouvement réduit), l'opacité de base garde le néon allumé */
+@keyframes breathe{0%,100%{opacity:.45}48%{opacity:.85}}
 
 /* barre à deux onglets */
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
@@ -722,7 +708,7 @@ function home(){
         </button>
       </div>
 
-      <h1><img src="logo.svg" width="801" height="303" alt="Le Soulièteur" decoding="async" fetchpriority="high"></h1>
+      <h1><img src="logo.svg" width="801" height="303" alt="Le Soulièteur" decoding="async" fetchpriority="high"><img class="glow" src="logo-glow.svg" width="801" height="303" alt="" aria-hidden="true" decoding="async"></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer une partie</button>
