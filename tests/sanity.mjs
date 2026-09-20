@@ -55,4 +55,16 @@ assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester dis
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
 assert.match(html, /data-act="ready"/, 'Ready control must remain available');
 
+// La barre d'action est fixe : si la page réserve une hauteur devinée au lieu
+// de la hauteur mesurée, le bouton finit par recouvrir la fin du contenu —
+// l'écran de fin, à deux boutons, dépassait les 150px autrefois codés en dur.
+assert.match(html, /padding:calc\(30px \+ env\(safe-area-inset-top\)\) 18px calc\(var\(--dock-h/,
+  'La réserve du bas doit suivre --dock-h, pas une valeur fixe');
+assert.match(scripts[0], /function fitDock\(\)/,
+  'fitDock doit mesurer la barre d’action après chaque rendu');
+// En appli installée, la barre d'état d'iOS se superpose à la page : sans ce
+// voile, le contenu qui défile se chevauche avec l'heure et la batterie.
+assert.match(html, /<div class="scrim" aria-hidden="true">/,
+  'Le voile de la barre d’état doit rester dans la page');
+
 console.log('Frontend sanity checks passed.');
