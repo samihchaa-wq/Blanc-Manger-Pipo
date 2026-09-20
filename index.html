@@ -33,6 +33,11 @@
   --ink:#1A1020; --ink-soft:#6B5A73;
   --paper:#FFF7EA; --paper-2:#F6E9D6; --paper-edge:#D4C0A6;
   --gold:#FFC93C; --gold-2:#FFB114; --gold-deep:#B77A05;
+  /* La phrase à trou est dorée partout : au choix du lecteur, pendant qu'on la
+     complète, à la lecture et jusqu'à la révélation. Les réponses en main
+     restent crème, ce qui sépare d'un coup d'œil l'énoncé et les cartes. */
+  --gold-paper:#FFEDB6; --gold-paper-2:#FFF3CE;
+  --gold-ink:#3A2600; --gold-ink-soft:rgba(58,38,0,.66);
   --pop:#FF5C8A; --pop-2:#F53A6E; --pop-deep:#A81D45;
   --mint:#5FE3B4; --mint-2:#2FCB94; --mint-deep:#12795A;
   --text:#FDF4E7; --text-dim:#C6B2CE; --text-faint:#95819E;
@@ -58,8 +63,12 @@ body::before{background:
   linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 100%)}
 body::after{opacity:.5;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E")}
+/* La réserve du bas doit valoir la hauteur RÉELLE de la barre d'action : une
+   valeur devinée laisse le bouton recouvrir la fin du contenu dès qu'il y a
+   deux boutons ou une police plus grande. --dock-h est mesuré après chaque
+   rendu (voir fitDock) et contient déjà l'encoche du bas. */
 main{position:relative;z-index:1;max-width:520px;margin:0 auto;
-  padding:calc(30px + env(safe-area-inset-top)) 18px calc(150px + env(safe-area-inset-bottom))}
+  padding:calc(30px + env(safe-area-inset-top)) 18px calc(var(--dock-h,150px) + 18px)}
 h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.03em}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -164,24 +173,30 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .role{font-size:17px;color:var(--text-dim);margin:2px 0 14px;max-width:34ch;min-height:2.9em}
 .role b{color:var(--text)}
 h2.title{font-size:27px;margin:2px 0 14px}
-.qcard{position:relative;background:linear-gradient(168deg,#FFFDF7 0%,var(--paper) 42%,var(--paper-2) 100%);
-  color:var(--ink);border-radius:20px;padding:16px 20px 24px;min-height:150px;box-shadow:var(--shadow-card);
+.qcard{position:relative;background:linear-gradient(168deg,var(--gold-paper-2) 0%,var(--gold-paper) 44%,var(--gold) 100%);
+  color:var(--gold-ink);border-radius:20px;padding:16px 20px 24px;min-height:150px;
+  box-shadow:0 4px 0 var(--gold-deep),var(--shadow-card);
   transform:rotate(-1deg);display:flex;flex-direction:column;gap:10px}
 .qcard::after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
-  box-shadow:inset 0 0 0 1px rgba(26,16,32,.10), inset 0 0 0 7px rgba(26,16,32,.035)}
-.qcard .qtag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+  box-shadow:inset 0 0 0 1px rgba(58,38,0,.16), inset 0 0 0 7px rgba(58,38,0,.05)}
+.qcard .qtag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-ink-soft)}
 .qcard .qtext{font-size:clamp(21px,5.9vw,27px);line-height:1.24;letter-spacing:-.02em}
-.qcard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink-soft);margin-top:2px}
-.qcard.sticky{position:sticky;top:8px;z-index:3;box-shadow:var(--shadow-lift)}
-.qcard.win{background:linear-gradient(168deg,#EAFFF7,var(--mint) 125%);transform:rotate(.8deg)}
+.qcard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:2px}
+.qcard.sticky{position:sticky;top:8px;z-index:3;box-shadow:0 4px 0 var(--gold-deep),var(--shadow-lift)}
+/* La carte gagnante garde le doré : c'est l'anneau menthe qui dit « gagné »,
+   comme l'anneau menthe de la carte que le lecteur vient de choisir. */
+.qcard.win{transform:rotate(.8deg);
+  box-shadow:0 0 0 3px var(--mint),0 4px 0 var(--gold-deep),0 18px 42px -14px rgba(95,227,180,.6)}
 .qcard.win .qtag{color:var(--mint-deep)}
-.qcard.win .fill{background:var(--ink);color:var(--paper)}
-.blank{display:inline-block;width:4.2em;border-bottom:4px solid rgba(26,16,32,.75);margin:0 .06em}
+.blank{display:inline-block;width:4.2em;border-bottom:4px solid rgba(58,38,0,.72);margin:0 .06em}
 .fill{background:var(--pop);color:#2E0715;padding:.02em .2em;border-radius:6px;
   -webkit-box-decoration-break:clone;box-decoration-break:clone}
+/* Sur le doré, le trou comblé se lit mieux en pastille encre qu'en rose. */
+.qcard .fill,.scard .fill,.qchoice .fill{background:var(--ink);color:var(--gold-paper)}
 .hand,.subs,.qchoices{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px}
-.acard,.scard,.qchoice{display:block;width:100%;text-align:left;color:var(--ink);border-radius:15px;padding:15px 17px;
-  font-size:18px;line-height:1.32;letter-spacing:-.01em;background:linear-gradient(170deg,#FFFDF7,var(--paper-2))}
+.acard,.scard,.qchoice{display:block;width:100%;text-align:left;border-radius:15px;padding:15px 17px;
+  font-size:18px;line-height:1.32;letter-spacing:-.01em}
+.acard{color:var(--ink);background:linear-gradient(170deg,#FFFDF7,var(--paper-2))}
 /* Les réponses sont stockées en minuscule, prêtes à s'insérer en milieu de
    phrase ; seule leur présentation en carte reprend une majuscule. */
 .acard::first-letter{text-transform:uppercase}
@@ -210,12 +225,14 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .acard .rang{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;
   border-radius:50%;background:#2E0715;color:var(--paper);font-style:normal;font-size:13px;
   vertical-align:-3px}
-.scard{position:relative;box-shadow:0 2px 0 var(--paper-edge),0 8px 18px -12px rgba(0,0,0,.55)}
+.scard{position:relative;color:var(--gold-ink);background:linear-gradient(170deg,var(--gold-paper-2),var(--gold-paper));
+  box-shadow:0 3px 0 var(--gold-deep),0 8px 18px -12px rgba(0,0,0,.55)}
 button.scard{transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 button.scard:active{transform:translateY(2px)}
-.scard.sel{box-shadow:0 0 0 3px var(--gold),0 2px 0 var(--paper-edge),0 12px 26px -10px rgba(255,201,60,.7)}
-.scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink-soft);margin-top:9px}
-.qchoice{background:linear-gradient(168deg,#FFE9AE,var(--gold));font-size:19px;line-height:1.26;
+.scard.sel{background:linear-gradient(168deg,var(--gold-paper-2),var(--gold) 130%);
+  box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(95,227,180,.55)}
+.scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:9px}
+.qchoice{color:var(--gold-ink);background:linear-gradient(168deg,#FFE9AE,var(--gold));font-size:19px;line-height:1.26;
   padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(255,201,60,.8);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 .qchoice:active{transform:translateY(3px);box-shadow:0 0 0 var(--gold-deep),0 6px 12px -10px rgba(0,0,0,.5)}
@@ -354,6 +371,18 @@ button.scard:active{transform:translateY(2px)}
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to top,#000 55%,transparent);
   mask-image:linear-gradient(to top,#000 55%,transparent)}
 .dock>*{position:relative;z-index:1;max-width:484px;margin-left:auto;margin-right:auto}
+
+/* ===== Haut d'écran ===== */
+/* En appli installée, la barre d'état d'iOS est translucide et se superpose à
+   la page : sans ce voile, le contenu qui défile passe derrière l'heure, le
+   réseau et la batterie, et les deux se chevauchent, illisibles. Même
+   traitement qu'en bas, retourné. */
+.scrim{position:fixed;left:0;right:0;top:0;z-index:6;pointer-events:none;
+  height:calc(env(safe-area-inset-top) + 10px);
+  background:linear-gradient(to bottom,var(--bg-0) 62%,rgba(18,7,20,.88) 82%,rgba(18,7,20,0))}
+.scrim::before{content:"";position:absolute;inset:0;backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent);
+  mask-image:linear-gradient(to bottom,#000 62%,transparent)}
 .center{text-align:center;padding-top:34vh;color:var(--text-dim)}
 .spin{display:block;width:26px;height:26px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--hairline);
   border-top-color:var(--gold);animation:rot .8s linear infinite}
@@ -397,6 +426,7 @@ button.scard:active{transform:translateY(2px)}
 </head>
 <body>
 <main id="app"></main>
+<div class="scrim" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
@@ -626,7 +656,7 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
-  // Sans barre d'action fixe, les 150px réservés en bas laisseraient un grand vide.
+  // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
   document.body.classList.toggle('no-dock', !html.includes('class="dock"'));
   if (html !== lastHtml) {
     lastHtml = html;
@@ -640,10 +670,23 @@ function render(){
     }
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     else if (session && state && state.room.status === 'finished') confetti();
+    fitDock();
   }
   updateCountdown();
   dealPending = false;
 }
+
+// La barre d'action est fixe : elle recouvre la fin du contenu si la page ne
+// réserve pas sa hauteur. Un écran à deux boutons est bien plus haut qu'un
+// écran à un seul, et la police réglée par le système change encore la donne :
+// on mesure au lieu de deviner.
+function fitDock(){
+  const dock = app.querySelector('.dock');
+  document.documentElement.style.setProperty('--dock-h', (dock ? dock.offsetHeight : 0) + 'px');
+}
+// La rotation et la barre d'URL de Safari changent la hauteur du bouton
+// (retour à la ligne du libellé) : la réserve doit suivre.
+addEventListener('resize', fitDock);
 
 function home(){
   const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,4);
