@@ -43,8 +43,8 @@ assert.match(html, /sb_publishable_[A-Za-z0-9_-]+/,
   'Client must use a publishable Supabase key');
 assert.doesNotMatch(html, /service[_-]?role|sb_secret_/i,
   'Never expose a service-role or secret key in the browser');
-assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},12000\)/,
-  'Fallback polling must remain at 12 seconds');
+assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},4000\)/,
+  'Fallback polling must remain at 4 seconds');
 assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
 assert.match(scripts[0], /\[3,\s*5,\s*7,\s*10\]\s*\.map/,
