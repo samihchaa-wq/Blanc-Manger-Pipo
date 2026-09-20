@@ -389,17 +389,6 @@ button.scard:active{transform:translateY(2px)}
 .state.yes{animation:readyPop .32s var(--ease)}
 @keyframes readyPop{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.12)}}
 
-/* ===== Réponses révélées (toutes, avec auteurs) ===== */
-.reveals{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:9px}
-.reveals li{background:linear-gradient(170deg,#FFFDF7,var(--paper-2));color:var(--ink);border-radius:14px;
-  padding:12px 15px;font-size:16px;line-height:1.3;box-shadow:0 2px 0 var(--paper-edge),0 8px 16px -12px rgba(0,0,0,.5);
-  opacity:.82}
-.reveals li.won{opacity:1;background:linear-gradient(168deg,#EAFFF7,var(--mint) 135%);
-  box-shadow:0 0 0 2px rgba(95,227,180,.5),0 2px 0 var(--paper-edge),0 10px 22px -12px rgba(95,227,180,.5)}
-.reveals li.won .fill{background:var(--ink);color:var(--paper)}
-.reveals .who{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:13px;color:var(--ink-soft)}
-.reveals li.won .who{color:var(--mint-deep)}
-
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .wheel{transform:rotate(var(--spin,0deg))}
@@ -959,15 +948,6 @@ function result(){
   return qcard('Réponse gagnante', w ? fill(q, w.cards) : blank(q), 'win',
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
-// Toutes les réponses de la manche, la gagnante mise en avant, avec les auteurs :
-// c'est souvent là que se trouvent les meilleures répliques, pas seulement la gagnante.
-function allReveals(){
-  const r = state.room, q = state.question || '', subs = state.submissions || [];
-  if (subs.length <= 1) return '';
-  return `<h3 class="sec">Toutes les réponses</h3>
-    <ul class="reveals">${subs.map(s => `<li class="${s.id === r.winning_submission_id ? 'won' : ''}">${
-      fill(q, s.cards)}<span class="who">${esc(s.author || '')}</span></li>`).join('')}</ul>`;
-}
 function rank(){
   return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
     <span class="pos">${i + 1}</span>
@@ -981,7 +961,6 @@ function reveal(){
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
     ${result()}
-    ${allReveals()}
     <h3 class="sec">Classement</h3>${rank()}
     ${waiting(pending, 'Tout le monde est prêt.')}
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : 'Manche suivante'}</button></div>`;
@@ -993,7 +972,6 @@ function finished(){
     <p class="eyebrow">Partie terminée</p>
     <h1 class="bigwin">${isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !'}</h1>
     ${result()}
-    ${allReveals()}
     <h3 class="sec">Classement final</h3>${rank()}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
