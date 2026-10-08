@@ -564,6 +564,8 @@ let session = load(), state = null, busy = false, picks = [], picked = null, rea
 let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
+let spinAt = 0;     // instant local où la roue de la phase courante a démarré
+const spinning = () => Date.now() - spinAt < 2000;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let dialVal = 50, dialDrag = null, clueDraft = '';   // Longueur d'onde : aiguille et indice en cours
 let pressedEl = null, lastHtml = '';
@@ -637,7 +639,13 @@ async function refresh(force = false){
     if (prevStatus && prevStatus !== 'lobby' && s.room.status === 'lobby')
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
-    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking' }
+    if (changed) {
+      picks = []; picked = null; readIndex = 0; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      // Horloge locale : le décalage d'horloge d'un téléphone avec le serveur
+      // laissait la roue affichée sans fin. Une phase entamée depuis longtemps
+      // (retour dans l'appli, rechargement) ne relance pas la roue.
+      spinAt = Date.now() - stamp(s.room.phase_at) < 15000 ? Date.now() : 0;
+    }
     render(); scheduleAuto();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
@@ -663,7 +671,7 @@ function leaveLocal(){ disconnect(); save(null); state = null; history.replaceSt
 function scheduleAuto(){
   clearTimeout(wheelTimer);
   // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
-  if (['question_select','ranking','clue'].includes(state?.room.status)) wheelTimer = setTimeout(render, 2100);
+  if (spinning()) wheelTimer = setTimeout(render, spinAt + 2100 - Date.now());
   scheduleReap();
   scheduleBots();
 }
@@ -1094,8 +1102,7 @@ function wheel(title = 'Qui va lire ?'){
 
 function qselect(){
   const r = state.room;
-  const age = Date.now() - Date.parse(String(r.updated_at || '').replace(' ','T'));
-  if (age < 2000 && !qpick) return wheel();
+  if (spinning() && !qpick) return wheel();
   const reader = P(r.reader_id);
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
@@ -1204,8 +1211,8 @@ function ladder(ids, editable, marks){
 
 function ranking(){
   const r = state.room, cards = state.rank_cards || [], judge = isMe(r.reader_id);
-  // la roue désigne le juge ; phase_at, car updated_at bouge à chaque classement reçu
-  if (Date.now() - stamp(r.phase_at) < 2000 && !picks.length && !state.my_ranking) return wheel('Qui est le juge ?');
+  // la roue désigne le juge
+  if (spinning() && !picks.length && !state.my_ranking) return wheel('Qui est le juge ?');
   const left = state.players.filter(p => !p.ranked), done = state.players.length - left.length;
   const bar = `<div class="bar"><i style="width:${Math.round(done / state.players.length * 100)}%"></i></div>`;
 
@@ -1302,7 +1309,7 @@ const seatColor = id => sliceColor(Math.max(0, state.players.findIndex(p => p.id
 
 function clue(){
   const r = state.room, w = state.wave || {};
-  if (Date.now() - stamp(r.phase_at) < 2000 && !clueDraft) return wheel('Qui est le médium ?');
+  if (spinning() && !clueDraft) return wheel('Qui est le médium ?');
   if (!isMe(r.reader_id)) return waitScreen(`${nameOf(r.reader_id)} est le médium`, 'Il cherche un indice…');
   return `
     <p class="role"><b>Tu es le médium.</b> Toi seul vois la cible. Donne un indice qui la situe entre les deux extrêmes.</p>
