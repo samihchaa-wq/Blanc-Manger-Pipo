@@ -367,7 +367,7 @@ button.scard:active{transform:translateY(2px)}
 .rank b.plus{color:var(--mint)}
 .rank .tag{margin-left:2px}
 
-/* ===== Longueur d'onde ===== */
+/* ===== Baromètre ===== */
 /* Le cadran : un demi-disque crème, la cible en trois bandes (2, 3, 4 points),
    les aiguilles partent du moyeu. Les deux extrêmes de la carte encadrent le
    cadran, comme les étiquettes posées de part et d'autre du vrai jeu. */
@@ -576,13 +576,13 @@ let swipe = null, dragging = false, flying = false, pendingRender = false, lastS
 let spinAt = 0;     // instant local où la roue de la phase courante a démarré
 const spinning = () => Date.now() - spinAt < 2000;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
-let dialVal = 50, dialDrag = null, clueDraft = '';   // Longueur d'onde : aiguille et indice en cours
+let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et indice en cours
 let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
 let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases à trou
 let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
-// Les catalogues de l'admin, rangés par jeu. Une carte Longueur d'onde porte
+// Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
 // deux textes : l'extrême de gauche et celui de droite.
 const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']] };
 const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
@@ -593,11 +593,11 @@ let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 const GAMES = {
   phrases:   { name:'Phrases à trou',  desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
-  ondes:     { name:'Longueur d’onde', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
+  ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
-// Priorités et Longueur d'onde se jouent en manches comptées, pas au score cible.
+// Priorités et Baromètre se jouent en manches comptées, pas au score cible.
 const isCounted = () => isPrio() || isWave();
 // Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
 // moins deux réponses à départager. Le serveur applique la même règle.
@@ -1273,7 +1273,7 @@ function rankReveal(){
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
 }
 
-/* ---------- Longueur d'onde ---------- */
+/* ---------- Baromètre ---------- */
 // Le cadran va de 0 (extrême gauche) à 100 (extrême droite), en demi-cercle.
 const DC = { x:100, y:100, r:90 };
 function dpt(v, rad = DC.r){
@@ -1431,7 +1431,7 @@ function reveal(){
 
 function finished(){
   const r = state.room;
-  // Priorités et Longueur d'onde se jouent en manches comptées : plusieurs joueurs peuvent finir à égalité.
+  // Priorités et Baromètre se jouent en manches comptées : plusieurs joueurs peuvent finir à égalité.
   const top = Math.max(...state.players.map(p => p.score));
   const best = isCounted() ? state.players.filter(p => p.score === top) : [];
   const title = best.length > 1 ? 'Égalité !' : isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !';
