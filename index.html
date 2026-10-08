@@ -130,7 +130,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 @keyframes migrate{to{background-position:280% 0}}
 
 /* barre à deux onglets */
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
   border:1.5px solid var(--hairline);border-radius:var(--r-pill)}
 .tab{padding:13px 6px;border-radius:var(--r-pill);font-size:clamp(13px,3.6vw,15px);
   white-space:nowrap;color:var(--text-dim);
@@ -347,6 +347,8 @@ button.scard:active{transform:translateY(2px)}
   border:1.5px solid var(--hairline-2);background:rgba(255,255,255,.05);color:var(--text-dim)}
 .catlist .form.v{background:rgba(63,224,168,.16);border-color:rgba(63,224,168,.45);color:var(--mint)}
 .catlist .form.n{background:rgba(255,182,31,.14);border-color:rgba(255,182,31,.4);color:var(--gold)}
+.catlist .form.theme{display:inline-flex;align-items:center;letter-spacing:.02em;
+  background:rgba(255,61,119,.14);border-color:rgba(255,61,119,.42);color:#FF8AAB}
 .catlist .form.two{display:inline-flex;align-items:center;letter-spacing:.02em;
   background:rgba(155,123,255,.16);border-color:rgba(155,123,255,.48);color:#BCA6FF}
 .catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,61,119,.16);
@@ -504,6 +506,7 @@ let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
 let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses
+const MOT = { q:'phrase', a:'réponse', p:'carte' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les deux jeux hébergés par l'appli. Le salon en montre la règle courte.
@@ -807,24 +810,26 @@ function adminView(){
   const q = adminTab === 'q';
   const body = adminLevel
     ? `<div class="tabs" role="tablist">
-         <button class="tab ${q ? 'on' : ''}" data-act="admin-tab" data-tab="q" role="tab" aria-selected="${q}">Phrases</button>
-         <button class="tab ${q ? '' : 'on'}" data-act="admin-tab" data-tab="a" role="tab" aria-selected="${!q}">Réponses</button>
+         ${[['q','Phrases'],['a','Réponses'],['p','Priorités']].map(([k,t]) =>
+           `<button class="tab ${adminTab === k ? 'on' : ''}" data-act="admin-tab" data-tab="${k}" role="tab" aria-selected="${adminTab === k}">${t}</button>`).join('')}
        </div>
        <section class="panel">
-         <p class="eyebrow">Catalogue</p><h2>${q ? 'Nouvelle phrase' : 'Nouvelle réponse'}</h2>
-         <label><span>${q ? 'Texte de la phrase' : 'Texte de la réponse'}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>
+         <p class="eyebrow">Catalogue</p><h2>Nouvelle ${MOT[adminTab]}${adminTab === 'p' ? ' Priorités' : ''}</h2>
+         <label><span>Texte de la ${MOT[adminTab]}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
            <span class="meta" id="hole-count">0 trou sur 2</span>
          </div>` : ''}
          <p class="meta" style="margin:-6px 0 14px">${q
            ? '150 caractères maximum, deux trous au maximum. Le trou se pose là où se trouve le curseur.'
-           : '80 caractères maximum, sans texte à trou.'}</p>
+           : adminTab === 'p'
+             ? '80 caractères maximum. Ces cartes ne servent qu’au jeu Priorités ; les réponses y sont déjà reprises.'
+             : '80 caractères maximum, sans texte à trou.'}</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="${q ? 'Rechercher une phrase' : 'Rechercher une réponse'}" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="Rechercher une ${MOT[adminTab]}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -866,12 +871,13 @@ function paintCatalog(){
   const list = document.getElementById('cat-list');
   if (!list) return;
   const q = catalog.kind === 'q';
-  const mot = q ? 'phrase' : 'réponse';
+  const mot = MOT[catalog.kind];
   const count = document.getElementById('cat-count');
   if (count) count.textContent = `Catalogue · ${catalog.total} ${mot}${catalog.total > 1 ? 's' : ''}`;
   list.innerHTML = catalog.items.length
     ? catalog.items.map(c => `<li>
         ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
+            : catalog.kind === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
             : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
           aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
         <span class="ct">${esc(c.text)}</span>
@@ -1406,7 +1412,7 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const text = val('a-text'), mot = adminTab === 'q' ? 'phrase' : 'réponse';
+    const text = val('a-text'), mot = MOT[adminTab];
     if (!text) return toast(`Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
@@ -1420,7 +1426,7 @@ document.addEventListener('click', async e => {
       el.disabled = false;
       if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
-      toast(/existe déjà/i.test(e.message) ? 'Réponse déjà existante' : e.message);
+      toast(/existe déjà/i.test(e.message) ? mot.charAt(0).toUpperCase() + mot.slice(1) + ' déjà existante' : e.message);
       if (/Mot de passe/i.test(e.message)) { adminPwd = ''; adminLevel = ''; render() } else el.disabled = false;
     }
     busy = false;
@@ -1442,7 +1448,7 @@ document.addEventListener('click', async e => {
   if (a === 'admin-more') { el.disabled = true; return loadCatalog(catalog.items.length) }
   if (a === 'admin-del') {
     const item = catalog.items.find(c => String(c.id) === String(id));
-    const mot = catalog.kind === 'q' ? 'phrase' : 'réponse';
+    const mot = MOT[catalog.kind];
     if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
     el.disabled = true;
     try {
@@ -1450,7 +1456,7 @@ document.addEventListener('click', async e => {
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
       paintCatalog();
-      toast(catalog.kind === 'q' ? 'Phrase supprimée.' : 'Réponse supprimée.');
+      toast(mot.charAt(0).toUpperCase() + mot.slice(1) + ' supprimée.');
     } catch (e) { toast(e.message); el.disabled = false }
     return;
   }
