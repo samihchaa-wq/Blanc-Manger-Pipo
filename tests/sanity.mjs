@@ -49,7 +49,8 @@ assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
 assert.match(scripts[0], /\[3,\s*5,\s*7,\s*10\]\s*\.map/,
   'Supported target scores changed unexpectedly');
-assert.match(html, /data-act="target"/, 'Target-score control must remain available');
+// Le score cible se règle désormais dans le salon (choix du jeu par l'hôte).
+assert.match(scripts[0], /seg\('target'/, 'Target-score control must remain available');
 assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
 assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
