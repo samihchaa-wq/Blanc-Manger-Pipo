@@ -1310,7 +1310,10 @@ const seatColor = id => sliceColor(Math.max(0, state.players.findIndex(p => p.id
 function clue(){
   const r = state.room, w = state.wave || {};
   if (spinning() && !clueDraft) return wheel('Qui est le médium ?');
-  if (!isMe(r.reader_id)) return waitScreen(`${nameOf(r.reader_id)} est le médium`, 'Il cherche un indice…');
+  if (!isMe(r.reader_id)) return `
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium. Lui seul voit la cible.</p>
+    ${dial()}
+    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche un indice…</p>`;
   return `
     <p class="role"><b>Tu es le médium.</b> Toi seul vois la cible. Donne un indice qui la situe entre les deux extrêmes.</p>
     ${dial({ target: w.target })}
