@@ -887,12 +887,6 @@ function home(){
 function adminView(){
   const plus = adminLevel === 'plus';
   const k = adminTab, q = k === 'q', w = k === 'w', jeu = jeuDe(k), sous = CATALOGUES[jeu];
-  const aide = {
-    q:'150 caractères maximum, deux trous au maximum. Le trou se pose là où se trouve le curseur.',
-    a:'80 caractères maximum, sans texte à trou.',
-    p:'80 caractères maximum. Priorités pioche aussi dans les réponses de Phrases à trou.',
-    w:'40 caractères maximum de chaque côté.',
-  }[k];
   const body = adminLevel
     ? `<div class="tabs jeux" role="tablist" aria-label="Jeu">
          ${Object.keys(CATALOGUES).map(g =>
@@ -903,16 +897,15 @@ function adminView(){
            `<button type="button" class="soustab ${k === x ? 'on' : ''}" data-act="admin-tab" data-tab="${x}" role="tab" aria-selected="${k === x}">${t}</button>`).join('')}
        </div>
        <section class="panel">
-         <p class="eyebrow">Catalogue</p><h2>${w ? 'Nouveaux extrêmes' : `Nouvelle ${MOT[k]}`}</h2>
          ${w
-           ? `<label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="Chaud"></label>
+           ? `<p class="eyebrow">Catalogue</p><h2>Nouveaux extrêmes</h2>
+              <label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="Chaud"></label>
               <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="Froid"></label>`
-           : `<label><span>Texte de la ${MOT[k]}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>`}
+           : `<label><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}" aria-label="Texte de la ${MOT[k]}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
            <span class="meta" id="hole-count">0 trou sur 2</span>
          </div>` : ''}
-         <p class="meta" style="margin:-6px 0 14px">${aide}</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
        </section>
        ${plus ? `
