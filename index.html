@@ -323,6 +323,9 @@ button.scard:active{transform:translateY(2px)}
 .ladder .acard.sel{transform:none}
 .ladder li.ok .num{background:var(--mint);color:#052B20}
 .ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--pop-deep)}
+/* à un rang près : 1 point, anneau doré */
+.ladder li.near .num{background:var(--gold);color:var(--gold-ink)}
+.ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--pop-deep)}
 .ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
 /* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
 .truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
@@ -1105,7 +1108,7 @@ function ladder(ids, editable, marks){
   return `<p class="ladder-end">Le plus important</p>
     <ol class="ladder">${Array.from({ length:n }, (_, i) => {
       const c = rankCard(ids[i]);
-      const cls = !c ? '' : marks ? (marks[i] ? 'full ok' : 'full ko') : 'full';
+      const cls = !c ? '' : marks ? 'full ' + marks[i] : 'full';
       return `<li class="${cls}"><span class="num">${i + 1}</span>${!c ? '<span class="slot"></span>'
         : editable ? `<button class="acard sel" data-act="unrank" data-id="${c.id}" aria-label="Retirer ${esc(c.text)}">${esc(c.text)}</button>`
         : `<span class="acard sel">${esc(c.text)}</span>`}</li>`;
@@ -1158,10 +1161,10 @@ function rankReveal(){
       return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
         <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
     }).join('')}</ol>
-    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => id === truth[i]))}` : ''}
+    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko'))}` : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
-      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 7 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
+      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
       <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     ${waiting(pending, 'Tout le monde est prêt.')}
