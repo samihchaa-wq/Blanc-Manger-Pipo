@@ -513,7 +513,7 @@ let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 // Les deux jeux hébergés par l'appli. Le salon en montre la règle courte.
 const GAMES = {
   phrases:   { name:'Phrases à trou', desc: r => `Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle. Premier à ${r.target} points.` },
-  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement : 1 point par carte bien placée, +2 pour un sans-faute. Le juge marque 1 point par joueur qui en trouve au moins 3. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
+  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 
