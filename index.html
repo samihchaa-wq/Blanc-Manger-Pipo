@@ -171,7 +171,7 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* ===== Boutons ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:var(--r-pill);
   padding:16px 22px;font-size:18px;letter-spacing:-.01em;
-  background:linear-gradient(180deg,#FF5C86,var(--pop-2));color:#2E0715;
+  background:linear-gradient(180deg,#F0336B,#C8104A);color:#fff;font-weight:600;text-shadow:0 1px 1px rgba(0,0,0,.25);
   box-shadow:0 5px 0 var(--pop-deep), 0 16px 30px -12px rgba(255,61,119,.7);
   transition:transform .08s var(--ease),box-shadow .08s var(--ease),filter var(--dur)}
 .btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--pop-deep),0 8px 16px -12px rgba(255,61,119,.7)}
@@ -249,11 +249,11 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .acard::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:0 4px 4px 0;
   background:var(--paper-edge);transition:background .14s,width .14s}
 .acard:active{transform:translateY(3px);box-shadow:0 0 0 var(--paper-edge),0 4px 10px -8px rgba(0,0,0,.6)}
-.acard.sel{background:linear-gradient(170deg,#FF6E97,var(--pop));color:#2E0715;transform:translateX(7px) rotate(.7deg);
+.acard.sel{background:linear-gradient(170deg,#E8336A,#C8104A);color:#fff;transform:translateX(7px) rotate(.7deg);
   box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(255,61,119,.8)}
-.acard.sel::before{background:#2E0715;width:5px}
+.acard.sel::before{background:#fff;width:5px}
 .acard .rang{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;
-  border-radius:50%;background:#2E0715;color:var(--paper);font-style:normal;font-size:13px;
+  border-radius:50%;background:#fff;color:#C8104A;font-weight:700;font-style:normal;font-size:13px;
   vertical-align:-3px}
 .scard{position:relative;color:var(--gold-ink);background:linear-gradient(170deg,var(--gold-paper-2),var(--gold-paper));
   box-shadow:0 3px 0 var(--gold-deep),0 8px 18px -12px rgba(0,0,0,.55)}
