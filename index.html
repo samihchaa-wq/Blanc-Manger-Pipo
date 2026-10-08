@@ -346,6 +346,15 @@ button.scard:active{transform:translateY(2px)}
 .ladder li.near .num{background:var(--gold);color:var(--gold-ink)}
 .ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--paper-edge)}
 .ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
+/* glisser-déposer : la carte saisie suit le doigt, la marche visée s'allume */
+.ladder .acard,.hand .acard[data-act="rank"]{-webkit-touch-callout:none;cursor:grab}
+.acard.rank-float{position:fixed;left:0;top:0;z-index:50;margin:0;pointer-events:none;transition:none;
+  background:linear-gradient(170deg,#FFFBF3,var(--paper));color:var(--ink);padding:13px 16px;font-size:17px;
+  box-shadow:0 3px 0 var(--paper-edge),0 18px 30px -12px rgba(0,0,0,.75)}
+.acard.rank-src{opacity:.3}
+.ladder li.over .slot{border-color:var(--gold);background:rgba(255,194,61,.12)}
+.ladder li.over .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--paper-edge)}
+.ladder li.over .num{background:var(--gold);color:var(--gold-ink)}
 /* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
 .truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .truth li{display:grid;grid-template-columns:30px 1fr;gap:7px 10px;align-items:center}
@@ -1212,7 +1221,7 @@ function ladder(ids, editable, marks){
 function ranking(){
   const r = state.room, cards = state.rank_cards || [], judge = isMe(r.reader_id);
   // la roue désigne le juge
-  if (spinning() && !picks.length && !state.my_ranking) return wheel('Qui est le juge ?');
+  if (spinning() && !picks.some(Boolean) && !state.my_ranking) return wheel('Qui est le juge ?');
   const left = state.players.filter(p => !p.ranked), done = state.players.length - left.length;
   const bar = `<div class="bar"><i style="width:${Math.round(done / state.players.length * 100)}%"></i></div>`;
 
@@ -1222,17 +1231,17 @@ function ranking(){
     <p class="meta" style="margin-top:18px">${done}/${state.players.length} ont classé</p>${bar}
     ${waiting(left, 'Tout le monde a classé.')}`;
 
-  const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.length;
+  const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.filter(Boolean).length;
   return `
     <p class="role">${judge
       ? '<b>Tu es le juge.</b> Classe ces cartes, de la plus importante à la moins importante pour toi.'
       : `<b>${nameOf(r.reader_id)}</b> est le juge. Devine son classement, de la plus importante à la moins importante à ses yeux.`}</p>
     ${ladder(picks, true)}
     ${pool.length
-      ? `<p class="swipehint">Touche les cartes dans l'ordre, <b>la plus importante d'abord</b></p>
+      ? `<p class="swipehint">Glisse les cartes sur les marches, ou touche-les dans l'ordre, <b>la plus importante d'abord</b></p>
          <ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
            <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
-      : '<p class="swipehint">Touche une carte du classement pour la retirer.</p>'}
+      : '<p class="swipehint">Glisse une carte pour la déplacer, touche-la pour la retirer.</p>'}
     <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
       ? `Encore ${reste} carte${reste > 1 ? 's' : ''} à classer`
       : judge ? 'Valider mon classement' : 'Valider mon pronostic'}</button></div>`;
@@ -1540,6 +1549,114 @@ function endSwipe(e){
 document.addEventListener('pointerup', endSwipe);
 document.addEventListener('pointercancel', endSwipe);
 
+/* ---------- Priorités : glisser-déposer ---------- */
+// Une carte (de la main ou déjà classée) se glisse sur une marche. Au doigt,
+// il faut la garder appuyée un instant, sinon le geste fait défiler la page ;
+// à la souris, elle part dès qu'on bouge.
+let rdrag = null;
+
+// Pose la carte c sur la marche i. Si la marche est prise, les cartes se
+// décalent vers la marche vide la plus proche (en dessous d'abord).
+function placeRank(c, i){
+  const n = (state?.rank_cards || []).length;
+  const p = Array.from({ length:n }, (_, k) => picks[k] === c ? undefined : picks[k]);
+  if (p[i]) {
+    let k = i + 1; while (k < n && p[k]) k++;
+    if (k < n) { for (let j = k; j > i; j--) p[j] = p[j - 1] }
+    else { k = i - 1; while (k >= 0 && p[k]) k--; for (let j = k; j < i; j++) p[j] = p[j + 1] }
+  }
+  p[i] = c;
+  picks = p;
+}
+
+// la marche visée : la plus proche du doigt, si on est sur l'échelle
+function rankTarget(x, y){
+  const ol = app.querySelector('.ladder'); if (!ol) return -1;
+  const b = ol.getBoundingClientRect();
+  if (x < b.left - 20 || x > b.right + 20 || y < b.top - 40 || y > b.bottom + 40) return -1;
+  let best = -1, dist = Infinity;
+  [...ol.children].forEach((li, i) => {
+    const r = li.getBoundingClientRect(), d = Math.abs(y - (r.top + r.height / 2));
+    if (d < dist) { dist = d; best = i }
+  });
+  return best;
+}
+
+function startRankDrag(){
+  const d = rdrag, r = d.el.getBoundingClientRect();
+  d.on = true; dragging = true;
+  d.dx = d.x - r.left; d.dy = d.y - r.top;
+  d.ghost = d.el.cloneNode(true);
+  d.ghost.className = 'acard rank-float';
+  d.ghost.removeAttribute('data-act');
+  d.ghost.style.width = r.width + 'px';
+  document.body.appendChild(d.ghost);
+  d.el.classList.add('rank-src');
+  try { d.el.setPointerCapture(d.pid) } catch {}
+  try { navigator.vibrate?.(12) } catch {}
+  moveRankDrag();
+  const tick = () => {
+    if (!rdrag?.on) return;
+    const m = 70, v = rdrag.y < m ? -(m - rdrag.y) / 4 : rdrag.y > innerHeight - m ? (rdrag.y - innerHeight + m) / 4 : 0;
+    if (v) { scrollBy(0, v); moveRankDrag() }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function moveRankDrag(){
+  const d = rdrag;
+  d.ghost.style.transform = `translate(${d.x - d.dx}px,${d.y - d.dy}px) rotate(-2deg) scale(1.03)`;
+  const t = rankTarget(d.x, d.y);
+  if (t !== d.over) {
+    app.querySelectorAll('.ladder li.over').forEach(li => li.classList.remove('over'));
+    if (t >= 0) app.querySelector('.ladder').children[t]?.classList.add('over');
+    d.over = t;
+  }
+}
+
+function endRankDrag(e){
+  const d = rdrag;
+  if (!d || (e && e.pointerId !== d.pid)) return;
+  rdrag = null; clearTimeout(d.timer);
+  if (!d.on) return;                      // simple appui : le clic s'en charge
+  lastSwipeEnd = Date.now();
+  d.ghost.remove();
+  dragging = false; pendingRender = false;
+  if (e?.type === 'pointerup') {
+    const t = rankTarget(e.clientX, e.clientY);
+    if (t >= 0) placeRank(d.id, t);
+    else if (d.fromLadder) { const i = picks.indexOf(d.id); if (i >= 0) picks[i] = undefined }
+  }
+  render();
+}
+
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.acard[data-act="rank"],.acard[data-act="unrank"]');
+  if (!el || busy || e.button > 0) return;
+  rdrag = { id:+el.dataset.id, el, pid:e.pointerId, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY,
+            on:false, over:-1, fromLadder: el.dataset.act === 'unrank', touch: e.pointerType === 'touch' };
+  if (rdrag.touch) rdrag.timer = setTimeout(() => { if (rdrag && !rdrag.on) startRankDrag() }, 180);
+});
+
+document.addEventListener('pointermove', e => {
+  const d = rdrag;
+  if (!d || e.pointerId !== d.pid) return;
+  d.x = e.clientX; d.y = e.clientY;
+  if (!d.on) {
+    const far = Math.hypot(d.x - d.x0, d.y - d.y0) > (d.touch ? 10 : 6);
+    if (!far) return;
+    if (d.touch) { clearTimeout(d.timer); rdrag = null; return }   // trop tôt : c'est un défilement
+    startRankDrag();
+  }
+  moveRankDrag();
+});
+// une fois la carte saisie, le doigt ne fait plus défiler la page
+document.addEventListener('touchmove', e => { if (rdrag?.on) e.preventDefault() }, { passive:false });
+document.addEventListener('pointerup', endRankDrag);
+document.addEventListener('pointercancel', endRankDrag);
+document.addEventListener('contextmenu', e => { if (rdrag) e.preventDefault() });
+
 /* ---------- Actions ---------- */
 async function enter(call, name){
   if (busy) return;
@@ -1727,17 +1844,21 @@ document.addEventListener('click', async e => {
     if (picks.length < (state?.blanks || 1)) return;
     return act('submit_answer', { p_answer_id: picks[0], p_answer_id2: picks[1] ?? null });
   }
-  // Priorités : chaque touche pose la carte sur la marche libre suivante ;
-  // toucher une carte posée la retire, celles d'en dessous remontent.
+  // Priorités : chaque touche pose la carte sur la première marche libre ;
+  // toucher une carte posée la retire et libère sa marche. Le glisser-déposer
+  // (plus haut) peut laisser des marches vides entre deux cartes.
   if (a === 'rank') {
     const c = +id, n = (state?.rank_cards || []).length;
-    if (!picks.includes(c) && picks.length < n) picks.push(c);
+    if (picks.includes(c)) return;
+    const libre = Array.from({ length:n }, (_, i) => i).find(i => !picks[i]);
+    if (libre !== undefined) picks[libre] = c;
     return render();
   }
-  if (a === 'unrank') { picks = picks.filter(x => x !== +id); return render() }
+  if (a === 'unrank') { const i = picks.indexOf(+id); if (i >= 0) picks[i] = undefined; return render() }
   if (a === 'send-rank') {
-    if (picks.length < (state?.rank_cards || []).length) return;
-    return act('submit_ranking', { p_cards: picks });
+    const n = (state?.rank_cards || []).length;
+    if (picks.slice(0, n).filter(Boolean).length < n) return;
+    return act('submit_ranking', { p_cards: picks.slice(0, n) });
   }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
