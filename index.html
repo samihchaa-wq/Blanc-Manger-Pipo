@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F0C14">
-<meta name="description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
+<meta name="description" content="Le jeu de cartes qui gâche les repas de famille. De 2 à 12 joueurs, un téléphone chacun.">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Le Soulièteur</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Le Soulièteur">
-<meta property="og:description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
+<meta property="og:description" content="Le jeu de cartes qui gâche les repas de famille. De 2 à 12 joueurs, un téléphone chacun.">
 <meta property="og:image" content="icon-512.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Le Soulièteur">
-<meta name="twitter:description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
+<meta name="twitter:description" content="Le jeu de cartes qui gâche les repas de famille. De 2 à 12 joueurs, un téléphone chacun.">
 <meta name="twitter:image" content="icon-512.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -387,6 +387,18 @@ button.scard:active{transform:translateY(2px)}
 .qcard.clue{min-height:0}
 
 /* catalogue admin */
+/* La barre des jeux est coupée en trois parts égales : sur un écran étroit, un
+   libellé long passe sur deux lignes au lieu d'élargir sa part. */
+.tabs.jeux{grid-auto-columns:minmax(0,1fr)}
+.tabs.jeux .tab{padding:14px 3px;font-size:clamp(11.5px,3.1vw,14px);letter-spacing:-.01em;
+  line-height:1.2;white-space:normal;text-wrap:balance}
+/* Les catalogues du jeu : un cran sous la barre, en onglets soulignés. */
+.soustabs{display:flex;gap:26px;margin:14px 6px 0;border-bottom:1px solid var(--hairline)}
+.soustab{position:relative;padding:12px 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-faint);transition:color var(--dur)}
+.soustab.on{color:var(--gold)}
+.soustab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--gold)}
+.catlist .sep{color:var(--text-faint)}
 .holebar{display:flex;align-items:center;gap:12px;margin:-4px 0 14px}
 .btn.small{width:auto;flex:none;padding:10px 16px;font-size:15px}
 .searchfield{display:block;width:100%;margin:0 0 12px}
@@ -557,8 +569,13 @@ let dialVal = 50, dialDrag = null, clueDraft = '';   // Longueur d'onde : aiguil
 let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
-let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses
-const MOT = { q:'phrase', a:'réponse', p:'carte' };
+let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases à trou
+let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
+// Les catalogues de l'admin, rangés par jeu. Une carte Longueur d'onde porte
+// deux textes : l'extrême de gauche et celui de droite.
+const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']] };
+const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
+const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
@@ -571,6 +588,9 @@ const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
 // Priorités et Longueur d'onde se jouent en manches comptées, pas au score cible.
 const isCounted = () => isPrio() || isWave();
+// Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
+// moins deux réponses à départager. Le serveur applique la même règle.
+const minPlayers = mode => mode === 'priorites' || mode === 'ondes' ? 2 : 3;
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -613,9 +633,9 @@ async function refresh(force = false){
     if (!force && j === last) return;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
     const prevStatus = state?.room.status;
-    // Retour brutal au salon en pleine partie = on est tombé sous 3 joueurs.
+    // Retour brutal au salon en pleine partie = on est tombé sous le minimum du jeu.
     if (prevStatus && prevStatus !== 'lobby' && s.room.status === 'lobby')
-      toast('Un joueur est parti : il faut au moins 3 joueurs, la partie est arrêtée.');
+      toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking' }
     render(); scheduleAuto();
@@ -863,31 +883,41 @@ function home(){
     </div>`;
 }
 
+// Une barre pour le jeu, puis les catalogues de ce jeu.
 function adminView(){
   const plus = adminLevel === 'plus';
-  const q = adminTab === 'q';
+  const k = adminTab, q = k === 'q', w = k === 'w', jeu = jeuDe(k), sous = CATALOGUES[jeu];
+  const aide = {
+    q:'150 caractères maximum, deux trous au maximum. Le trou se pose là où se trouve le curseur.',
+    a:'80 caractères maximum, sans texte à trou.',
+    p:'80 caractères maximum. Priorités pioche aussi dans les réponses de Phrases à trou.',
+    w:'40 caractères maximum de chaque côté.',
+  }[k];
   const body = adminLevel
-    ? `<div class="tabs" role="tablist">
-         ${[['q','Phrases'],['a','Réponses'],['p','Priorités']].map(([k,t]) =>
-           `<button class="tab ${adminTab === k ? 'on' : ''}" data-act="admin-tab" data-tab="${k}" role="tab" aria-selected="${adminTab === k}">${t}</button>`).join('')}
+    ? `<div class="tabs jeux" role="tablist" aria-label="Jeu">
+         ${Object.keys(CATALOGUES).map(g =>
+           `<button class="tab ${jeu === g ? 'on' : ''}" data-act="admin-game" data-game="${g}" role="tab" aria-selected="${jeu === g}">${GAMES[g].name}</button>`).join('')}
+       </div>
+       <div class="soustabs" role="tablist" aria-label="Catalogue">
+         ${sous.map(([x,t]) =>
+           `<button type="button" class="soustab ${k === x ? 'on' : ''}" data-act="admin-tab" data-tab="${x}" role="tab" aria-selected="${k === x}">${t}</button>`).join('')}
        </div>
        <section class="panel">
-         <p class="eyebrow">Catalogue</p><h2>Nouvelle ${MOT[adminTab]}${adminTab === 'p' ? ' Priorités' : ''}</h2>
-         <label><span>Texte de la ${MOT[adminTab]}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>
+         <p class="eyebrow">Catalogue</p><h2>${w ? 'Nouveaux extrêmes' : `Nouvelle ${MOT[k]}`}</h2>
+         ${w
+           ? `<label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="Chaud"></label>
+              <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="Froid"></label>`
+           : `<label><span>Texte de la ${MOT[k]}</span><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
            <span class="meta" id="hole-count">0 trou sur 2</span>
          </div>` : ''}
-         <p class="meta" style="margin:-6px 0 14px">${q
-           ? '150 caractères maximum, deux trous au maximum. Le trou se pose là où se trouve le curseur.'
-           : adminTab === 'p'
-             ? '80 caractères maximum. Ces cartes ne servent qu’au jeu Priorités ; les réponses y sont déjà reprises.'
-             : '80 caractères maximum, sans texte à trou.'}</p>
+         <p class="meta" style="margin:-6px 0 14px">${aide}</p>
          <button class="btn" data-act="admin-add">Ajouter au catalogue</button>
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="Rechercher une ${MOT[adminTab]}" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="Rechercher ${w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -936,9 +966,12 @@ function paintCatalog(){
     ? catalog.items.map(c => `<li>
         ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
             : catalog.kind === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
+            : catalog.kind === 'w' ? ''
             : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
           aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
-        <span class="ct">${esc(c.text)}</span>
+        <span class="ct">${catalog.kind === 'w'
+          ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
+          : esc(c.text)}</span>
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
       </li>`).join('')
     : `<li class="empty">Aucune ${mot}.</li>`;
@@ -946,6 +979,14 @@ function paintCatalog(){
   if (more) more.innerHTML = catalog.items.length < catalog.total
     ? `<button class="btn ghost" data-act="admin-more">Afficher plus (${catalog.total - catalog.items.length})</button>`
     : '';
+}
+
+function adminSwitch(k){
+  if (!k || k === adminTab) return;
+  adminTab = k;
+  catalog = { kind:k, total:0, items:[], q:'' };
+  render();
+  if (adminLevel === 'plus') loadCatalog(0);
 }
 
 async function loadCatalog(offset = 0){
@@ -971,8 +1012,8 @@ function topbar(){
 }
 
 function lobby(){
-  const r = state.room, host = isMe(r.host_id), n = state.players.length;
-  const all = state.players.every(p => p.ready), missing = Math.max(0, 3 - n);
+  const r = state.room, host = isMe(r.host_id), n = state.players.length, min = minPlayers(r.mode);
+  const all = state.players.every(p => p.ready), missing = Math.max(0, min - n);
   return `
     <div class="lobbytop">
       <div class="codeblock">
@@ -993,7 +1034,7 @@ function lobby(){
     ${host && n < 12 ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
-      ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
+      ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
     </div>`;
 }
 
@@ -1547,21 +1588,20 @@ document.addEventListener('click', async e => {
     document.getElementById('pane-join').hidden = want !== 'join';
     return;
   }
-  if (a === 'admin') { adminOpen = true; adminTab = 'a'; catalog = { kind:'a', total:0, items:[], q:'' }; return render() }
+  if (a === 'admin') { adminOpen = true; adminTab = 'a'; adminLast = {}; catalog = { kind:'a', total:0, items:[], q:'' }; return render() }
   if (a === 'admin-close') {
-    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'a';
+    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'a'; adminLast = {};
     catalog = { kind:'a', total:0, items:[], q:'' };
     return render();
   }
-  if (a === 'admin-tab') {
-    const veut = el.dataset.tab;
-    if (veut === adminTab) return;
-    adminTab = veut;
-    catalog = { kind:veut, total:0, items:[], q:'' };
-    render();
-    if (adminLevel === 'plus') loadCatalog(0);
-    return;
+  // Revenir sur un jeu rouvre le catalogue qu'on y avait laissé.
+  if (a === 'admin-game') {
+    const g = el.dataset.game, cur = jeuDe(adminTab);
+    if (!CATALOGUES[g] || g === cur) return;
+    adminLast[cur] = adminTab;
+    return adminSwitch(adminLast[g] || CATALOGUES[g][0][0]);
   }
+  if (a === 'admin-tab') return adminSwitch(el.dataset.tab);
   if (a === 'admin-login') {
     const pwd = val('a-pwd');
     if (!pwd) return toast('Entre le code admin.');
@@ -1596,17 +1636,23 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const text = val('a-text'), mot = MOT[adminTab];
-    if (!text) return toast(`Écris une ${mot}.`);
+    const k = adminTab, mot = MOT[k], w = k === 'w';
+    const text = val('a-text'), gauche = val('a-left'), droite = val('a-right');
+    if (w ? !gauche || !droite : !text) return toast(w ? 'Remplis les deux extrêmes.' : `Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
     try {
-      const d = await rpc('admin_add_card', { p_password: adminPwd, p_kind: adminTab, p_text: text });
+      const d = w
+        ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
+        : await rpc('admin_add_card', { p_password: adminPwd, p_kind: k, p_text: text });
       toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
-      const champ = document.getElementById('a-text');
-      if (champ) champ.value = '';     // le rendu identique n'écrit plus le DOM
+      // le rendu identique n'écrit plus le DOM : on vide les champs à la main
+      const saisie = document.activeElement?.id;
+      for (const id of ['a-text', 'a-left', 'a-right']) { const c = document.getElementById(id); if (c) c.value = '' }
+      // validé au clavier : on repart de la gauche pour enchaîner les cartes
+      if (saisie === 'a-right') document.getElementById('a-left')?.focus();
       majTrous();
-      autoGrow(champ);
+      autoGrow(document.getElementById('a-text'));
       el.disabled = false;
       if (adminLevel === 'plus') loadCatalog(0);
     } catch (e) {
@@ -1720,6 +1766,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
   if (e.key === 'Enter' && e.target.matches('#a-pwd')) document.querySelector('[data-act=admin-login]')?.click();
+  // Extrêmes : Entrée passe de la gauche à la droite, puis valide la carte.
+  if (e.key === 'Enter' && e.target.matches('#a-left')) { e.preventDefault(); document.getElementById('a-right')?.focus() }
+  if (e.key === 'Enter' && e.target.matches('#a-right')) { e.preventDefault(); document.querySelector('[data-act=admin-add]')?.click() }
   // Une phrase tient sur une ligne logique : Entrée valide au lieu d'ajouter un
   // saut de ligne, que _clean_card écraserait de toute façon.
   if (e.key === 'Enter' && e.target.matches('#a-text')) {
