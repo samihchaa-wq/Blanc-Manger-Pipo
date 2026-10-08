@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#120714">
+<meta name="theme-color" content="#0F0C14">
 <meta name="description" content="Le jeu de cartes qui gâche les repas de famille. De 3 à 12 joueurs, un téléphone chacun.">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Le Soulièteur</title>
@@ -27,24 +27,31 @@
 <style>
 /* ===== Jetons ===== */
 :root{
-  --bg-0:#110519; --bg-1:#21092C;
-  --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.10);
-  --hairline:rgba(255,255,255,.13); --hairline-2:rgba(255,255,255,.22);
-  --ink:#1A1020; --ink-soft:#6B5A73;
-  /* Le crème des réponses est franchement chaud : sur le fond sombre, un blanc
-     cassé passait pour du papier délavé. */
-  --paper:#FFE9C6; --paper-2:#EFD2A4; --paper-edge:#B8925F;
-  --gold:#FFB61F; --gold-2:#F79A00; --gold-deep:#95590A;
+  /* Fond : une encre prune presque neutre. L'ancien violet saturé et ses
+     taches magenta faisaient vibrer le rose et le doré posés dessus, et
+     brouillaient tout ce qui était translucide. */
+  --bg-0:#0F0C14; --bg-1:#18131F;
+  /* Surfaces opaques, en trois paliers : un panneau, une ligne ou un champ se
+     détache net du fond, quelle que soit la lueur derrière. */
+  --surface:#1F1A27; --surface-2:#2B2434; --field:#15111B;
+  --hairline:#352D40; --hairline-2:#4B425A;
+  --ink:#1C1622; --ink-soft:#5E5468;
+  /* Réponses : papier blanc chaud. Assez clair pour trancher sur le doré des
+     phrases, assez chaud pour ne pas faire écran blanc sur le fond sombre. */
+  --paper:#FFF6E6; --paper-2:#F7E7CC; --paper-edge:#CFB48A;
+  /* Trois accents, trois rôles : doré = sélection et repères, rose = action
+     principale, menthe = validé. Chaque texte posé dessus tient l'AA (4,5:1). */
+  --gold:#FFC23D; --gold-2:#F5A623; --gold-deep:#9C6200; --gold-soft:#FFD36B;
   /* La phrase à trou est dorée partout : au choix du lecteur, pendant qu'on la
      complète, à la lecture et jusqu'à la révélation. Les réponses en main
-     restent crème, ce qui sépare d'un coup d'œil l'énoncé et les cartes. Le
-     doré est saturé, sinon les deux familles de cartes se confondent en pâle. */
-  --gold-paper:#FFD156; --gold-paper-2:#FFE18C;
-  --gold-ink:#3A2000; --gold-ink-soft:rgba(58,32,0,.7);
-  --pop:#FF3D77; --pop-2:#E81E5C; --pop-deep:#8E1038;
-  --mint:#3FE0A8; --mint-2:#12C489; --mint-deep:#0A6B4E;
-  /* Textes secondaires presque blancs : en gris, ils disparaissaient sur le fond violet. */
-  --text:#FFFCF7; --text-dim:#F3ECF5; --text-faint:#DDD2E2;
+     restent en papier clair, ce qui sépare d'un coup d'œil l'énoncé et les cartes. */
+  --gold-paper:#FFD54D; --gold-paper-2:#FFE58F;
+  --gold-ink:#2E1C00; --gold-ink-soft:#5A3F12;
+  --pop:#FF5C8D; --pop-2:#E0215B; --pop-3:#C4134C; --pop-deep:#7E0E33; --pop-soft:#FF8AAE;
+  --mint:#3FDC9C; --mint-2:#1FBF80; --mint-deep:#0B6B47; --mint-ink:#04281B;
+  --violet-soft:#C4B2FF;
+  /* Trois niveaux de texte, tous au-dessus de 7:1 sur le fond et les surfaces. */
+  --text:#F7F4FA; --text-dim:#DDD6E5; --text-faint:#B9B0C6;
   --r-sm:12px; --r-md:18px; --r-lg:26px; --r-pill:999px;
   --shadow-card:0 2px 2px rgba(0,0,0,.18), 0 12px 28px -6px rgba(0,0,0,.55);
   --shadow-lift:0 22px 50px -12px rgba(0,0,0,.7);
@@ -61,10 +68,9 @@ body{margin:0;min-height:100%;background:transparent;color:var(--text);font-size
 /* calques de fond fixes : couvrent toujours la fenêtre, sans background-attachment (bogué sur iOS) */
 body::before,body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none}
 body::before{background:
-  radial-gradient(72% 52% at 10% -8%, #6A1E8E 0%, rgba(106,30,142,0) 62%),
-  radial-gradient(62% 44% at 104% 4%, #A41C62 0%, rgba(164,28,98,0) 58%),
-  radial-gradient(96% 52% at 50% 106%, #33124F 0%, rgba(51,18,79,0) 64%),
-  linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 100%)}
+  radial-gradient(90% 46% at 50% -10%, rgba(110,52,150,.28) 0%, rgba(110,52,150,0) 72%),
+  radial-gradient(60% 36% at 104% 0%, rgba(224,33,91,.10) 0%, rgba(224,33,91,0) 70%),
+  linear-gradient(180deg,var(--bg-1) 0%, var(--bg-0) 55%)}
 body::after{opacity:.34;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E")}
 /* La réserve du bas doit valoir la hauteur RÉELLE de la barre d'action : une
@@ -103,7 +109,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* halo doux qui respire derrière le logo */
 .home h1::before{content:"";position:absolute;left:50%;top:50%;width:78%;height:150%;transform:translate(-50%,-50%);
   z-index:-1;pointer-events:none;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(255,182,31,.28),rgba(255,61,119,.14) 55%,transparent 72%);
+  background:radial-gradient(closest-side,rgba(255,194,61,.22),rgba(255,92,141,.10) 55%,transparent 72%);
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
 .home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
@@ -131,37 +137,37 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 @keyframes migrate{to{background-position:280% 0}}
 
 /* barre à deux onglets */
-.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;padding:5px;background:rgba(255,255,255,.05);
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;padding:5px;background:var(--surface);
   border:1.5px solid var(--hairline);border-radius:var(--r-pill)}
 .tab{padding:13px 6px;border-radius:var(--r-pill);font-size:clamp(13px,3.6vw,15px);
   white-space:nowrap;color:var(--text-dim);
   transition:background var(--dur),color var(--dur),transform var(--dur)}
-.tab.on{background:linear-gradient(180deg,#FFC94E,var(--gold-2));color:#2E1D00;
-  box-shadow:0 3px 12px -4px rgba(255,182,31,.7)}
+.tab.on{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:var(--gold-ink);
+  box-shadow:0 3px 10px -4px rgba(0,0,0,.6)}
 .tab:active{transform:scale(.97)}
 .pane[hidden]{display:none}
 .home .panel{margin-top:0}
 
 /* ===== Panneaux & champs ===== */
 .panel{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);
-  padding:22px;margin-top:16px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 18px 40px -24px rgba(0,0,0,.9)}
+  padding:22px;margin-top:16px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 18px 40px -24px rgba(0,0,0,.9)}
 .panel h2{font-size:25px;margin:6px 0 18px}
 .panel .eyebrow{color:var(--gold)}
 label,.field{display:block;margin-bottom:16px}
 label>span,.field>span{display:block;font-size:12px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
-input,textarea{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:rgba(255,255,255,.06);
-  border:1.5px solid var(--hairline);font-size:17px;transition:border-color var(--dur),background var(--dur)}
+input,textarea{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:var(--field);
+  border:1.5px solid var(--hairline-2);font-size:17px;transition:border-color var(--dur),background var(--dur)}
 input::placeholder,textarea::placeholder{color:var(--text-faint)}
-input:focus,textarea:focus{outline:none;border-color:var(--gold);background:rgba(255,255,255,.1)}
+input:focus,textarea:focus{outline:none;border-color:var(--gold);background:var(--bg-1)}
 /* la hauteur est pilotée par autoGrow : ni poignée, ni barre de défilement */
 textarea{resize:none;overflow:hidden;line-height:1.35}
 #j-code{text-align:center;letter-spacing:.42em;text-indent:.42em;font-size:30px;padding:16px 14px}
-.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:5px;background:rgba(255,255,255,.05);
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:5px;background:var(--field);
   border:1.5px solid var(--hairline);border-radius:var(--r-sm)}
 .seg-b{padding:11px 4px;border-radius:9px;font-size:16px;color:var(--text-dim);
   transition:background var(--dur),color var(--dur),transform var(--dur)}
-.seg-b.on{background:var(--gold);color:var(--ink);box-shadow:0 2px 10px -2px rgba(255,182,31,.6)}
+.seg-b.on{background:var(--gold);color:var(--gold-ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.6)}
 .seg-b:active{transform:scale(.95)}
 .seg.s2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
@@ -171,22 +177,28 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* ===== Boutons ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:var(--r-pill);
   padding:16px 22px;font-size:18px;letter-spacing:-.01em;
-  background:linear-gradient(180deg,#F0336B,#C8104A);color:#fff;font-weight:600;text-shadow:0 1px 1px rgba(0,0,0,.25);
-  box-shadow:0 5px 0 var(--pop-deep), 0 16px 30px -12px rgba(255,61,119,.7);
+  background:linear-gradient(180deg,var(--pop-2),var(--pop-3));color:#fff;font-weight:600;text-shadow:0 1px 1px rgba(0,0,0,.25);
+  box-shadow:0 5px 0 var(--pop-deep), 0 16px 30px -14px rgba(224,33,91,.5);
   transition:transform .08s var(--ease),box-shadow .08s var(--ease),filter var(--dur)}
-.btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--pop-deep),0 8px 16px -12px rgba(255,61,119,.7)}
-.btn.alt{background:linear-gradient(180deg,#FFC94E,var(--gold-2));color:#2E1D00;
-  box-shadow:0 5px 0 var(--gold-deep), 0 16px 30px -12px rgba(255,182,31,.6)}
-.btn.alt:active:not(:disabled){box-shadow:0 1px 0 var(--gold-deep),0 8px 16px -12px rgba(255,182,31,.6)}
+.btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--pop-deep),0 8px 16px -12px rgba(224,33,91,.5)}
+.btn.alt{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:var(--gold-ink);
+  box-shadow:0 5px 0 var(--gold-deep), 0 16px 30px -14px rgba(255,194,61,.4)}
+.btn.alt:active:not(:disabled){box-shadow:0 1px 0 var(--gold-deep),0 8px 16px -12px rgba(255,194,61,.4)}
 .btn.ghost{background:var(--surface);color:var(--text);border:1.5px solid var(--hairline-2);box-shadow:none}
 .btn.ghost:active:not(:disabled){transform:translateY(2px);background:var(--surface-2)}
-.btn.on{background:linear-gradient(180deg,#8CF0CD,var(--mint-2));color:#052B20;
-  box-shadow:0 5px 0 var(--mint-deep),0 16px 30px -12px rgba(63,224,168,.55)}
+.btn.on{background:linear-gradient(180deg,var(--mint),var(--mint-2));color:var(--mint-ink);
+  box-shadow:0 5px 0 var(--mint-deep),0 16px 30px -14px rgba(63,220,156,.4)}
 .btn.alt,.btn.on,.btn.ghost{text-shadow:none}
-.btn:disabled{opacity:.42;cursor:default;box-shadow:none;filter:saturate(.6)}
+/* Désactivé : un aplat neutre au texte lisible, plutôt qu'un bouton rose à
+   moitié transparent dont on devait deviner le libellé (« Il manque 1 joueur »,
+   « En attente des autres… » sont des informations, pas du décor). Le bouton
+   touché, lui, garde sa couleur pendant l'envoi (.pending). */
+.btn:disabled:not(.pending){background:var(--surface-2);color:var(--text-faint);text-shadow:none;
+  box-shadow:inset 0 0 0 1.5px var(--hairline-2);cursor:default}
+.btn:disabled{cursor:default}
 .btn.pending{opacity:.72;box-shadow:none;transform:translateY(2px)}
 .btn+.btn{margin-top:10px}
-.link{color:var(--text-faint);padding:8px 10px;font-size:14px;border-radius:var(--r-pill);
+.link{color:var(--text-dim);padding:8px 10px;font-size:14px;border-radius:var(--r-pill);
   transition:color var(--dur),background var(--dur)}
 .link:active{color:var(--text);background:var(--surface)}
 
@@ -196,7 +208,7 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .code{display:inline-flex;align-items:center;gap:7px;font-size:15px;letter-spacing:.22em;
   background:var(--surface);border:1px solid var(--hairline);padding:6px 10px 6px 12px;border-radius:10px}
 .code::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);letter-spacing:0}
-.round{font-size:13px;color:var(--text-faint);white-space:nowrap}
+.round{font-size:13px;color:var(--text-dim);white-space:nowrap}
 
 /* ===== Cartes ===== */
 /* Deux lignes réservées : la carte tombe à la même hauteur que l'énoncé fasse
@@ -209,7 +221,7 @@ h2.title{font-size:27px;margin:2px 0 14px}
   box-shadow:0 4px 0 var(--gold-deep),var(--shadow-card);
   transform:rotate(-1deg);display:flex;flex-direction:column;gap:10px}
 .qcard::after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
-  box-shadow:inset 0 0 0 1px rgba(58,38,0,.16), inset 0 0 0 7px rgba(58,38,0,.05)}
+  box-shadow:inset 0 0 0 1px rgba(46,28,0,.16), inset 0 0 0 7px rgba(46,28,0,.05)}
 .qcard .qtag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-ink-soft)}
 .qcard .qtext{font-size:clamp(21px,5.9vw,27px);line-height:1.24;letter-spacing:-.02em}
 .qcard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:2px}
@@ -217,10 +229,10 @@ h2.title{font-size:27px;margin:2px 0 14px}
 /* La carte gagnante garde le doré : c'est l'anneau menthe qui dit « gagné »,
    comme l'anneau menthe de la carte que le lecteur vient de choisir. */
 .qcard.win{transform:rotate(.8deg);
-  box-shadow:0 0 0 3px var(--mint),0 4px 0 var(--gold-deep),0 18px 42px -14px rgba(63,224,168,.6)}
-.qcard.win .qtag{color:var(--mint-deep)}
-.blank{display:inline-block;width:4.2em;border-bottom:4px solid rgba(58,38,0,.72);margin:0 .06em}
-.fill{background:var(--pop);color:#2E0715;padding:.02em .2em;border-radius:6px;
+  box-shadow:0 0 0 3px var(--mint),0 4px 0 var(--gold-deep),0 18px 42px -14px rgba(63,220,156,.4)}
+.qcard.win .qtag{color:#08533A}
+.blank{display:inline-block;width:4.2em;border-bottom:4px solid rgba(46,28,0,.75);margin:0 .06em}
+.fill{background:var(--pop);color:var(--ink);padding:.02em .2em;border-radius:6px;
   -webkit-box-decoration-break:clone;box-decoration-break:clone}
 /* Sur le doré, le trou comblé se lit mieux en pastille encre qu'en rose. */
 .qcard .fill,.scard .fill,.qchoice .fill{background:var(--ink);color:var(--gold-paper)}
@@ -240,35 +252,38 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .swipe .cue{position:absolute;inset:0;display:flex;align-items:center;padding:0 18px;border-radius:15px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:0;pointer-events:none}
 .swipe .cue span{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-pill);
   transition:transform .12s var(--ease)}
-.swipe .cue.play{justify-content:flex-start;background:linear-gradient(90deg,rgba(63,224,168,.5),transparent 72%)}
-.swipe .cue.play span{background:var(--mint);color:#052B20}
-.swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,182,31,.42),transparent 72%)}
-.swipe .cue.drop span{background:var(--gold);color:#2E1D00}
+.swipe .cue.play{justify-content:flex-start;background:linear-gradient(90deg,rgba(63,220,156,.45),transparent 72%)}
+.swipe .cue.play span{background:var(--mint);color:var(--mint-ink)}
+.swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,194,61,.4),transparent 72%)}
+.swipe .cue.drop span{background:var(--gold);color:var(--gold-ink)}
 .swipe .cue.armed span{transform:scale(1.14)}
 .swipehint{margin:14px 0 -4px;color:var(--text-faint);font-size:14px;text-align:center}
-.swipehint b{color:var(--text-dim)}
+.swipehint b{color:var(--text)}
 .acard::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:0 4px 4px 0;
   background:var(--paper-edge);transition:background .14s,width .14s}
 .acard:active{transform:translateY(3px);box-shadow:0 0 0 var(--paper-edge),0 4px 10px -8px rgba(0,0,0,.6)}
-.acard.sel{background:linear-gradient(170deg,#E8336A,#C8104A);color:#fff;transform:translateX(7px) rotate(.7deg);
-  box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(255,61,119,.8)}
+.acard.sel{background:linear-gradient(170deg,var(--pop-2),var(--pop-3));color:#fff;transform:translateX(7px) rotate(.7deg);
+  box-shadow:0 3px 0 var(--pop-deep),0 14px 26px -12px rgba(224,33,91,.55)}
 .acard.sel::before{background:#fff;width:5px}
 .acard .rang{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;
-  border-radius:50%;background:#fff;color:#C8104A;font-weight:700;font-style:normal;font-size:13px;
+  border-radius:50%;background:#fff;color:var(--pop-3);font-weight:700;font-style:normal;font-size:13px;
   vertical-align:-3px}
 .scard{position:relative;color:var(--gold-ink);background:linear-gradient(170deg,var(--gold-paper-2),var(--gold-paper));
   box-shadow:0 3px 0 var(--gold-deep),0 8px 18px -12px rgba(0,0,0,.55)}
 button.scard{transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 button.scard:active{transform:translateY(2px)}
 .scard.sel{background:linear-gradient(168deg,var(--gold-paper-2),var(--gold) 130%);
-  box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,224,168,.55)}
+  box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,220,156,.4)}
 .scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:9px}
 .qchoice{color:var(--gold-ink);background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));font-size:19px;line-height:1.26;
-  padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(255,182,31,.8);
+  padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(0,0,0,.6);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 .qchoice:active{transform:translateY(3px);box-shadow:0 0 0 var(--gold-deep),0 6px 12px -10px rgba(0,0,0,.5)}
-.qchoice.off{opacity:.3;filter:grayscale(.85);box-shadow:0 2px 0 rgba(0,0,0,.3);cursor:default}
-.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,224,168,.55)}
+/* Les phrases écartées passent en surface neutre, texte encore lisible : un
+   doré à demi transparent virait au gris-brun sur le fond sombre. */
+.qchoice.off{background:var(--surface);color:var(--text-faint);box-shadow:inset 0 0 0 1px var(--hairline);cursor:default}
+.qchoice.off .blank{border-bottom-color:var(--hairline-2)}
+.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,220,156,.4)}
 .deal{animation:deal .5s var(--ease) both}
 @keyframes deal{from{transform:translateY(-34px) rotate(-9deg) scale(.96);opacity:0}}
 .hand.deal-in li{animation:rise .42s var(--ease) both;animation-delay:calc(var(--i)*45ms)}
@@ -283,23 +298,23 @@ button.scard:active{transform:translateY(2px)}
 .bigcode{display:flex;gap:6px;margin-top:10px}
 .bigcode .ch{flex:1;display:grid;place-items:center;aspect-ratio:3/4;max-height:104px;border-radius:14px;
   font-size:clamp(20px,5.4vw,28px);color:var(--gold);
-  background:linear-gradient(170deg,rgba(255,182,31,.16),rgba(255,182,31,.05));
-  border:1.5px solid rgba(255,182,31,.32);text-shadow:0 2px 14px rgba(255,182,31,.4)}
+  background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
+  border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
 .sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:8px}
 .plist li{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 10px 8px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:17px}
-.plist li.is-ready{border-color:rgba(63,224,168,.34);background:linear-gradient(90deg,rgba(63,224,168,.1),var(--surface) 60%)}
+.plist li.is-ready{border-color:rgba(63,220,156,.45);background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .who{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
 .plist .rt{display:flex;align-items:center;gap:6px;flex:none}
-.plist li.empty{background:transparent;border-style:dashed;border-color:rgba(255,255,255,.1);color:var(--text-faint);
+.plist li.empty{background:transparent;border-style:dashed;border-color:var(--hairline-2);color:var(--text-faint);
   font-size:15px;justify-content:center;min-height:48px}
 .state{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill)}
-.state.yes{background:rgba(63,224,168,.16);color:var(--mint)}
-.state.no{background:var(--surface-2);color:var(--text-faint)}
+.state.yes{background:rgba(63,220,156,.16);color:var(--mint)}
+.state.no{background:var(--surface-2);color:var(--text-dim)}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.tag.host{background:rgba(255,182,31,.18);color:var(--gold)}
+.tag.host{background:rgba(255,194,61,.16);color:var(--gold-soft)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
 
 /* choix du jeu, dans le salon */
@@ -322,10 +337,10 @@ button.scard:active{transform:translateY(2px)}
 .ladder .slot{flex:1;min-height:52px;border-radius:15px;border:1.5px dashed var(--hairline-2)}
 .ladder .acard{flex:1;width:auto;padding:13px 16px;font-size:17px}
 /* cartes classées : papier clair + encre sombre, bien lisibles sur le fond */
-.ladder .acard.sel{transform:none;background:linear-gradient(170deg,#FFF6E6,var(--paper));color:var(--ink);
+.ladder .acard.sel{transform:none;background:linear-gradient(170deg,#FFFBF3,var(--paper));color:var(--ink);
   box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6)}
 .ladder .acard.sel::before{background:var(--pop)}
-.ladder li.ok .num{background:var(--mint);color:#052B20}
+.ladder li.ok .num{background:var(--mint);color:var(--mint-ink)}
 .ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--paper-edge)}
 /* à un rang près : 1 point, anneau doré */
 .ladder li.near .num{background:var(--gold);color:var(--gold-ink)}
@@ -339,7 +354,7 @@ button.scard:active{transform:translateY(2px)}
 .truth .scard::first-letter{text-transform:uppercase}
 .found{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--text-faint)}
 .found .chip{padding:3px 10px;font-size:13px}
-.found .chip.hit{border-color:rgba(63,224,168,.45);background:rgba(63,224,168,.12);color:var(--mint)}
+.found .chip.hit{border-color:rgba(63,220,156,.45);background:rgba(63,220,156,.12);color:var(--mint)}
 .rank b.plus{color:var(--mint)}
 .rank .tag{margin-left:2px}
 
@@ -352,7 +367,10 @@ button.scard:active{transform:translateY(2px)}
 .dial.drag{cursor:grab}
 .dial .face{fill:var(--paper)}
 .dial .rim{fill:none;stroke:var(--paper-edge);stroke-width:3}
-.dial .b2{fill:var(--gold)} .dial .b3{fill:var(--pop)} .dial .b4{fill:var(--mint)}
+/* La cible se lit comme le logo, du jaune au rose : plus c'est chaud, plus
+   ça rapporte. Une seule progression, au lieu de trois couleurs sans ordre
+   qui se confondaient avec les aiguilles des joueurs. */
+.dial .b2{fill:#FFD873} .dial .b3{fill:#FFA93D} .dial .b4{fill:var(--pop)}
 .dial .bn{font-size:9px;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}
 .dial .ndl{stroke-width:3.4;stroke-linecap:round}
 .dial .ndl.me{stroke:var(--ink);stroke-width:4.4}
@@ -377,16 +395,16 @@ button.scard:active{transform:translateY(2px)}
   background:var(--surface);border:1px solid var(--hairline);font-size:16px;line-height:1.35}
 .catlist .ct{flex:1;min-width:0;overflow-wrap:anywhere}
 .catlist .form{flex:none;min-width:30px;height:30px;padding:0 7px;border-radius:9px;font-size:12px;
-  border:1.5px solid var(--hairline-2);background:rgba(255,255,255,.05);color:var(--text-dim)}
-.catlist .form.v{background:rgba(63,224,168,.16);border-color:rgba(63,224,168,.45);color:var(--mint)}
-.catlist .form.n{background:rgba(255,182,31,.14);border-color:rgba(255,182,31,.4);color:var(--gold)}
+  border:1.5px solid var(--hairline-2);background:var(--field);color:var(--text-dim)}
+.catlist .form.v{background:rgba(63,220,156,.16);border-color:rgba(63,220,156,.5);color:var(--mint)}
+.catlist .form.n{background:rgba(255,194,61,.14);border-color:rgba(255,194,61,.5);color:var(--gold-soft)}
 .catlist .form.theme{display:inline-flex;align-items:center;letter-spacing:.02em;
-  background:rgba(255,61,119,.14);border-color:rgba(255,61,119,.42);color:#FF8AAB}
+  background:rgba(255,92,141,.14);border-color:rgba(255,92,141,.5);color:var(--pop-soft)}
 .catlist .form.two{display:inline-flex;align-items:center;letter-spacing:.02em;
-  background:rgba(155,123,255,.16);border-color:rgba(155,123,255,.48);color:#BCA6FF}
-.catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,61,119,.16);
-  color:var(--pop);font-size:19px;line-height:1;display:grid;place-items:center}
-.catlist .del:active{background:var(--pop);color:#2E0715}
+  background:rgba(155,123,255,.18);border-color:rgba(155,123,255,.55);color:var(--violet-soft)}
+.catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,141,.16);
+  color:var(--pop-soft);font-size:19px;line-height:1;display:grid;place-items:center}
+.catlist .del:active{background:var(--pop);color:var(--ink)}
 .catlist li.empty{justify-content:center;color:var(--text-faint);border-style:dashed}
 #cat-more{margin-top:12px}
 
@@ -411,10 +429,10 @@ button.scard:active{transform:translateY(2px)}
 .waitScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   min-height:64vh;gap:8px;padding:10px 0}
 .cardback{position:relative;width:118px;height:150px;border-radius:16px;margin-bottom:24px;
-  background:repeating-linear-gradient(135deg,#E2C392 0 8px,#FFE9C6 8px 16px);
+  background:repeating-linear-gradient(135deg,#EBD3A8 0 8px,var(--paper) 8px 16px);
   box-shadow:var(--shadow-card);animation:float 3.4s ease-in-out infinite}
 .cardback::after{content:"";position:absolute;inset:0;border-radius:16px;
-  box-shadow:inset 0 0 0 1px rgba(26,16,32,.12),inset 0 0 0 7px rgba(255,255,255,.5)}
+  box-shadow:inset 0 0 0 1px rgba(28,22,34,.12),inset 0 0 0 7px rgba(255,255,255,.5)}
 .cardback.b2{position:absolute;--dx:-22px;--r1:-14deg;--r2:-8deg;opacity:.6;animation-delay:.25s}
 .cardback.b3{position:absolute;--dx:22px;--r1:13deg;--r2:7deg;opacity:.45;animation-delay:.5s}
 .cardstack{position:relative;display:grid;place-items:center;margin-bottom:24px}
@@ -431,7 +449,7 @@ button.scard:active{transform:translateY(2px)}
 .wheel{position:absolute;inset:0;border-radius:50%;border:7px solid var(--paper);
   box-shadow:0 0 0 2px rgba(0,0,0,.35),0 24px 50px -16px rgba(0,0,0,.85),inset 0 0 40px rgba(0,0,0,.35);
   animation:spin 1.8s cubic-bezier(.1,.7,.1,1) both}
-.wheel::after{content:"";position:absolute;inset:36%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3A1B45,#17091C);
+.wheel::after{content:"";position:absolute;inset:36%;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--surface-2),var(--bg-0));
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.12),0 6px 16px rgba(0,0,0,.6)}
 /* un nom par part, posé le long du rayon ; tourne avec la roue, donc le nom
    désigné se retrouve à l'endroit sous la flèche à l'arrêt */
@@ -439,7 +457,7 @@ button.scard:active{transform:translateY(2px)}
 .wheel .lab i{position:absolute;left:50%;top:50%;margin-left:14.5%;width:34%;
   transform:translateY(-50%);transform-origin:center;
   font-style:normal;font-size:var(--fs,12px);line-height:1.1;letter-spacing:-.015em;
-  color:#1A1020;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wheel .lab i.flip{transform:translateY(-50%) rotate(180deg)}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(var(--spin,1260deg))}}
 .bigstate{font-size:clamp(26px,7.6vw,34px);margin-bottom:8px}
@@ -457,7 +475,7 @@ button.scard:active{transform:translateY(2px)}
 .rank .nm{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
 .rank .nm span.who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank b{color:var(--gold);font-variant-numeric:tabular-nums}
-.rank li:first-child{background:linear-gradient(100deg,rgba(255,182,31,.18),rgba(255,61,119,.12));border-color:rgba(255,182,31,.38)}
+.rank li:first-child{background:linear-gradient(100deg,rgba(255,194,61,.16),rgba(255,92,141,.08)),var(--surface);border-color:rgba(255,194,61,.5)}
 .rank li:first-child .pos{color:var(--gold)}
 .confetti{position:fixed;inset:0 0 auto;height:0;z-index:2;pointer-events:none}
 .confetti i{position:absolute;top:-20px;width:8px;height:12px;border-radius:2px;animation:fall linear forwards}
@@ -465,7 +483,7 @@ button.scard:active{transform:translateY(2px)}
 
 /* ===== Bas d'écran ===== */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:34px 18px calc(16px + env(safe-area-inset-bottom));
-  background:linear-gradient(to top,var(--bg-0) 42%,rgba(18,7,20,.86) 68%,rgba(18,7,20,0))}
+  background:linear-gradient(to top,var(--bg-0) 42%,rgba(15,12,20,.86) 68%,rgba(15,12,20,0))}
 .dock::before{content:"";position:absolute;inset:0;pointer-events:none;backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to top,#000 55%,transparent);
   mask-image:linear-gradient(to top,#000 55%,transparent)}
@@ -478,7 +496,7 @@ button.scard:active{transform:translateY(2px)}
    traitement qu'en bas, retourné. */
 .scrim{position:fixed;left:0;right:0;top:0;z-index:6;pointer-events:none;
   height:calc(env(safe-area-inset-top) + 10px);
-  background:linear-gradient(to bottom,var(--bg-0) 62%,rgba(18,7,20,.88) 82%,rgba(18,7,20,0))}
+  background:linear-gradient(to bottom,var(--bg-0) 62%,rgba(15,12,20,.88) 82%,rgba(15,12,20,0))}
 .scrim::before{content:"";position:absolute;inset:0;backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent);
   mask-image:linear-gradient(to bottom,#000 62%,transparent)}
@@ -501,7 +519,7 @@ button.scard:active{transform:translateY(2px)}
 .cdring{display:inline-flex;width:32px;height:32px}
 .cdring svg{width:32px;height:32px;transform:rotate(-90deg)}   /* départ à midi */
 .cdring circle{fill:none;stroke-width:3.4}
-.cdring .trk{stroke:rgba(255,255,255,.13)}
+.cdring .trk{stroke:var(--hairline-2)}
 .cdring .arc{stroke:var(--gold);stroke-linecap:round;
   transition:stroke-dashoffset 1s linear,stroke .3s}
 .cdring.low .arc{stroke:var(--pop)}
@@ -1011,9 +1029,10 @@ function waitScreen(title, sub, stack = 1){
 }
 
 // 12 teintes distinctes : au-delà de 6 joueurs, deux parts reprenaient la même
-// couleur et la légende devenait ambiguë. Toutes assez claires pour du texte sombre.
-const WHEEL_COLORS = ['#FFB61F','#FF3D77','#3FE0A8','#8B5CFF','#FF8A12','#22B8F0',
-                      '#D8C93A','#CE49B4','#6BCE35','#4C6FFF','#FF6250','#12B894'];
+// couleur et la légende devenait ambiguë. Même clarté pour toutes, et le nom
+// en encre sombre tient au moins 6,5:1 sur chacune.
+const WHEEL_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
+                      '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
 const sliceColor = i => WHEEL_COLORS[i % WHEEL_COLORS.length];
 
 function wheel(title = 'Qui va lire ?'){
@@ -1384,7 +1403,7 @@ function confetti(){
   document.getElementById('confetti')?.remove();
   const wrap = document.createElement('div');
   wrap.className = 'confetti'; wrap.id = 'confetti'; wrap.setAttribute('aria-hidden','true');
-  const colors = ['#FFB61F','#FF3D77','#3FE0A8','#FFE9C6'];
+  const colors = ['#FFC23D','#FF5C8D','#3FDC9C','#FFF6E6','#A88CFF'];
   for (let i = 0; i < 26; i++) {
     const s = document.createElement('i');
     s.style.left = Math.random() * 100 + 'vw';
