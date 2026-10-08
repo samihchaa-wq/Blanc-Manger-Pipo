@@ -311,21 +311,24 @@ button.scard:active{transform:translateY(2px)}
 /* ===== Priorités ===== */
 /* Le classement en cours : cinq marches, la 1 en haut. Une marche vide est
    un pointillé ; une carte posée reprend la carte rose « choisie ». */
-.ladder-end{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 8px 40px}
+.ladder-end{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:14px 0 8px 40px}
 .ladder+.ladder-end{margin:8px 0 0 40px}
 .ladder{list-style:none;padding:0;margin:0;display:grid;gap:8px}
 .ladder li{display:flex;align-items:center;gap:10px}
 .num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
   background:var(--surface-2);color:var(--text-dim);font-variant-numeric:tabular-nums}
-.ladder li.full .num{background:var(--pop);color:#2E0715}
+.ladder li.full .num{background:var(--gold);color:var(--gold-ink);font-weight:600}
 .ladder .slot{flex:1;min-height:52px;border-radius:15px;border:1.5px dashed var(--hairline-2)}
 .ladder .acard{flex:1;width:auto;padding:13px 16px;font-size:17px}
-.ladder .acard.sel{transform:none}
+/* cartes classées : papier clair + encre sombre, bien lisibles sur le fond */
+.ladder .acard.sel{transform:none;background:linear-gradient(170deg,#FFF6E6,var(--paper));color:var(--ink);
+  box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6)}
+.ladder .acard.sel::before{background:var(--pop)}
 .ladder li.ok .num{background:var(--mint);color:#052B20}
-.ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--pop-deep)}
+.ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--paper-edge)}
 /* à un rang près : 1 point, anneau doré */
 .ladder li.near .num{background:var(--gold);color:var(--gold-ink)}
-.ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--pop-deep)}
+.ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--paper-edge)}
 .ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
 /* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
 .truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
