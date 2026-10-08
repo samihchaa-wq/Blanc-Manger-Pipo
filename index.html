@@ -78,7 +78,7 @@ body::after{opacity:.34;mix-blend-mode:overlay;
    deux boutons ou une police plus grande. --dock-h est mesuré après chaque
    rendu (voir fitDock) et contient déjà l'encoche du bas. */
 main{position:relative;z-index:1;max-width:520px;margin:0 auto;
-  padding:calc(30px + env(safe-area-inset-top)) 18px calc(var(--dock-h,150px) + 18px)}
+  padding:calc(14px + env(safe-area-inset-top)) 18px calc(var(--dock-h,120px) + 12px)}
 h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.03em}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -92,10 +92,10 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* La hauteur doit retrancher exactement les marges de main, sinon le bloc
    dépasse l'écran : il se centre alors trop bas et laisse un grand vide en
    haut, avec du défilement en prime. */
-.home{--pad:calc(30px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+.home{--pad:calc(14px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
-  display:flex;flex-direction:column;justify-content:center;gap:22px;
-  padding-bottom:7vh}  /* centrage optique : à égalité parfaite le bloc paraît trop bas */
+  display:flex;flex-direction:column;justify-content:center;gap:clamp(12px,2.6vh,22px);
+  padding-bottom:5vh}  /* centrage optique : à égalité parfaite le bloc paraît trop bas */
 .home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
 .iconbtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 16px 8px 13px;border-radius:var(--r-pill);
   background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
@@ -150,10 +150,10 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 
 /* ===== Panneaux & champs ===== */
 .panel{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);
-  padding:22px;margin-top:16px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 18px 40px -24px rgba(0,0,0,.9)}
+  padding:clamp(16px,2.6vh,22px);margin-top:16px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 18px 40px -24px rgba(0,0,0,.9)}
 .panel h2{font-size:25px;margin:6px 0 18px}
 .panel .eyebrow{color:var(--gold)}
-label,.field{display:block;margin-bottom:16px}
+label,.field{display:block;margin-bottom:clamp(10px,2vh,16px)}
 label>span,.field>span{display:block;font-size:12px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
 input,textarea{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:var(--field);
@@ -197,13 +197,13 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
   box-shadow:inset 0 0 0 1.5px var(--hairline-2);cursor:default}
 .btn:disabled{cursor:default}
 .btn.pending{opacity:.72;box-shadow:none;transform:translateY(2px)}
-.btn+.btn{margin-top:10px}
+.btn+.btn{margin-top:8px}
 .link{color:var(--text-dim);padding:8px 10px;font-size:14px;border-radius:var(--r-pill);
   transition:color var(--dur),background var(--dur)}
 .link:active{color:var(--text);background:var(--surface)}
 
 /* ===== Barre du haut ===== */
-.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 8px}
 .top-l{display:flex;align-items:center;gap:8px;min-width:0}
 .code{display:inline-flex;align-items:center;gap:7px;font-size:15px;letter-spacing:.22em;
   background:var(--surface);border:1px solid var(--hairline);padding:6px 10px 6px 12px;border-radius:10px}
@@ -213,17 +213,17 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* ===== Cartes ===== */
 /* Deux lignes réservées : la carte tombe à la même hauteur que l'énoncé fasse
    une ou deux lignes, sinon elle saute d'un écran à l'autre. */
-.role{font-size:17px;color:var(--text-dim);margin:2px 0 14px;max-width:34ch;min-height:2.9em}
+.role{font-size:16px;line-height:1.35;color:var(--text-dim);margin:0 0 10px;max-width:36ch;min-height:2.7em}
 .role b{color:var(--text)}
-h2.title{font-size:27px;margin:2px 0 14px}
+h2.title{font-size:24px;margin:0 0 8px}
 .qcard{position:relative;background:linear-gradient(168deg,var(--gold-paper-2) 0%,var(--gold-paper) 44%,var(--gold) 100%);
-  color:var(--gold-ink);border-radius:20px;padding:16px 20px 24px;min-height:150px;
+  color:var(--gold-ink);border-radius:20px;padding:12px 18px 16px;min-height:118px;
   box-shadow:0 4px 0 var(--gold-deep),var(--shadow-card);
-  transform:rotate(-1deg);display:flex;flex-direction:column;gap:10px}
+  transform:rotate(-1deg);display:flex;flex-direction:column;gap:6px}
 .qcard::after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
   box-shadow:inset 0 0 0 1px rgba(46,28,0,.16), inset 0 0 0 7px rgba(46,28,0,.05)}
 .qcard .qtag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-ink-soft)}
-.qcard .qtext{font-size:clamp(21px,5.9vw,27px);line-height:1.24;letter-spacing:-.02em}
+.qcard .qtext{font-size:clamp(19px,5.3vw,24px);line-height:1.22;letter-spacing:-.02em}
 .qcard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:2px}
 .qcard.sticky{position:sticky;top:8px;z-index:3;box-shadow:0 4px 0 var(--gold-deep),var(--shadow-lift)}
 /* La carte gagnante garde le doré : c'est l'anneau menthe qui dit « gagné »,
@@ -236,9 +236,9 @@ h2.title{font-size:27px;margin:2px 0 14px}
   -webkit-box-decoration-break:clone;box-decoration-break:clone}
 /* Sur le doré, le trou comblé se lit mieux en pastille encre qu'en rose. */
 .qcard .fill,.scard .fill,.qchoice .fill{background:var(--ink);color:var(--gold-paper)}
-.hand,.subs,.qchoices{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px}
-.acard,.scard,.qchoice{display:block;width:100%;text-align:left;border-radius:15px;padding:15px 17px;
-  font-size:18px;line-height:1.32;letter-spacing:-.01em}
+.hand,.subs,.qchoices{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:7px}
+.acard,.scard,.qchoice{display:block;width:100%;text-align:left;border-radius:15px;padding:11px 15px;
+  font-size:16.5px;line-height:1.28;letter-spacing:-.01em}
 .acard{color:var(--ink);background:linear-gradient(170deg,var(--paper),var(--paper-2))}
 /* Les réponses sont stockées en minuscule, prêtes à s'insérer en milieu de
    phrase ; seule leur présentation en carte reprend une majuscule. */
@@ -257,7 +257,7 @@ h2.title{font-size:27px;margin:2px 0 14px}
 .swipe .cue.drop{justify-content:flex-end;background:linear-gradient(270deg,rgba(255,194,61,.4),transparent 72%)}
 .swipe .cue.drop span{background:var(--gold);color:var(--gold-ink)}
 .swipe .cue.armed span{transform:scale(1.14)}
-.swipehint{margin:14px 0 -4px;color:var(--text-faint);font-size:14px;text-align:center}
+.swipehint{margin:10px 0 -2px;color:var(--text-faint);font-size:13px;text-align:center}
 .swipehint b{color:var(--text)}
 .acard::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:0 4px 4px 0;
   background:var(--paper-edge);transition:background .14s,width .14s}
@@ -274,9 +274,9 @@ button.scard{transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 button.scard:active{transform:translateY(2px)}
 .scard.sel{background:linear-gradient(168deg,var(--gold-paper-2),var(--gold) 130%);
   box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep),0 14px 30px -12px rgba(63,220,156,.4)}
-.scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:9px}
-.qchoice{color:var(--gold-ink);background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));font-size:19px;line-height:1.26;
-  padding:18px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(0,0,0,.6);
+.scard .by{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--gold-ink-soft);margin-top:6px}
+.qchoice{color:var(--gold-ink);background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));font-size:17px;line-height:1.26;
+  padding:13px 15px;box-shadow:0 3px 0 var(--gold-deep),0 10px 22px -12px rgba(0,0,0,.6);
   transition:transform .14s var(--ease),box-shadow .14s var(--ease)}
 .qchoice:active{transform:translateY(3px);box-shadow:0 0 0 var(--gold-deep),0 6px 12px -10px rgba(0,0,0,.5)}
 /* Les phrases écartées passent en surface neutre, texte encore lisible : un
@@ -291,25 +291,32 @@ button.scard:active{transform:translateY(2px)}
 
 /* ===== Salon ===== */
 /* Le code et l'invitation se partagent la largeur, à hauteur égale. */
-.lobbytop{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;margin:6px 0 18px}
-.lobbytop .invite{height:100%;margin:0;padding:16px;border-radius:var(--r-lg);
+.lobbytop{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;margin:0 0 12px}
+.lobbytop .invite{height:100%;margin:0;padding:12px;border-radius:var(--r-lg);
   font-size:16px;line-height:1.25;text-align:center;text-wrap:balance}
 .codeblock{min-width:0}
-.bigcode{display:flex;gap:6px;margin-top:10px}
-.bigcode .ch{flex:1;display:grid;place-items:center;aspect-ratio:3/4;max-height:104px;border-radius:14px;
+.bigcode{display:flex;gap:6px;margin-top:6px}
+.bigcode .ch{flex:1;display:grid;place-items:center;height:clamp(48px,8vh,64px);border-radius:14px;
   font-size:clamp(20px,5.4vw,28px);color:var(--gold);
   background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
-.sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
-.plist{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:8px}
-.plist li{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 10px 8px 12px;
-  border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:17px}
+.sec{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:16px 0 8px}
+/* Deux colonnes : douze joueurs tiennent sur six lignes au lieu de douze. */
+.plist{list-style:none;padding:0;margin:0 0 12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.plist li{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:44px;padding:5px 6px 5px 11px;
+  border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--hairline);font-size:15px}
+.plist li.me{border-color:rgba(255,194,61,.5)}
 .plist li.is-ready{border-color:rgba(63,220,156,.45);background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
-.plist .who{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.plist .who{display:flex;align-items:center;gap:5px;min-width:0;flex:1}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
-.plist .rt{display:flex;align-items:center;gap:6px;flex:none}
+.plist .rt{display:flex;align-items:center;gap:4px;flex:none}
+/* prêt / pas prêt : une pastille, le libellé reste lu par les lecteurs d'écran */
+.plist .state{width:24px;height:24px;padding:0;display:grid;place-items:center;font-size:13px}
+.plist .kick{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;color:var(--text-faint)}
+.plist .kick:active{background:var(--surface-2);color:var(--text)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .plist li.empty{background:transparent;border-style:dashed;border-color:var(--hairline-2);color:var(--text-faint);
-  font-size:15px;justify-content:center;min-height:48px}
+  font-size:14px;justify-content:center;min-height:44px;grid-column:1/-1}
 .state{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill)}
 .state.yes{background:rgba(63,220,156,.16);color:var(--mint)}
 .state.no{background:var(--surface-2);color:var(--text-dim)}
@@ -318,24 +325,29 @@ button.scard:active{transform:translateY(2px)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
 
 /* choix du jeu, dans le salon */
-.gamebox{margin-top:0;padding:18px}
-.gamebox .field{margin:14px 0 0}
-.gamebox .gname{font-size:22px;margin:2px 0 6px}
-.gamebox .gdesc{font-size:15px;line-height:1.4;color:var(--text-dim);margin-top:12px}
+.gamebox{margin-top:0;padding:14px 16px}
+.gamebox .field{margin:10px 0 0}
+.gamebox .field>span{margin-bottom:6px}
+.gamebox .seg-b{padding:8px 4px}
+.gamebox .gname{font-size:20px;margin:0 0 4px}
+.gamebox .gdesc{font-size:14px;line-height:1.35;color:var(--text-dim);margin-top:8px}
 .gamebox .gname+.gdesc{margin-top:0}
 
 /* ===== Priorités ===== */
 /* Le classement en cours : cinq marches, la 1 en haut. Une marche vide est
    un pointillé ; une carte posée reprend la carte rose « choisie ». */
-.ladder-end{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:14px 0 8px 40px}
-.ladder+.ladder-end{margin:8px 0 0 40px}
-.ladder{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.ladder-end{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:6px 0 5px 36px}
+.ladder+.ladder-end{margin:5px 0 0 36px}
+.ladder{list-style:none;padding:0;margin:0;display:grid;gap:6px}
 .ladder li{display:flex;align-items:center;gap:10px}
-.num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
+.num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:15px;
   background:var(--surface-2);color:var(--text-dim);font-variant-numeric:tabular-nums}
 .ladder li.full .num{background:var(--gold);color:var(--gold-ink);font-weight:600}
-.ladder .slot{flex:1;min-height:52px;border-radius:15px;border:1.5px dashed var(--hairline-2)}
-.ladder .acard{flex:1;width:auto;padding:13px 16px;font-size:17px}
+.ladder .slot{flex:1;min-height:40px;border-radius:13px;border:1.5px dashed var(--hairline-2)}
+.ladder .acard{flex:1;width:auto;padding:9px 14px;font-size:15.5px}
+/* cartes à classer : en pastilles qui se rangent côte à côte */
+.hand.pool{display:flex;flex-wrap:wrap;gap:7px}
+.pool .acard{width:auto;padding:9px 14px;font-size:15.5px}
 /* cartes classées : papier clair + encre sombre, bien lisibles sur le fond */
 .ladder .acard.sel{transform:none;background:linear-gradient(170deg,#FFFBF3,var(--paper));color:var(--ink);
   box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6)}
@@ -347,22 +359,26 @@ button.scard:active{transform:translateY(2px)}
 .ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--paper-edge)}
 .ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
 /* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
-.truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
-.truth li{display:grid;grid-template-columns:30px 1fr;gap:7px 10px;align-items:center}
+/* Une ligne par carte : qui l'a trouvée tient dans la carte, et la place
+   que tu lui avais donnée dans la pastille de droite. */
+.truth{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.truth li{display:flex;align-items:center;gap:8px}
 .truth .num{background:var(--gold);color:var(--gold-ink)}
-.truth .scard{padding:13px 16px;font-size:17px}
-.truth .scard::first-letter{text-transform:uppercase}
-.found{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--text-faint)}
-.found .chip{padding:3px 10px;font-size:13px}
-.found .chip.hit{border-color:rgba(63,220,156,.45);background:rgba(63,220,156,.12);color:var(--mint)}
-.rank b.plus{color:var(--mint)}
-.rank .tag{margin-left:2px}
+.truth .scard{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px;
+  padding:8px 13px;font-size:15.5px}
+.truth .tx::first-letter{text-transform:uppercase}
+.found{font-size:12.5px;color:var(--gold-ink-soft)}
+.found.hit{color:var(--mint-deep)}
+.mypos{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;
+  background:var(--surface-2);color:var(--text-faint);font-variant-numeric:tabular-nums}
+.mypos.ok{background:var(--mint);color:var(--mint-ink)}
+.mypos.near{background:var(--gold);color:var(--gold-ink)}
 
 /* ===== Longueur d'onde ===== */
 /* Le cadran : un demi-disque crème, la cible en trois bandes (2, 3, 4 points),
    les aiguilles partent du moyeu. Les deux extrêmes de la carte encadrent le
    cadran, comme les étiquettes posées de part et d'autre du vrai jeu. */
-.dialbox{margin:18px 0 0}
+.dialbox{margin:10px auto 0;max-width:min(100%,60vh);max-width:min(100%,60dvh)}
 .dial{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;overflow:visible}
 .dial.drag{cursor:grab}
 .dial .face{fill:var(--paper)}
@@ -378,13 +394,12 @@ button.scard:active{transform:translateY(2px)}
 .dial .halo{stroke:var(--ink);stroke-width:6.4;stroke-linecap:round}
 .dial .tip{stroke:var(--ink);stroke-width:1.5}
 .dial .hub{fill:var(--pop-2);stroke:var(--ink);stroke-width:1.5}
-.wlabs{display:flex;justify-content:space-between;gap:12px;margin-top:10px}
-.wlab{max-width:48%;padding:8px 13px;border-radius:12px;background:#fff;color:var(--ink);font-size:15px;line-height:1.2;
+.wlabs{display:flex;justify-content:space-between;gap:12px;margin-top:6px}
+.wlab{max-width:48%;padding:6px 11px;border-radius:11px;background:#fff;color:var(--ink);font-size:14px;line-height:1.2;
   box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .wlab.r{text-align:right}
-.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-.legend .chip i{width:12px;height:12px;border-radius:50%;margin-left:4px}
 .qcard.clue{min-height:0}
+.clueword{color:var(--gold)}
 
 /* catalogue admin */
 /* La barre des jeux est coupée en trois parts égales : sur un écran étroit, un
@@ -421,26 +436,27 @@ button.scard:active{transform:translateY(2px)}
 #cat-more{margin-top:12px}
 
 /* attente + progression */
-.waiting{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:16px;color:var(--text-faint);
-  font-size:14px}
+.waiting{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:10px;color:var(--text-faint);
+  font-size:13px}
+.waiting .chip{padding:2px 9px;font-size:13px}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--hairline);
   border-radius:var(--r-pill);padding:4px 11px 4px 5px;color:var(--text-dim);font-size:14px}
-.bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:14px}
+.bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:8px}
 .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--mint));
   transition:width .35s var(--ease)}
-.steps{display:flex;gap:6px;margin:14px 0 0}
+.steps{display:flex;gap:6px;margin:12px 0 0}
 .steps i{flex:1;height:4px;border-radius:99px;background:var(--surface-2)}
 .steps i.on{background:var(--gold)}
 
 /* ===== Attente & roue ===== */
 /* La roue occupe seule l'écran : on retranche les marges de main et la barre
    du haut pour la centrer dans ce qui reste, au lieu de la coller en haut. */
-.wheelWrap{--pad:calc(30px + 18px + 58px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+.wheelWrap{--pad:calc(14px + 18px + 50px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
   display:flex;flex-direction:column;justify-content:center;text-align:center;padding:10px 0 4px}
 .waitScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   min-height:64vh;gap:8px;padding:10px 0}
-.cardback{position:relative;width:118px;height:150px;border-radius:16px;margin-bottom:24px;
+.cardback{position:relative;width:min(118px,15vh);aspect-ratio:118/150;border-radius:16px;margin-bottom:24px;
   background:repeating-linear-gradient(135deg,#EBD3A8 0 8px,var(--paper) 8px 16px);
   box-shadow:var(--shadow-card);animation:float 3.4s ease-in-out infinite}
 .cardback::after{content:"";position:absolute;inset:0;border-radius:16px;
@@ -454,7 +470,7 @@ button.scard:active{transform:translateY(2px)}
   0%,100%{transform:translate(var(--dx,0px),0) rotate(var(--r1,-3deg))}
   50%{transform:translate(var(--dx,0px),-12px) rotate(var(--r2,3deg))}
 }
-.wheelBox{position:relative;width:min(272px,74vw);margin:18px auto 22px;aspect-ratio:1}
+.wheelBox{position:relative;width:min(272px,74vw,52vh);margin:18px auto 22px;aspect-ratio:1}
 .pointer{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:3;width:0;height:0;
   border-left:13px solid transparent;border-right:13px solid transparent;border-top:20px solid var(--gold);
   filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
@@ -478,12 +494,18 @@ button.scard:active{transform:translateY(2px)}
 @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
 
 /* ===== Fin ===== */
-.bigwin{font-size:clamp(38px,11.5vw,54px);margin:8px 0 20px;letter-spacing:-.045em;
+.bigwin{font-size:clamp(34px,10vw,48px);margin:4px 0 12px;letter-spacing:-.045em;
   background:linear-gradient(100deg,var(--gold) 5%,var(--pop) 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.rank{list-style:none;padding:0;margin:0;display:grid;gap:8px}
-.rank li{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:var(--r-md);background:var(--surface);
-  border:1px solid var(--hairline);font-size:17px}
-.rank .pos{width:22px;font-size:14px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.rank{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.rank li{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r-sm);background:var(--surface);
+  border:1px solid var(--hairline);font-size:16px}
+/* Au-delà de quatre joueurs, deux colonnes lues de haut en bas. */
+.rank.cols{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:column;gap:6px}
+.rank.cols li{gap:6px;padding:7px 9px;font-size:15px}
+.rank li.me{border-color:rgba(255,194,61,.45)}
+.rank .dot{flex:none;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1.5px var(--ink)}
+.rank .plus{font-size:13px;color:var(--mint);font-variant-numeric:tabular-nums}
+.rank .pos{width:16px;flex:none;font-size:13px;color:var(--text-faint);font-variant-numeric:tabular-nums}
 .rank .nm{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
 .rank .nm span.who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank b{color:var(--gold);font-variant-numeric:tabular-nums}
@@ -494,12 +516,17 @@ button.scard:active{transform:translateY(2px)}
 @keyframes fall{to{transform:translateY(102vh) rotate(720deg);opacity:0}}
 
 /* ===== Bas d'écran ===== */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:34px 18px calc(16px + env(safe-area-inset-bottom));
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:20px 18px calc(12px + env(safe-area-inset-bottom));
   background:linear-gradient(to top,var(--bg-0) 42%,rgba(15,12,20,.86) 68%,rgba(15,12,20,0))}
 .dock::before{content:"";position:absolute;inset:0;pointer-events:none;backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);-webkit-mask-image:linear-gradient(to top,#000 55%,transparent);
   mask-image:linear-gradient(to top,#000 55%,transparent)}
 .dock>*{position:relative;z-index:1;max-width:484px;margin-left:auto;margin-right:auto}
+.dock .btn{padding:14px 18px}
+/* Deux boutons côte à côte : une seule rangée de hauteur au lieu de deux. */
+.dock.duo{display:grid;grid-template-columns:repeat(2,minmax(0,242px));justify-content:center;gap:10px}
+.dock.duo>*{max-width:none;margin:0}
+.dock.duo .btn{font-size:16px;line-height:1.15;padding:13px 10px}
 
 /* ===== Haut d'écran ===== */
 /* En appli installée, la barre d'état d'iOS est translucide et se superpose à
@@ -536,6 +563,31 @@ button.scard:active{transform:translateY(2px)}
   transition:stroke-dashoffset 1s linear,stroke .3s}
 .cdring.low .arc{stroke:var(--pop)}
 .cdring.low{animation:pulse 1.2s ease-in-out infinite}
+/* Écrans courts : on resserre encore pour que chaque phase tienne sans défiler. */
+@media (max-height:640px){
+  body{font-size:16px}
+  .acard,.scard,.qchoice{padding:9px 13px;font-size:15.5px}
+  .qchoice{font-size:16px}
+  .qcard{min-height:96px;padding:10px 16px 13px}
+  .qcard .qtext{font-size:clamp(17px,4.8vw,21px)}
+  .role{font-size:15px;margin-bottom:8px}
+  .hand,.subs,.qchoices{margin-top:9px;gap:6px}
+  .sec{margin:12px 0 6px}
+  .btn{padding:13px 18px;font-size:17px}
+  .dock{padding-top:14px}
+  .dock .btn{padding:12px 16px}
+  .ladder .slot{min-height:36px}
+  .ladder .acard,.pool .acard{padding:7px 12px;font-size:15px}
+  .rank li,.rank.cols li{padding:6px 9px}
+  .role{min-height:0}
+  .truth .scard{padding:6px 12px;font-size:15px}
+  .lobbytop .invite{padding:8px}
+  .gamebox .gdesc{display:none}
+  .plist li{min-height:40px}
+  .home h1 img,.home h1 .shift{width:min(100%,300px,30vh)}
+  #j-code{font-size:26px;padding:12px}
+  input,textarea{padding:12px 14px}
+}
 /* Sur les très petits écrans, le minuteur prime sur le numéro de manche. */
 @media (max-width:360px){.top .round{display:none}}
 
@@ -1018,14 +1070,14 @@ function lobby(){
     ${gameBox(host)}
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
-      ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
+      ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}${isMe(p.id) ? ' me' : ''}">
+        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}</span>
+        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}" title="${p.ready ? 'prêt' : 'pas prêt'}">${p.ready ? '✓' : '…'}<span class="sr">${p.ready ? 'prêt' : 'pas prêt'}</span></span>${host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host && n < 12 ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
-    <div class="dock">
+    <div class="dock${host ? ' duo' : ''}">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
     </div>`;
@@ -1108,7 +1160,7 @@ function qselect(){
         return `<li><button class="qchoice ${chosen ? (off ? 'off' : 'on') : ''}" data-act="question" data-id="${q.id}" ${off ? 'disabled' : ''}>${blank(q.text)}</button></li>`;
       }).join('')}
     </ul>
-    ${chosen ? `<div class="dock">
+    ${chosen ? `<div class="dock duo">
       <button class="btn" data-act="question-go" ${dis()}>J'ai lu la phrase</button>
       <button class="btn ghost" data-act="question-back" ${dis()}>Choisir une autre carte</button>
     </div>` : ''}`;
@@ -1123,14 +1175,14 @@ function answering(){
   if (isMe(r.reader_id)) return `
     <p class="role"><b>C'est toi qui lis.</b> Lis la question à voix haute.</p>
     ${qcard('Question', blank(q))}
-    <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
+    <p class="meta" style="margin-top:12px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
 
   const cartes = state.my_cards || [];
   if (cartes.length) return `
     <p class="role"><b>${cartes.length > 1 ? 'Cartes envoyées.' : 'Carte envoyée.'}</b></p>
     ${qcard(cartes.length > 1 ? 'Tes réponses' : 'Ta réponse', fill(q, cartes))}
-    <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
+    <p class="meta" style="margin-top:12px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
 
   const n = state.blanks || 1;
@@ -1212,7 +1264,7 @@ function ranking(){
   if (state.my_ranking) return `
     <p class="role"><b>Classement envoyé.</b> ${judge ? 'Les autres essaient de le deviner…' : `Verdict quand tout le monde aura classé.`}</p>
     ${ladder(state.my_ranking, false)}
-    <p class="meta" style="margin-top:18px">${done}/${state.players.length} ont classé</p>${bar}
+    <p class="meta" style="margin-top:12px">${done}/${state.players.length} ont classé</p>${bar}
     ${waiting(left, 'Tout le monde a classé.')}`;
 
   const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.length;
@@ -1223,7 +1275,7 @@ function ranking(){
     ${ladder(picks, true)}
     ${pool.length
       ? `<p class="swipehint">Touche les cartes dans l'ordre, <b>la plus importante d'abord</b></p>
-         <ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
+         <ul class="hand pool${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
            <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
       : '<p class="swipehint">Touche une carte du classement pour la retirer.</p>'}
     <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
@@ -1239,20 +1291,19 @@ function rankReveal(){
   const mine = guessers.find(k => isMe(k.player_id));
   const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
   const last = roundsLeft() === 0;
-  const pts = [...ks].sort((a,b) => b.points - a.points);
+  const gain = Object.fromEntries(ks.map(k => [k.player_id, k.points ?? 0]));
+  const perfect = id => id !== r.reader_id && gain[id] >= 12;
   return `
-    <p class="role">${judgeMe ? '<b>Ton classement</b>' : `Le classement de <b>${nameOf(r.reader_id)}</b>`}</p>
+    <p class="role">${judgeMe ? '<b>Ton classement</b>' : `Le classement de <b>${nameOf(r.reader_id)}</b>`}${mine ? ` · à droite, ton pronostic (+${mine.points})` : ''}</p>
     <ol class="truth">${truth.map((id, i) => {
       const hit = guessers.filter(k => k.cards[i] === id);
-      return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
-        <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
+      const at = mine ? mine.cards.indexOf(id) : -1;
+      const mark = ({ 0:'ok', 1:'near' })[Math.abs(at - i)] || 'ko';
+      return `<li><span class="num">${i + 1}</span><div class="scard"><span class="tx">${esc(rankCard(id)?.text)}</span>
+        <span class="found${hit.length ? ' hit' : ''}">${hit.length ? '✓ ' + hit.map(k => nameOf(k.player_id)).join(', ') : 'Personne'}</span></div>
+        ${mine ? `<span class="mypos ${mark}" aria-label="Tu l’avais classée ${at + 1}e">${at + 1}</span>` : ''}</li>`;
     }).join('')}</ol>
-    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko'))}` : ''}
-    <h3 class="sec">Points de la manche</h3>
-    <ol class="rank">${pts.map(k => `<li>
-      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
-      <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
-    <h3 class="sec">Classement</h3>${rank()}
+    <h3 class="sec">Scores · ★ sans-faute</h3>${rank({ gain, star: perfect })}
     ${waiting(pending, 'Tout le monde est prêt.')}
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
 }
@@ -1307,7 +1358,7 @@ function clue(){
   return `
     <p class="role"><b>Tu es le médium.</b> Toi seul vois la cible. Donne un indice qui la situe entre les deux extrêmes.</p>
     ${dial({ target: w.target })}
-    <label style="margin-top:22px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
+    <label style="margin-top:12px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Donner l’indice</button></div>`;
 }
 
@@ -1315,7 +1366,7 @@ function guessing(){
   const r = state.room, w = state.wave || {};
   const others = state.players.filter(p => p.id !== r.reader_id);
   const left = others.filter(p => !p.guessed), done = others.length - left.length;
-  const progress = `<p class="meta" style="margin-top:18px">${done}/${others.length} ont visé</p>
+  const progress = `<p class="meta" style="margin-top:12px">${done}/${others.length} ont visé</p>
     <div class="bar"><i style="width:${others.length ? Math.round(done / others.length * 100) : 0}%"></i></div>
     ${waiting(left, 'Tout le monde a visé.')}`;
   const card = qcard(isMe(r.reader_id) ? 'Ton indice' : `Indice de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue');
@@ -1337,17 +1388,13 @@ function waveReveal(){
   const guessers = gs.filter(g => g.player_id !== r.reader_id);
   const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
   const last = roundsLeft() === 0;
-  const pts = [...gs].sort((a,b) => b.points - a.points);
+  const gain = Object.fromEntries(gs.map(g => [g.player_id, g.points ?? 0]));
+  // la pastille de couleur du classement sert de légende aux aiguilles
+  const aimed = new Set(guessers.map(g => g.player_id));
   return `
-    <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
-    ${qcard('Indice', esc(w.clue), 'clue')}
+    <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`} · indice <span class="clueword">« ${esc(w.clue)} »</span></p>
     ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })) })}
-    <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
-    <h3 class="sec">Points de la manche</h3>
-    <ol class="rank">${pts.map(g => `<li>
-      <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
-      <b class="plus">+${g.points ?? 0}</b></li>`).join('')}</ol>
-    <h3 class="sec">Classement</h3>${rank()}
+    <h3 class="sec">Scores · ★ dans le mille</h3>${rank({ gain, dot: id => aimed.has(id) && seatColor(id), star: id => aimed.has(id) && gain[id] === 4 })}
     ${waiting(pending, 'Tout le monde est prêt.')}
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
 }
@@ -1390,11 +1437,19 @@ function result(){
   return qcard('Réponse gagnante', w ? fill(q, w.cards) : blank(q), 'win',
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
-function rank(){
-  return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
-    <span class="pos">${i + 1}</span>
-    <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-    <b>${p.score}</b></li>`).join('')}</ol>`;
+// gain : points de la manche par joueur ; dot : couleur de l'aiguille ;
+// star : coup parfait. Le tout tient dans une seule liste, au lieu d'une liste
+// « points de la manche » suivie d'une seconde « classement ».
+function rank({ gain = null, dot = null, star = null } = {}){
+  const list = [...state.players].sort((a,b) => b.score - a.score), cols = list.length > 4;
+  const rows = cols ? ` style="grid-template-rows:repeat(${Math.ceil(list.length / 2)},auto)"` : '';
+  return `<ol class="rank${cols ? ' cols' : ''}"${rows}>${list.map((p,i) => {
+    const g = gain?.[p.id], c = dot?.(p.id);
+    return `<li class="${isMe(p.id) ? 'me' : ''}">
+    <span class="pos">${i + 1}</span>${c ? `<i class="dot" style="background:${c}"></i>` : ''}
+    <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) && !cols ? '<span class="tag">toi</span>' : ''}</span>
+    ${g != null ? `<span class="plus">${star?.(p.id) ? '★ ' : ''}+${g}</span>` : ''}<b>${p.score}</b></li>`;
+  }).join('')}</ol>`;
 }
 
 function reveal(){
@@ -1423,7 +1478,7 @@ function finished(){
       ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
       : result()}
     <h3 class="sec">Classement final</h3>${rank()}
-    <div class="dock">
+    <div class="dock duo">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
       <button class="btn ghost" data-act="leave">Quitter</button>
     </div>`;

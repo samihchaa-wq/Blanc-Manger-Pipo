@@ -59,7 +59,7 @@ assert.match(html, /data-act="ready"/, 'Ready control must remain available');
 // La barre d'action est fixe : si la page réserve une hauteur devinée au lieu
 // de la hauteur mesurée, le bouton finit par recouvrir la fin du contenu —
 // l'écran de fin, à deux boutons, dépassait les 150px autrefois codés en dur.
-assert.match(html, /padding:calc\(30px \+ env\(safe-area-inset-top\)\) 18px calc\(var\(--dock-h/,
+assert.match(html, /padding:calc\(\d+px \+ env\(safe-area-inset-top\)\) 18px calc\(var\(--dock-h/,
   'La réserve du bas doit suivre --dock-h, pas une valeur fixe');
 assert.match(scripts[0], /function fitDock\(\)/,
   'fitDock doit mesurer la barre d’action après chaque rendu');
