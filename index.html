@@ -343,6 +343,31 @@ button.scard:active{transform:translateY(2px)}
 .rank b.plus{color:var(--mint)}
 .rank .tag{margin-left:2px}
 
+/* ===== Longueur d'onde ===== */
+/* Le cadran : un demi-disque crème, la cible en trois bandes (2, 3, 4 points),
+   les aiguilles partent du moyeu. Les deux extrêmes de la carte encadrent le
+   cadran, comme les étiquettes posées de part et d'autre du vrai jeu. */
+.dialbox{margin:18px 0 0}
+.dial{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;overflow:visible}
+.dial.drag{cursor:grab}
+.dial .face{fill:var(--paper)}
+.dial .rim{fill:none;stroke:var(--paper-edge);stroke-width:3}
+.dial .b2{fill:var(--gold)} .dial .b3{fill:var(--pop)} .dial .b4{fill:var(--mint)}
+.dial .bn{font-size:9px;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}
+.dial .ndl{stroke-width:3.4;stroke-linecap:round}
+.dial .ndl.me{stroke:var(--ink);stroke-width:4.4}
+/* contour sombre sous chaque aiguille colorée : sinon elle se perd dans la bande de même teinte */
+.dial .halo{stroke:var(--ink);stroke-width:6.4;stroke-linecap:round}
+.dial .tip{stroke:var(--ink);stroke-width:1.5}
+.dial .hub{fill:var(--pop-2);stroke:var(--ink);stroke-width:1.5}
+.wlabs{display:flex;justify-content:space-between;gap:12px;margin-top:10px}
+.wlab{max-width:48%;padding:8px 13px;border-radius:12px;background:#fff;color:var(--ink);font-size:15px;line-height:1.2;
+  box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.wlab.r{text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.legend .chip i{width:12px;height:12px;border-radius:50%;margin-left:4px}
+.qcard.clue{min-height:0}
+
 /* catalogue admin */
 .holebar{display:flex;align-items:center;gap:12px;margin:-4px 0 14px}
 .btn.small{width:auto;flex:none;padding:10px 16px;font-size:15px}
@@ -510,6 +535,7 @@ let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealP
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
+let dialVal = 50, dialDrag = null, clueDraft = '';   // Longueur d'onde : aiguille et indice en cours
 let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
@@ -517,12 +543,16 @@ let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses
 const MOT = { q:'phrase', a:'réponse', p:'carte' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
-// Les deux jeux hébergés par l'appli. Le salon en montre la règle courte.
+// Les jeux hébergés par l'appli. Le salon en montre la règle courte.
 const GAMES = {
   phrases:   { name:'Phrases à trou', desc: r => `Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle. Premier à ${r.target} points.` },
   priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
+  ondes:     { name:'Longueur d’onde', desc: r => `Le médium voit une cible cachée sur un cadran entre deux extrêmes et donne un indice. Les autres placent leur aiguille au plus près. ${r.turns} tour${r.turns > 1 ? 's' : ''} de médium chacun.` },
 };
 const isPrio = () => state?.room.mode === 'priorites';
+const isWave = () => state?.room.mode === 'ondes';
+// Priorités et Longueur d'onde se jouent en manches comptées, pas au score cible.
+const isCounted = () => isPrio() || isWave();
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -569,7 +599,7 @@ async function refresh(force = false){
     if (prevStatus && prevStatus !== 'lobby' && s.room.status === 'lobby')
       toast('Un joueur est parti : il faut au moins 3 joueurs, la partie est arrêtée.');
     state = s; last = j;
-    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' || s.room.status === 'ranking' }
+    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking' }
     render(); scheduleAuto();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
@@ -595,7 +625,7 @@ function leaveLocal(){ disconnect(); save(null); state = null; history.replaceSt
 function scheduleAuto(){
   clearTimeout(wheelTimer);
   // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
-  if (['question_select','ranking'].includes(state?.room.status)) wheelTimer = setTimeout(render, 2100);
+  if (['question_select','ranking','clue'].includes(state?.room.status)) wheelTimer = setTimeout(render, 2100);
   scheduleReap();
   scheduleBots();
 }
@@ -613,6 +643,8 @@ function scheduleBots(){
   else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
   else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'ranking')    todo = bots.some(b => !b.ranked);
+  else if (r.status === 'clue')       todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'guessing')   todo = bots.some(b => b.id !== r.reader_id && !b.guessed);
   else if (r.status === 'reveal')     todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
@@ -623,7 +655,7 @@ function scheduleBots(){
 }
 
 // Phases où un joueur passif peut bloquer la partie : 2 min avant déblocage.
-const TIMED = ['question_select','answering','judging','ranking','reveal'];
+const TIMED = ['question_select','answering','judging','ranking','clue','guessing','reveal'];
 function phaseDeadline(){
   if (!state || !TIMED.includes(state.room.status)) return 0;
   const t = Date.parse(String(state.room.phase_at || '').replace(' ','T'));
@@ -736,7 +768,7 @@ function render(){
   if (adminOpen) html = adminView();
   else if (!session) html = home();
   else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
-  else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, reveal, finished }[state.room.status]();
+  else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -794,7 +826,7 @@ function home(){
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
         <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field"><span>Jeu</span>
-          <div class="seg s2" role="group" aria-label="Jeu">
+          <div class="seg s3" role="group" aria-label="Jeu">
             ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}">${g.name}</button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
@@ -914,7 +946,7 @@ function topbar(){
   // du haut ferait doublon, seul « Quitter » reste.
   if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
   return `<div class="top">
-      <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}${isPrio() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
+      <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
       <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg></span>
       <button class="link" data-act="leave">Quitter</button>
     </div>`;
@@ -961,9 +993,9 @@ function gameBox(host){
     </section>`;
   return `<section class="panel gamebox">
       <p class="eyebrow">Jeu</p>
-      ${seg('mode', Object.entries(GAMES).map(([k,x]) => [k, x.name]), 's2', 'Jeu')}
-      ${r.mode === 'priorites'
-        ? `<div class="field"><span>Tours de juge par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours de juge par joueur')}</div>`
+      ${seg('mode', Object.entries(GAMES).map(([k,x]) => [k, x.name]), 's3', 'Jeu')}
+      ${r.mode === 'priorites' || r.mode === 'ondes'
+        ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
         : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`}
       <p class="gdesc">${g.desc(r)}</p>
     </section>`;
@@ -1175,6 +1207,133 @@ function rankReveal(){
     <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
 }
 
+/* ---------- Longueur d'onde ---------- */
+// Le cadran va de 0 (extrême gauche) à 100 (extrême droite), en demi-cercle.
+const DC = { x:100, y:100, r:90 };
+function dpt(v, rad = DC.r){
+  const a = Math.PI * (1 - v / 100);
+  return [(DC.x + rad * Math.cos(a)).toFixed(2), (DC.y - rad * Math.sin(a)).toFixed(2)];
+}
+function wedge(a, b, cls){
+  a = Math.max(0, a); b = Math.min(100, b);
+  if (b <= a) return '';
+  const [x1,y1] = dpt(a), [x2,y2] = dpt(b);
+  return `<path class="${cls}" d="M${DC.x},${DC.y} L${x1},${y1} A${DC.r},${DC.r} 0 0 1 ${x2},${y2} Z"/>`;
+}
+// Les trois bandes de la cible : 2 points à 15 crans ou moins, 3 à 9, 4 à 3.
+function bands(t){
+  const num = (v, n) => v < 0 || v > 100 ? '' : (([x,y]) => `<text class="bn" x="${x}" y="${y}">${n}</text>`)(dpt(v, DC.r - 9));
+  return wedge(t - 15, t + 15, 'b2') + wedge(t - 9, t + 9, 'b3') + wedge(t - 3, t + 3, 'b4')
+    + num(t, 4) + num(t - 6, 3) + num(t + 6, 3) + num(t - 12, 2) + num(t + 12, 2);
+}
+function needle(v, color, me = false){
+  const [x,y] = dpt(v, DC.r - 4);
+  if (me) return `<line class="ndl me" id="myneedle" x1="${DC.x}" y1="${DC.y}" x2="${x}" y2="${y}"/>`;
+  return `<line class="halo" x1="${DC.x}" y1="${DC.y}" x2="${x}" y2="${y}"/>
+    <line class="ndl" x1="${DC.x}" y1="${DC.y}" x2="${x}" y2="${y}" style="stroke:${color}"/>
+    <circle class="tip" cx="${x}" cy="${y}" r="4" style="fill:${color}"/>`;
+}
+// opts : target (bandes visibles), needles [{v,color}], mine (aiguille déplaçable)
+function dial({ target = null, needles = [], mine = null } = {}){
+  const w = state.wave || {};
+  return `<div class="dialbox">
+    <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${esc(w.left)} et ${esc(w.right)}">
+      <path class="face" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
+      ${target != null ? bands(target) : ''}
+      <path class="rim" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
+      ${needles.map(n => needle(n.v, n.color)).join('')}
+      ${mine != null ? needle(mine, null, true) : ''}
+      <circle class="hub" cx="${DC.x}" cy="${DC.y}" r="7"/>
+    </svg>
+    <div class="wlabs"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
+  </div>`;
+}
+const seatColor = id => sliceColor(Math.max(0, state.players.findIndex(p => p.id === id)));
+
+function clue(){
+  const r = state.room, w = state.wave || {};
+  if (Date.now() - stamp(r.phase_at) < 2000 && !clueDraft) return wheel('Qui est le médium ?');
+  if (!isMe(r.reader_id)) return waitScreen(`${nameOf(r.reader_id)} est le médium`, 'Il cherche un indice…');
+  return `
+    <p class="role"><b>Tu es le médium.</b> Toi seul vois la cible. Donne un indice qui la situe entre les deux extrêmes.</p>
+    ${dial({ target: w.target })}
+    <label style="margin-top:22px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
+    <div class="dock"><button class="btn" data-act="clue" ${dis()}>Donner l’indice</button></div>`;
+}
+
+function guessing(){
+  const r = state.room, w = state.wave || {};
+  const others = state.players.filter(p => p.id !== r.reader_id);
+  const left = others.filter(p => !p.guessed), done = others.length - left.length;
+  const progress = `<p class="meta" style="margin-top:18px">${done}/${others.length} ont visé</p>
+    <div class="bar"><i style="width:${others.length ? Math.round(done / others.length * 100) : 0}%"></i></div>
+    ${waiting(left, 'Tout le monde a visé.')}`;
+  const card = qcard(isMe(r.reader_id) ? 'Ton indice' : `Indice de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue');
+
+  if (isMe(r.reader_id)) return `
+    <p class="role"><b>Les autres cherchent ta cible.</b></p>${card}${dial({ target: w.target })}${progress}`;
+  if (w.my_guess != null) return `
+    <p class="role"><b>Aiguille posée.</b> Verdict quand tout le monde aura visé.</p>${card}${dial({ mine: w.my_guess })}${progress}`;
+  return `
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium. Place l’aiguille là où son indice te fait penser.</p>
+    ${card}${dial({ mine: dialVal })}
+    <p class="swipehint">Fais glisser l’aiguille sur le cadran</p>
+    <div class="dock"><button class="btn" data-act="guess" ${dis()}>Valider ma position</button></div>`;
+}
+
+function waveReveal(){
+  const r = state.room, w = state.wave || {};
+  const gs = (w.guesses || []).filter(g => P(g.player_id));
+  const guessers = gs.filter(g => g.player_id !== r.reader_id);
+  const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
+  const last = roundsLeft() === 0;
+  const pts = [...gs].sort((a,b) => b.points - a.points);
+  return `
+    <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
+    ${qcard('Indice', esc(w.clue), 'clue')}
+    ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })) })}
+    <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
+    <h3 class="sec">Points de la manche</h3>
+    <ol class="rank">${pts.map(g => `<li>
+      <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
+      <b class="plus">+${g.points ?? 0}</b></li>`).join('')}</ol>
+    <h3 class="sec">Classement</h3>${rank()}
+    ${waiting(pending, 'Tout le monde est prêt.')}
+    <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
+}
+
+// L'aiguille suit le doigt sans re-rendre l'écran : seule la ligne bouge.
+function dialValueAt(e){
+  const svg = document.getElementById('dial'), b = svg.getBoundingClientRect();
+  const k = 200 / b.width;
+  const x = (e.clientX - b.left) * k, y = (e.clientY - b.top) * k - 4;
+  let a = Math.atan2(DC.y - y, x - DC.x);
+  if (a < 0) a = x < DC.x ? Math.PI : 0;     // sous le moyeu : on colle au bord le plus proche
+  return Math.round(100 * (1 - a / Math.PI));
+}
+function moveNeedle(v){
+  dialVal = v;
+  const el = document.getElementById('myneedle');
+  if (!el) return;
+  const [x,y] = dpt(v, DC.r - 4);
+  el.setAttribute('x2', x); el.setAttribute('y2', y);
+}
+document.addEventListener('pointerdown', e => {
+  const svg = e.target.closest('svg.dial.drag');
+  if (!svg || busy || state?.wave?.my_guess != null) return;
+  dialDrag = e.pointerId; dragging = true;
+  try { svg.setPointerCapture(e.pointerId) } catch {}
+  moveNeedle(dialValueAt(e));
+});
+document.addEventListener('pointermove', e => { if (dialDrag === e.pointerId) moveNeedle(dialValueAt(e)) });
+function endDial(e){
+  if (dialDrag !== e.pointerId) return;
+  dialDrag = null;
+  afterSwipe();
+}
+document.addEventListener('pointerup', endDial);
+document.addEventListener('pointercancel', endDial);
+
 function result(){
   const r = state.room, q = state.question || '';
   const w = state.submissions.find(s => s.id === r.winning_submission_id);
@@ -1190,6 +1349,7 @@ function rank(){
 
 function reveal(){
   if (isPrio()) return rankReveal();
+  if (isWave()) return waveReveal();
   const r = state.room, pending = state.players.filter(p => p.next_ack !== r.round);
   const acked = state.me.next_ack === r.round;
   return `
@@ -1202,14 +1362,14 @@ function reveal(){
 
 function finished(){
   const r = state.room;
-  // Priorités se joue en manches comptées : plusieurs joueurs peuvent finir à égalité.
+  // Priorités et Longueur d'onde se jouent en manches comptées : plusieurs joueurs peuvent finir à égalité.
   const top = Math.max(...state.players.map(p => p.score));
-  const best = isPrio() ? state.players.filter(p => p.score === top) : [];
+  const best = isCounted() ? state.players.filter(p => p.score === top) : [];
   const title = best.length > 1 ? 'Égalité !' : isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !';
   return `
     <p class="eyebrow">Partie terminée</p>
     <h1 class="bigwin">${title}</h1>
-    ${isPrio()
+    ${isCounted()
       ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
       : result()}
     <h3 class="sec">Classement final</h3>${rank()}
@@ -1517,6 +1677,12 @@ document.addEventListener('click', async e => {
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
+  if (a === 'clue') {
+    const t = (document.getElementById('w-clue')?.value || '').trim();
+    if (!t) return toast('Écris un indice.');
+    return act('submit_clue', { p_clue: t });
+  }
+  if (a === 'guess') return act('submit_guess', { p_value: dialVal });
   if (a === 'next') return act('next_round');
   if (a === 'continue') return act('continue_game');
   if (a === 'share') return share();
@@ -1524,6 +1690,7 @@ document.addEventListener('click', async e => {
   if (a === 'leave') { try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {} return leaveLocal() }
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'j-code') e.target.value = e.target.value.replace(/\D/g,'');
   if (e.target.id === 'a-text') { majTrous(); autoGrow(e.target) }
   if (e.target.id === 'cat-q') {
@@ -1535,6 +1702,7 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
   if (e.key === 'Enter' && e.target.matches('#a-pwd')) document.querySelector('[data-act=admin-login]')?.click();
   // Une phrase tient sur une ligne logique : Entrée valide au lieu d'ajouter un
   // saut de ligne, que _clean_card écraserait de toute façon.
