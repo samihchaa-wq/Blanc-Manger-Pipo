@@ -162,6 +162,10 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
   transition:background var(--dur),color var(--dur),transform var(--dur)}
 .seg-b.on{background:var(--gold);color:var(--ink);box-shadow:0 2px 10px -2px rgba(255,182,31,.6)}
 .seg-b:active{transform:scale(.95)}
+.seg.s2{grid-template-columns:1fr 1fr}
+.seg.s3{grid-template-columns:repeat(3,1fr)}
+/* .field impose display:block, qui l'emporterait sur l'attribut hidden */
+.field[hidden]{display:none}
 
 /* ===== Boutons ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:var(--r-pill);
@@ -295,6 +299,41 @@ button.scard:active{transform:translateY(2px)}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .tag.host{background:rgba(255,182,31,.18);color:var(--gold)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
+
+/* choix du jeu, dans le salon */
+.gamebox{margin-top:0;padding:18px}
+.gamebox .field{margin:14px 0 0}
+.gamebox .gname{font-size:22px;margin:2px 0 6px}
+.gamebox .gdesc{font-size:15px;line-height:1.4;color:var(--text-dim);margin-top:12px}
+.gamebox .gname+.gdesc{margin-top:0}
+
+/* ===== Priorités ===== */
+/* Le classement en cours : cinq marches, la 1 en haut. Une marche vide est
+   un pointillé ; une carte posée reprend la carte rose « choisie ». */
+.ladder-end{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 8px 40px}
+.ladder+.ladder-end{margin:8px 0 0 40px}
+.ladder{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.ladder li{display:flex;align-items:center;gap:10px}
+.num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
+  background:var(--surface-2);color:var(--text-dim);font-variant-numeric:tabular-nums}
+.ladder li.full .num{background:var(--pop);color:#2E0715}
+.ladder .slot{flex:1;min-height:52px;border-radius:15px;border:1.5px dashed var(--hairline-2)}
+.ladder .acard{flex:1;width:auto;padding:13px 16px;font-size:17px}
+.ladder .acard.sel{transform:none}
+.ladder li.ok .num{background:var(--mint);color:#052B20}
+.ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--pop-deep)}
+.ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
+/* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
+.truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.truth li{display:grid;grid-template-columns:30px 1fr;gap:7px 10px;align-items:center}
+.truth .num{background:var(--gold);color:var(--gold-ink)}
+.truth .scard{padding:13px 16px;font-size:17px}
+.truth .scard::first-letter{text-transform:uppercase}
+.found{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--text-faint)}
+.found .chip{padding:3px 10px;font-size:13px}
+.found .chip.hit{border-color:rgba(63,224,168,.45);background:rgba(63,224,168,.12);color:var(--mint)}
+.rank b.plus{color:var(--mint)}
+.rank .tag{margin-left:2px}
 
 /* catalogue admin */
 .holebar{display:flex;align-items:center;gap:12px;margin:-4px 0 14px}
@@ -467,6 +506,13 @@ let adminOpen = false, adminPwd = '', adminLevel = '';
 let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
+// Les deux jeux hébergés par l'appli. Le salon en montre la règle courte.
+const GAMES = {
+  phrases:   { name:'Phrases à trou', desc: r => `Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle. Premier à ${r.target} points.` },
+  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement : 1 point par carte bien placée, +2 pour un sans-faute. Le juge marque 1 point par joueur qui en trouve au moins 3. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
+};
+const isPrio = () => state?.room.mode === 'priorites';
+
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
 function save(v){ session = v; try { v ? localStorage.setItem('pdcat', JSON.stringify(v)) : localStorage.removeItem('pdcat') } catch {} }
@@ -512,7 +558,7 @@ async function refresh(force = false){
     if (prevStatus && prevStatus !== 'lobby' && s.room.status === 'lobby')
       toast('Un joueur est parti : il faut au moins 3 joueurs, la partie est arrêtée.');
     state = s; last = j;
-    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' }
+    if (changed) { picks = []; picked = null; readIndex = 0; qpick = null; dealPending = s.room.status === 'answering' || s.room.status === 'ranking' }
     render(); scheduleAuto();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
@@ -538,7 +584,7 @@ function leaveLocal(){ disconnect(); save(null); state = null; history.replaceSt
 function scheduleAuto(){
   clearTimeout(wheelTimer);
   // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
-  if (state?.room.status === 'question_select') wheelTimer = setTimeout(render, 2100);
+  if (['question_select','ranking'].includes(state?.room.status)) wheelTimer = setTimeout(render, 2100);
   scheduleReap();
   scheduleBots();
 }
@@ -555,6 +601,7 @@ function scheduleBots(){
   if (r.status === 'question_select') todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
   else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'ranking')    todo = bots.some(b => !b.ranked);
   else if (r.status === 'reveal')     todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
@@ -565,7 +612,7 @@ function scheduleBots(){
 }
 
 // Phases où un joueur passif peut bloquer la partie : 2 min avant déblocage.
-const TIMED = ['question_select','answering','judging','reveal'];
+const TIMED = ['question_select','answering','judging','ranking','reveal'];
 function phaseDeadline(){
   if (!state || !TIMED.includes(state.room.status)) return 0;
   const t = Date.parse(String(state.room.phase_at || '').replace(' ','T'));
@@ -678,7 +725,7 @@ function render(){
   if (adminOpen) html = adminView();
   else if (!session) html = home();
   else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
-  else html = topbar() + { lobby, question_select: qselect, answering, judging, reveal, finished }[state.room.status]();
+  else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -735,12 +782,15 @@ function home(){
 
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
         <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
-        <div class="field"><span>Manches à gagner</span>
-          <div class="seg" role="group" aria-label="Manches à gagner">
-            ${[3,5,7,10].map(v => `<button type="button" class="seg-b ${v === 5 ? 'on' : ''}" data-act="target" data-v="${v}" aria-pressed="${v === 5}">${v}</button>`).join('')}
+        <div class="field"><span>Jeu</span>
+          <div class="seg s2" role="group" aria-label="Jeu">
+            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}">${g.name}</button>`).join('')}
           </div>
-          <input type="hidden" id="c-target" value="5">
+          <input type="hidden" id="c-mode" value="phrases">
         </div>
+        <!-- le réglage propre à chaque jeu se fait dans le salon : l'accueil tient sur un écran -->
+        <input type="hidden" id="c-turns" value="2">
+        <input type="hidden" id="c-target" value="5">
         <button class="btn" data-act="create">Créer la partie</button>
       </section>
 
@@ -850,7 +900,7 @@ function topbar(){
   // du haut ferait doublon, seul « Quitter » reste.
   if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
   return `<div class="top">
-      <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}</span>` : ''}</div>
+      <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}${isPrio() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
       <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg></span>
       <button class="link" data-act="leave">Quitter</button>
     </div>`;
@@ -867,6 +917,7 @@ function lobby(){
       </div>
       <button class="btn ghost invite" data-act="share">Inviter des joueurs</button>
     </div>
+    ${gameBox(host)}
     <h2 class="sec">Joueurs · ${n}/12</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
@@ -880,6 +931,28 @@ function lobby(){
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < 3 || !all)}>${n < 3 ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
     </div>`;
+}
+
+// L'hôte choisit le jeu dans le salon (et peut en changer entre deux parties) ;
+// les autres voient le jeu retenu et sa règle.
+function gameBox(host){
+  const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
+  const seg = (k, vals, cls, label) => `<div class="seg ${cls}" role="group" aria-label="${label}">${vals.map(([v,t]) => {
+    const on = String(r[k]) === String(v);
+    return `<button type="button" class="seg-b ${on ? 'on' : ''}" data-act="opt" data-k="${k}" data-v="${v}" aria-pressed="${on}" ${dis()}>${t}</button>`;
+  }).join('')}</div>`;
+  if (!host) return `<section class="panel gamebox">
+      <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
+      <p class="gdesc">${g.desc(r)}</p>
+    </section>`;
+  return `<section class="panel gamebox">
+      <p class="eyebrow">Jeu</p>
+      ${seg('mode', Object.entries(GAMES).map(([k,x]) => [k, x.name]), 's2', 'Jeu')}
+      ${r.mode === 'priorites'
+        ? `<div class="field"><span>Tours de juge par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours de juge par joueur')}</div>`
+        : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`}
+      <p class="gdesc">${g.desc(r)}</p>
+    </section>`;
 }
 
 function waitScreen(title, sub, stack = 1){
@@ -897,7 +970,7 @@ const WHEEL_COLORS = ['#FFB61F','#FF3D77','#3FE0A8','#8B5CFF','#FF8A12','#22B8F0
                       '#D8C93A','#CE49B4','#6BCE35','#4C6FFF','#FF6250','#12B894'];
 const sliceColor = i => WHEEL_COLORS[i % WHEEL_COLORS.length];
 
-function wheel(){
+function wheel(title = 'Qui va lire ?'){
   const n = state.players.length, a = 360 / n;
   const idx = Math.max(0, state.players.findIndex(p => p.id === state.room.reader_id));
   const slices = state.players.map((p,i) => `${sliceColor(i)} ${i*a}deg ${(i+1)*a}deg`).join(',');
@@ -915,7 +988,7 @@ function wheel(){
       <i class="${settled > 180 ? 'flip' : ''}">${esc(p.name)}</i></span>`;
   }).join('');
   return `<div class="wheelWrap">
-      <h2 class="bigstate">Qui va lire ?</h2>
+      <h2 class="bigstate">${title}</h2>
       <div class="wheelBox">
         <span class="pointer" aria-hidden="true"></span>
         <div class="wheel" style="--spin:${spin.toFixed(1)}deg;--fs:${fs}px;background:conic-gradient(${slices})">${labels}</div>
@@ -1010,6 +1083,84 @@ function judging(){
     <div class="dock"><button class="btn" data-act="confirm" ${dis(!picked)}>${picked ? 'Donner le point' : 'Touche ta réponse préférée'}</button></div>`;
 }
 
+/* ---------- Priorités ---------- */
+const stamp = t => Date.parse(String(t || '').replace(' ','T'));
+// Manches restantes après celle-ci : chaque joueur encore là doit encore juger
+// (tours choisis - fois où il a déjà jugé).
+function roundsLeft(){
+  const r = state.room;
+  return state.players.filter(p => p.active).reduce((n, p) => n + Math.max(0, r.turns - (p.judge_count || 0)), 0);
+}
+const rankCard = id => (state.rank_cards || []).find(c => c.id === id);
+
+function ladder(ids, editable, marks){
+  const n = (state.rank_cards || []).length || 5;
+  return `<p class="ladder-end">Le plus important</p>
+    <ol class="ladder">${Array.from({ length:n }, (_, i) => {
+      const c = rankCard(ids[i]);
+      const cls = !c ? '' : marks ? (marks[i] ? 'full ok' : 'full ko') : 'full';
+      return `<li class="${cls}"><span class="num">${i + 1}</span>${!c ? '<span class="slot"></span>'
+        : editable ? `<button class="acard sel" data-act="unrank" data-id="${c.id}" aria-label="Retirer ${esc(c.text)}">${esc(c.text)}</button>`
+        : `<span class="acard sel">${esc(c.text)}</span>`}</li>`;
+    }).join('')}</ol>
+    <p class="ladder-end">Le moins important</p>`;
+}
+
+function ranking(){
+  const r = state.room, cards = state.rank_cards || [], judge = isMe(r.reader_id);
+  // la roue désigne le juge ; phase_at, car updated_at bouge à chaque classement reçu
+  if (Date.now() - stamp(r.phase_at) < 2000 && !picks.length && !state.my_ranking) return wheel('Qui est le juge ?');
+  const left = state.players.filter(p => !p.ranked), done = state.players.length - left.length;
+  const bar = `<div class="bar"><i style="width:${Math.round(done / state.players.length * 100)}%"></i></div>`;
+
+  if (state.my_ranking) return `
+    <p class="role"><b>Classement envoyé.</b> ${judge ? 'Les autres essaient de le deviner…' : `Verdict quand tout le monde aura classé.`}</p>
+    ${ladder(state.my_ranking, false)}
+    <p class="meta" style="margin-top:18px">${done}/${state.players.length} ont classé</p>${bar}
+    ${waiting(left, 'Tout le monde a classé.')}`;
+
+  const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.length;
+  return `
+    <p class="role">${judge
+      ? '<b>Tu es le juge.</b> Classe ces cartes, de la plus importante à la moins importante pour toi.'
+      : `<b>${nameOf(r.reader_id)}</b> est le juge. Devine son classement, de la plus importante à la moins importante à ses yeux.`}</p>
+    ${ladder(picks, true)}
+    ${pool.length
+      ? `<p class="swipehint">Touche les cartes dans l'ordre, <b>la plus importante d'abord</b></p>
+         <ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
+           <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
+      : '<p class="swipehint">Touche une carte du classement pour la retirer.</p>'}
+    <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
+      ? `Encore ${reste} carte${reste > 1 ? 's' : ''} à classer`
+      : judge ? 'Valider mon classement' : 'Valider mon pronostic'}</button></div>`;
+}
+
+function rankReveal(){
+  const r = state.room, judgeMe = isMe(r.reader_id);
+  const ks = (state.rankings || []).filter(k => P(k.player_id));
+  const truth = ks.find(k => k.player_id === r.reader_id)?.cards || [];
+  const guessers = ks.filter(k => k.player_id !== r.reader_id);
+  const mine = guessers.find(k => isMe(k.player_id));
+  const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
+  const last = roundsLeft() === 0;
+  const pts = [...ks].sort((a,b) => b.points - a.points);
+  return `
+    <p class="role">${judgeMe ? '<b>Ton classement</b>' : `Le classement de <b>${nameOf(r.reader_id)}</b>`}</p>
+    <ol class="truth">${truth.map((id, i) => {
+      const hit = guessers.filter(k => k.cards[i] === id);
+      return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
+        <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
+    }).join('')}</ol>
+    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => id === truth[i]))}` : ''}
+    <h3 class="sec">Points de la manche</h3>
+    <ol class="rank">${pts.map(k => `<li>
+      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 7 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
+      <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
+    <h3 class="sec">Classement</h3>${rank()}
+    ${waiting(pending, 'Tout le monde est prêt.')}
+    <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
+}
+
 function result(){
   const r = state.room, q = state.question || '';
   const w = state.submissions.find(s => s.id === r.winning_submission_id);
@@ -1024,6 +1175,7 @@ function rank(){
 }
 
 function reveal(){
+  if (isPrio()) return rankReveal();
   const r = state.room, pending = state.players.filter(p => p.next_ack !== r.round);
   const acked = state.me.next_ack === r.round;
   return `
@@ -1036,10 +1188,16 @@ function reveal(){
 
 function finished(){
   const r = state.room;
+  // Priorités se joue en manches comptées : plusieurs joueurs peuvent finir à égalité.
+  const top = Math.max(...state.players.map(p => p.score));
+  const best = isPrio() ? state.players.filter(p => p.score === top) : [];
+  const title = best.length > 1 ? 'Égalité !' : isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !';
   return `
     <p class="eyebrow">Partie terminée</p>
-    <h1 class="bigwin">${isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !'}</h1>
-    ${result()}
+    <h1 class="bigwin">${title}</h1>
+    ${isPrio()
+      ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
+      : result()}
     <h3 class="sec">Classement final</h3>${rank()}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
@@ -1098,7 +1256,8 @@ async function runSwipe(id, dir){
 }
 
 document.addEventListener('pointerdown', e => {
-  const el = e.target.closest('.acard');
+  // seules les cartes en main se balaient ; celles de Priorités se touchent
+  const el = e.target.closest('.acard[data-act="select"]');
   if (!el || busy || flying || e.button > 0) return;
   swipe = { id:+el.dataset.id, el, box:el.parentElement, pid:e.pointerId,
             x0:e.clientX, y0:e.clientY, dx:0, on:false, w:el.getBoundingClientRect().width };
@@ -1172,13 +1331,18 @@ document.addEventListener('click', async e => {
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
   pressedEl = el;
   const a = el.dataset.act, id = el.dataset.id;
-  if (a === 'target') {
-    const box = document.getElementById('c-target');
+  if (a === 'target' || a === 'turns' || a === 'mode') {
+    const box = document.getElementById('c-' + a);
     if (box) box.value = el.dataset.v;
     el.parentElement.querySelectorAll('.seg-b').forEach(b => {
       const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     });
     return;
+  }
+  if (a === 'opt') {
+    const r = state.room, o = { mode:r.mode, target:r.target, turns:r.turns, [el.dataset.k]:el.dataset.v };
+    if (String(r[el.dataset.k]) === String(el.dataset.v)) return;
+    return act('set_room_options', { p_mode:o.mode, p_target:+o.target, p_turns:+o.turns });
   }
   if (a === 'tab') {
     const want = el.dataset.tab;
@@ -1290,7 +1454,10 @@ document.addEventListener('click', async e => {
     } catch (e) { toast(e.message); el.disabled = false }
     return;
   }
-  if (a === 'create') { const n = val('c-name'); if (!n) return toast('Choisis un pseudo.'); return enter(() => rpc('create_room',{ p_name:n, p_target:+val('c-target') }), n) }
+  if (a === 'create') {
+    const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
+    return enter(() => rpc('create_room',{ p_name:n, p_target:+val('c-target'), p_mode:val('c-mode') || 'phrases', p_turns:+val('c-turns') || 2 }), n);
+  }
   if (a === 'join') {
     const c = val('j-code').replace(/\D/g,''), n = val('j-name');
     if (c.length !== 4) return toast('Le code fait 4 chiffres.');
@@ -1320,6 +1487,18 @@ document.addEventListener('click', async e => {
   if (a === 'send') {
     if (picks.length < (state?.blanks || 1)) return;
     return act('submit_answer', { p_answer_id: picks[0], p_answer_id2: picks[1] ?? null });
+  }
+  // Priorités : chaque touche pose la carte sur la marche libre suivante ;
+  // toucher une carte posée la retire, celles d'en dessous remontent.
+  if (a === 'rank') {
+    const c = +id, n = (state?.rank_cards || []).length;
+    if (!picks.includes(c) && picks.length < n) picks.push(c);
+    return render();
+  }
+  if (a === 'unrank') { picks = picks.filter(x => x !== +id); return render() }
+  if (a === 'send-rank') {
+    if (picks.length < (state?.rank_cards || []).length) return;
+    return act('submit_ranking', { p_cards: picks });
   }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
