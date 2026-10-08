@@ -563,9 +563,9 @@ let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
 const GAMES = {
-  phrases:   { name:'Phrases à trou', desc: r => `Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle. Premier à ${r.target} points.` },
-  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
-  ondes:     { name:'Longueur d’onde', desc: r => `Le médium voit une cible cachée sur un cadran entre deux extrêmes et donne un indice. Les autres placent leur aiguille au plus près. ${r.turns} tour${r.turns > 1 ? 's' : ''} de médium chacun.` },
+  phrases:   { name:'Phrases à trou',  desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
+  priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
+  ondes:     { name:'Longueur d’onde', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -997,25 +997,22 @@ function lobby(){
     </div>`;
 }
 
-// L'hôte choisit le jeu dans le salon (et peut en changer entre deux parties) ;
-// les autres voient le jeu retenu et sa règle.
+// Le jeu est choisi à la création : le salon affiche le jeu et sa règle,
+// l'hôte n'y règle que la durée de la partie.
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
   const seg = (k, vals, cls, label) => `<div class="seg ${cls}" role="group" aria-label="${label}">${vals.map(([v,t]) => {
     const on = String(r[k]) === String(v);
     return `<button type="button" class="seg-b ${on ? 'on' : ''}" data-act="opt" data-k="${k}" data-v="${v}" aria-pressed="${on}" ${dis()}>${t}</button>`;
   }).join('')}</div>`;
-  if (!host) return `<section class="panel gamebox">
-      <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
-      <p class="gdesc">${g.desc(r)}</p>
-    </section>`;
+  const opts = !host ? ''
+    : r.mode === 'priorites' || r.mode === 'ondes'
+      ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
+      : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`;
   return `<section class="panel gamebox">
-      <p class="eyebrow">Jeu</p>
-      ${seg('mode', Object.entries(GAMES).map(([k,x]) => [k, x.name]), 's3', 'Jeu')}
-      ${r.mode === 'priorites' || r.mode === 'ondes'
-        ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
-        : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`}
-      <p class="gdesc">${g.desc(r)}</p>
+      <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
+      <p class="gdesc">${g.desc}</p>
+      ${opts}
     </section>`;
 }
 
