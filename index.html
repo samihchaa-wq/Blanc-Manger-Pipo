@@ -43,7 +43,8 @@
   --gold-ink:#3A2000; --gold-ink-soft:rgba(58,32,0,.7);
   --pop:#FF3D77; --pop-2:#E81E5C; --pop-deep:#8E1038;
   --mint:#3FE0A8; --mint-2:#12C489; --mint-deep:#0A6B4E;
-  --text:#FDF4E7; --text-dim:#C6B2CE; --text-faint:#95819E;
+  /* Textes secondaires presque blancs : en gris, ils disparaissaient sur le fond violet. */
+  --text:#FFFCF7; --text-dim:#F3ECF5; --text-faint:#DDD2E2;
   --r-sm:12px; --r-md:18px; --r-lg:26px; --r-pill:999px;
   --shadow-card:0 2px 2px rgba(0,0,0,.18), 0 12px 28px -6px rgba(0,0,0,.55);
   --shadow-lift:0 22px 50px -12px rgba(0,0,0,.7);
@@ -322,6 +323,9 @@ button.scard:active{transform:translateY(2px)}
 .ladder .acard.sel{transform:none}
 .ladder li.ok .num{background:var(--mint);color:#052B20}
 .ladder li.ok .acard{box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--pop-deep)}
+/* à un rang près : 1 point, anneau doré */
+.ladder li.near .num{background:var(--gold);color:var(--gold-ink)}
+.ladder li.near .acard{box-shadow:0 0 0 3px var(--gold),0 3px 0 var(--pop-deep)}
 .ladder li.ko .acard{opacity:.5;filter:saturate(.4)}
 /* le classement du juge, révélé : doré comme la phrase du jeu d'origine */
 .truth{list-style:none;padding:0;margin:0;display:grid;gap:12px}
@@ -512,7 +516,7 @@ let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 // Les deux jeux hébergés par l'appli. Le salon en montre la règle courte.
 const GAMES = {
   phrases:   { name:'Phrases à trou', desc: r => `Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle. Premier à ${r.target} points.` },
-  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement : 1 point par carte bien placée, +2 pour un sans-faute. Le juge marque 1 point par joueur qui en trouve au moins 3. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
+  priorites: { name:'Priorités',      desc: r => `Un juge classe 5 cartes, de la plus à la moins importante à ses yeux. Les autres devinent son classement. ${r.turns} tour${r.turns > 1 ? 's' : ''} de juge chacun.` },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 
@@ -1104,7 +1108,7 @@ function ladder(ids, editable, marks){
   return `<p class="ladder-end">Le plus important</p>
     <ol class="ladder">${Array.from({ length:n }, (_, i) => {
       const c = rankCard(ids[i]);
-      const cls = !c ? '' : marks ? (marks[i] ? 'full ok' : 'full ko') : 'full';
+      const cls = !c ? '' : marks ? 'full ' + marks[i] : 'full';
       return `<li class="${cls}"><span class="num">${i + 1}</span>${!c ? '<span class="slot"></span>'
         : editable ? `<button class="acard sel" data-act="unrank" data-id="${c.id}" aria-label="Retirer ${esc(c.text)}">${esc(c.text)}</button>`
         : `<span class="acard sel">${esc(c.text)}</span>`}</li>`;
@@ -1157,10 +1161,10 @@ function rankReveal(){
       return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
         <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
     }).join('')}</ol>
-    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => id === truth[i]))}` : ''}
+    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko'))}` : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
-      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 7 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
+      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
       <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     ${waiting(pending, 'Tout le monde est prêt.')}
