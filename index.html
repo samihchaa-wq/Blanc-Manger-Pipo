@@ -1244,7 +1244,7 @@ function ranking(){
     ${pool.length
       ? `<ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
            <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
-      : '<p class="swipehint">Glisse une carte pour la déplacer, touche-la pour la retirer.</p>'}
+      : ''}
     <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
       ? `Encore ${reste} carte${reste > 1 ? 's' : ''} à classer`
       : judge ? 'Valider mon classement' : 'Valider mon pronostic'}</button></div>`;
