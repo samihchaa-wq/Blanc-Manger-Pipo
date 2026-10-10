@@ -1242,8 +1242,7 @@ function ranking(){
       : `<b>${nameOf(r.reader_id)}</b> est le juge. Devine son classement, de la plus importante à la moins importante à ses yeux.`}</p>
     ${ladder(picks, true)}
     ${pool.length
-      ? `<p class="swipehint">Glisse les cartes sur les marches, ou touche-les dans l'ordre, <b>la plus importante d'abord</b></p>
-         <ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
+      ? `<ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
            <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
       : '<p class="swipehint">Glisse une carte pour la déplacer, touche-la pour la retirer.</p>'}
     <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
