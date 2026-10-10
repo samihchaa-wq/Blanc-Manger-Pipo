@@ -171,6 +171,10 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg-b:active{transform:scale(.95)}
 .seg.s2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
+.seg.who{margin-bottom:18px}
+.seg.who .seg-b{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:9px 4px}
+.seg.who .seg-b span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg.who .seg-b small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
 /* .field impose display:block, qui l'emporterait sur l'attribut hidden */
 .field[hidden]{display:none}
 
@@ -569,7 +573,7 @@ button.scard:active{transform:translateY(2px)}
 <script>
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
 const app = document.getElementById('app');
-let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0;
+let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0, rankView = null;
 let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
@@ -649,7 +653,7 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
       // Horloge locale : le décalage d'horloge d'un téléphone avec le serveur
       // laissait la roue affichée sans fin. Une phase entamée depuis longtemps
       // (retour dans l'appli, rechargement) ne relance pas la roue.
@@ -1248,22 +1252,29 @@ function ranking(){
 }
 
 function rankReveal(){
-  const r = state.room, judgeMe = isMe(r.reader_id);
+  const r = state.room;
   const ks = (state.rankings || []).filter(k => P(k.player_id));
   const truth = ks.find(k => k.player_id === r.reader_id)?.cards || [];
   const guessers = ks.filter(k => k.player_id !== r.reader_id);
-  const mine = guessers.find(k => isMe(k.player_id));
   const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
   const last = roundsLeft() === 0;
   const pts = [...ks].sort((a,b) => b.points - a.points);
+  // Une case par joueur (dans l'ordre des sièges) : toucher un nom affiche son classement.
+  const seats = state.players.map(p => ks.find(k => k.player_id === p.id)).filter(Boolean);
+  const view = seats.find(k => k.player_id === rankView) || ks.find(k => k.player_id === r.reader_id);
+  const cols = Math.ceil(seats.length / Math.ceil(seats.length / 4));
   return `
-    <p class="role">${judgeMe ? '<b>Ton classement</b>' : `Le classement de <b>${nameOf(r.reader_id)}</b>`}</p>
-    <ol class="truth">${truth.map((id, i) => {
+    <div class="seg who" role="tablist" style="grid-template-columns:repeat(${cols},1fr)">${seats.map(k => {
+      const on = k === view;
+      return `<button type="button" class="seg-b ${on ? 'on' : ''}" data-act="rankview" data-id="${k.player_id}" role="tab" aria-selected="${on}">
+        <span>${isMe(k.player_id) ? 'Toi' : nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<small>juge</small>' : ''}</button>`;
+    }).join('')}</div>
+    ${view?.player_id === r.reader_id ? `<ol class="truth">${truth.map((id, i) => {
       const hit = guessers.filter(k => k.cards[i] === id);
       return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
         <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
-    }).join('')}</ol>
-    ${mine ? `<h3 class="sec">Ton pronostic · +${mine.points}</h3>${ladder(mine.cards, false, mine.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko'))}` : ''}
+    }).join('')}</ol>`
+    : view ? ladder(view.cards, false, view.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko')) : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
       <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
@@ -1862,6 +1873,7 @@ document.addEventListener('click', async e => {
   }
   if (a === 'readnext') { readIndex++; return render() }
   if (a === 'pick') { picked = id; return render() }
+  if (a === 'rankview') { rankView = id; return render() }
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
   if (a === 'clue') {
     const t = (document.getElementById('w-clue')?.value || '').trim();
