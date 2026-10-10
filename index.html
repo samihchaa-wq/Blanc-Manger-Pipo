@@ -1242,10 +1242,9 @@ function ranking(){
       : `<b>${nameOf(r.reader_id)}</b> est le juge. Devine son classement, de la plus importante à la moins importante à ses yeux.`}</p>
     ${ladder(picks, true)}
     ${pool.length
-      ? `<p class="swipehint">Glisse les cartes sur les marches, ou touche-les dans l'ordre, <b>la plus importante d'abord</b></p>
-         <ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
+      ? `<ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
            <button class="acard" data-act="rank" data-id="${c.id}">${esc(c.text)}</button></li>`).join('')}</ul>`
-      : '<p class="swipehint">Glisse une carte pour la déplacer, touche-la pour la retirer.</p>'}
+      : ''}
     <div class="dock"><button class="btn" data-act="send-rank" ${dis(reste > 0)}>${reste > 0
       ? `Encore ${reste} carte${reste > 1 ? 's' : ''} à classer`
       : judge ? 'Valider mon classement' : 'Valider mon pronostic'}</button></div>`;
@@ -1274,7 +1273,7 @@ function rankReveal(){
       return `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div>
         <div class="found">${hit.length ? hit.map(k => `<span class="chip hit">✓ ${nameOf(k.player_id)}</span>`).join('') : 'Personne'}</div></li>`;
     }).join('')}</ol>`
-    : view ? ladder(view.cards, false, view.cards.map((id,i) => ({ 0:'ok', 1:'near' })[Math.abs(i - truth.indexOf(id))] || 'ko')) : ''}
+    : view ? `<ol class="truth">${view.cards.map((id, i) => `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div></li>`).join('')}</ol>` : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
       <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
