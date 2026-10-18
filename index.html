@@ -445,12 +445,7 @@ button.scard:active{transform:translateY(2px)}
 .steps i{flex:1;height:4px;border-radius:99px;background:var(--surface-2)}
 .steps i.on{background:var(--gold)}
 
-/* ===== Attente & roue ===== */
-/* La roue occupe seule l'écran : on retranche les marges de main et la barre
-   du haut pour la centrer dans ce qui reste, au lieu de la coller en haut. */
-.wheelWrap{--pad:calc(30px + 18px + 58px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-  min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
-  display:flex;flex-direction:column;justify-content:center;text-align:center;padding:10px 0 4px}
+/* ===== Attente ===== */
 .waitScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   min-height:64vh;gap:8px;padding:10px 0}
 .cardback{position:relative;width:118px;height:150px;border-radius:16px;margin-bottom:24px;
@@ -467,24 +462,6 @@ button.scard:active{transform:translateY(2px)}
   0%,100%{transform:translate(var(--dx,0px),0) rotate(var(--r1,-3deg))}
   50%{transform:translate(var(--dx,0px),-12px) rotate(var(--r2,3deg))}
 }
-.wheelBox{position:relative;width:min(272px,74vw);margin:18px auto 22px;aspect-ratio:1}
-.pointer{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:3;width:0;height:0;
-  border-left:13px solid transparent;border-right:13px solid transparent;border-top:20px solid var(--gold);
-  filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
-.wheel{position:absolute;inset:0;border-radius:50%;border:7px solid var(--paper);
-  box-shadow:0 0 0 2px rgba(0,0,0,.35),0 24px 50px -16px rgba(0,0,0,.85),inset 0 0 40px rgba(0,0,0,.35);
-  animation:spin 1.8s cubic-bezier(.1,.7,.1,1) both}
-.wheel::after{content:"";position:absolute;inset:36%;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--surface-2),var(--bg-0));
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.12),0 6px 16px rgba(0,0,0,.6)}
-/* un nom par part, posé le long du rayon ; tourne avec la roue, donc le nom
-   désigné se retrouve à l'endroit sous la flèche à l'arrêt */
-.wheel .lab{position:absolute;inset:0;transform:rotate(var(--a));pointer-events:none}
-.wheel .lab i{position:absolute;left:50%;top:50%;margin-left:14.5%;width:34%;
-  transform:translateY(-50%);transform-origin:center;
-  font-style:normal;font-size:var(--fs,12px);line-height:1.1;letter-spacing:-.015em;
-  color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wheel .lab i.flip{transform:translateY(-50%) rotate(180deg)}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(var(--spin,1260deg))}}
 .bigstate{font-size:clamp(26px,7.6vw,34px);margin-bottom:8px}
 .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:8px;
   animation:pulse 1.4s ease-in-out infinite}
@@ -541,7 +518,9 @@ button.scard:active{transform:translateY(2px)}
 #toast.on{transform:translate(-50%,0);opacity:1}
 
 /* ===== Minuteur de phase (anneau qui se vide) ===== */
-.cdring{display:inline-flex;width:32px;height:32px}
+.top-r{display:flex;align-items:center;gap:12px}
+.cdring{position:relative;display:inline-flex;width:32px;height:32px}
+.cdring .cdn{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
 .cdring svg{width:32px;height:32px;transform:rotate(-90deg)}   /* départ à midi */
 .cdring circle{fill:none;stroke-width:3.4}
 .cdring .trk{stroke:var(--hairline-2)}
@@ -562,7 +541,6 @@ button.scard:active{transform:translateY(2px)}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
-  .wheel{transform:rotate(var(--spin,0deg))}
 }
 </style>
 </head>
@@ -574,11 +552,9 @@ button.scard:active{transform:translateY(2px)}
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0, rankView = null;
-let last = '', channel = null, poll = null, deb = null, wheelTimer = null, dealPending = false;
+let last = '', channel = null, poll = null, deb = null, dealPending = false;
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
-let spinAt = 0;     // instant local où la roue de la phase courante a démarré
-const spinning = () => Date.now() - spinAt < 2000;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
 let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et indice en cours
 let pressedEl = null, lastHtml = '';
@@ -654,10 +630,6 @@ async function refresh(force = false){
     state = s; last = j;
     if (changed) {
       picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
-      // Horloge locale : le décalage d'horloge d'un téléphone avec le serveur
-      // laissait la roue affichée sans fin. Une phase entamée depuis longtemps
-      // (retour dans l'appli, rechargement) ne relance pas la roue.
-      spinAt = Date.now() - stamp(s.room.phase_at) < 15000 ? Date.now() : 0;
     }
     render(); scheduleAuto();
   } catch (e) {
@@ -676,15 +648,12 @@ function connect(){
 function disconnect(){
   if (channel) sb.removeChannel(channel);
   channel = null; clearInterval(poll); clearInterval(tickTimer);
-  clearTimeout(wheelTimer); clearTimeout(reapTimer); clearTimeout(botTimer);
+  clearTimeout(reapTimer); clearTimeout(botTimer);
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
 function startSession(){ state = null; last = ''; render(); connect(); refresh(true) }
 function leaveLocal(){ disconnect(); save(null); state = null; history.replaceState(null,'',location.pathname); render() }
 function scheduleAuto(){
-  clearTimeout(wheelTimer);
-  // La roue tourne 1,8 s : passé ce délai, le rendu laisse place au lecteur.
-  if (spinning()) wheelTimer = setTimeout(render, spinAt + 2100 - Date.now());
   scheduleReap();
   scheduleBots();
 }
@@ -704,7 +673,6 @@ function scheduleBots(){
   else if (r.status === 'ranking')    todo = bots.some(b => !b.ranked);
   else if (r.status === 'clue')       todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'guessing')   todo = bots.some(b => b.id !== r.reader_id && !b.guessed);
-  else if (r.status === 'reveal')     todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
   botTimer = setTimeout(async () => {
@@ -713,12 +681,14 @@ function scheduleBots(){
   }, 900);
 }
 
-// Phases où un joueur passif peut bloquer la partie : 2 min avant déblocage.
+// Phases minutées : 2 min pour jouer (passé ce délai, le serveur joue à la
+// place des retardataires), 5 s pour l'écran de résultat d'une manche.
 const TIMED = ['question_select','answering','judging','ranking','clue','guessing','reveal'];
+const phaseLength = () => state.room.status === 'reveal' ? 5000 : 120000;
 function phaseDeadline(){
   if (!state || !TIMED.includes(state.room.status)) return 0;
   const t = Date.parse(String(state.room.phase_at || '').replace(' ','T'));
-  return t ? t + 120000 : 0;
+  return t ? t + phaseLength() : 0;
 }
 // Le premier client qui constate l'expiration appelle reap_idle ; le serveur
 // revérifie le délai, donc plusieurs appels simultanés sont sans danger.
@@ -739,8 +709,11 @@ function updateCountdown(){
   el.hidden = false;
   let ms = dl - Date.now(); if (ms < 0) ms = 0;
   // pathLength=100 : l'arc part plein (offset 0) et se vide (offset 100).
-  el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - ms / 120000)).toFixed(2);
-  el.classList.toggle('low', ms < 30000);
+  const len = phaseLength();
+  el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - Math.min(ms, len) / len)).toFixed(2);
+  el.classList.toggle('low', ms < len / 4);
+  // l'écran de résultat affiche aussi ses secondes restantes
+  el.querySelector('.cdn').textContent = state.room.status === 'reveal' ? Math.ceil(ms / 1000) : '';
 }
 
 /* ---------- Cartes ---------- */
@@ -1020,8 +993,10 @@ function topbar(){
   if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
   return `<div class="top">
       <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
-      <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg></span>
-      <button class="link" data-act="leave">Quitter</button>
+      <div class="top-r">
+        <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg><b class="cdn"></b></span>
+        <button class="link" data-act="leave">Quitter</button>
+      </div>
     </div>`;
 }
 
@@ -1080,42 +1055,13 @@ function waitScreen(title, sub, stack = 1){
     <p class="muted"><span class="pulse"></span>${sub}</p></div>`;
 }
 
-// 12 teintes distinctes : au-delà de 6 joueurs, deux parts reprenaient la même
-// couleur et la légende devenait ambiguë. Même clarté pour toutes, et le nom
-// en encre sombre tient au moins 6,5:1 sur chacune.
-const WHEEL_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
-                      '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
-const sliceColor = i => WHEEL_COLORS[i % WHEEL_COLORS.length];
-
-function wheel(title = 'Qui va lire ?'){
-  const n = state.players.length, a = 360 / n;
-  const idx = Math.max(0, state.players.findIndex(p => p.id === state.room.reader_id));
-  const slices = state.players.map((p,i) => `${sliceColor(i)} ${i*a}deg ${(i+1)*a}deg`).join(',');
-  const spin = 1080 + 360 - (idx + .5) * a;
-  const fs = n <= 4 ? 13 : n <= 6 ? 12 : n <= 8 ? 11 : 10;
-  const midReader = (idx + .5) * a;
-  const labels = state.players.map((p,i) => {
-    const mid = (i + .5) * a;              // angle du milieu de la part, depuis midi
-    // La roue s'arrête avec le lecteur en haut : à l'arrêt, la part i se retrouve
-    // à (mid - midReader). C'est cet angle final qui décide du retournement,
-    // pas l'angle de départ, sinon les noms de droite sortent à l'envers.
-    const settled = (((mid - midReader) % 360) + 360) % 360;
-    // rotate(0) pointe vers 3h, d'où le -90.
-    return `<span class="lab" style="--a:${(mid - 90).toFixed(2)}deg">
-      <i class="${settled > 180 ? 'flip' : ''}">${esc(p.name)}</i></span>`;
-  }).join('');
-  return `<div class="wheelWrap">
-      <h2 class="bigstate">${title}</h2>
-      <div class="wheelBox">
-        <span class="pointer" aria-hidden="true"></span>
-        <div class="wheel" style="--spin:${spin.toFixed(1)}deg;--fs:${fs}px;background:conic-gradient(${slices})">${labels}</div>
-      </div>
-    </div>`;
-}
+// 12 teintes distinctes, une par siège : au-delà de 6 joueurs, deux aiguilles
+// reprenaient la même couleur et la légende devenait ambiguë.
+const SEAT_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
+                     '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
 
 function qselect(){
   const r = state.room;
-  if (spinning() && !qpick) return wheel();
   const reader = P(r.reader_id);
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
@@ -1200,7 +1146,6 @@ function judging(){
 }
 
 /* ---------- Priorités ---------- */
-const stamp = t => Date.parse(String(t || '').replace(' ','T'));
 // Manches restantes après celle-ci : chaque joueur encore là doit encore juger
 // (tours choisis - fois où il a déjà jugé).
 function roundsLeft(){
@@ -1224,8 +1169,6 @@ function ladder(ids, editable, marks){
 
 function ranking(){
   const r = state.room, cards = state.rank_cards || [], judge = isMe(r.reader_id);
-  // la roue désigne le juge
-  if (spinning() && !picks.some(Boolean) && !state.my_ranking) return wheel('Qui est le juge ?');
   const left = state.players.filter(p => !p.ranked), done = state.players.length - left.length;
   const bar = `<div class="bar"><i style="width:${Math.round(done / state.players.length * 100)}%"></i></div>`;
 
@@ -1255,8 +1198,6 @@ function rankReveal(){
   const ks = (state.rankings || []).filter(k => P(k.player_id));
   const truth = ks.find(k => k.player_id === r.reader_id)?.cards || [];
   const guessers = ks.filter(k => k.player_id !== r.reader_id);
-  const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
-  const last = roundsLeft() === 0;
   const pts = [...ks].sort((a,b) => b.points - a.points);
   // Une case par joueur (dans l'ordre des sièges) : toucher un nom affiche son classement.
   const seats = state.players.map(p => ks.find(k => k.player_id === p.id)).filter(Boolean);
@@ -1278,9 +1219,7 @@ function rankReveal(){
     <ol class="rank">${pts.map(k => `<li>
       <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
       <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
-    <h3 class="sec">Classement</h3>${rank()}
-    ${waiting(pending, 'Tout le monde est prêt.')}
-    <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
+    <h3 class="sec">Classement</h3>${rank()}`;
 }
 
 /* ---------- Baromètre ---------- */
@@ -1324,11 +1263,10 @@ function dial({ target = null, needles = [], mine = null } = {}){
     <div class="wlabs"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
   </div>`;
 }
-const seatColor = id => sliceColor(Math.max(0, state.players.findIndex(p => p.id === id)));
+const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
 
 function clue(){
   const r = state.room, w = state.wave || {};
-  if (spinning() && !clueDraft) return wheel('Qui est le médium ?');
   if (!isMe(r.reader_id)) return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium. Lui seul voit la cible.</p>
     ${dial()}
@@ -1364,8 +1302,6 @@ function waveReveal(){
   const r = state.room, w = state.wave || {};
   const gs = (w.guesses || []).filter(g => P(g.player_id));
   const guessers = gs.filter(g => g.player_id !== r.reader_id);
-  const pending = state.players.filter(p => p.next_ack !== r.round), acked = state.me.next_ack === r.round;
-  const last = roundsLeft() === 0;
   const pts = [...gs].sort((a,b) => b.points - a.points);
   return `
     <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
@@ -1376,9 +1312,7 @@ function waveReveal(){
     <ol class="rank">${pts.map(g => `<li>
       <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
       <b class="plus">+${g.points ?? 0}</b></li>`).join('')}</ol>
-    <h3 class="sec">Classement</h3>${rank()}
-    ${waiting(pending, 'Tout le monde est prêt.')}
-    <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : last ? 'Voir le résultat final' : 'Manche suivante'}</button></div>`;
+    <h3 class="sec">Classement</h3>${rank()}`;
 }
 
 // L'aiguille suit le doigt sans re-rendre l'écran : seule la ligne bouge.
@@ -1429,14 +1363,11 @@ function rank(){
 function reveal(){
   if (isPrio()) return rankReveal();
   if (isWave()) return waveReveal();
-  const r = state.room, pending = state.players.filter(p => p.next_ack !== r.round);
-  const acked = state.me.next_ack === r.round;
+  const r = state.room;
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
     ${result()}
-    <h3 class="sec">Classement</h3>${rank()}
-    ${waiting(pending, 'Tout le monde est prêt.')}
-    <div class="dock"><button class="btn" data-act="next" ${dis(acked)}>${acked ? 'En attente des autres…' : 'Manche suivante'}</button></div>`;
+    <h3 class="sec">Classement</h3>${rank()}`;
 }
 
 function finished(){
@@ -1880,7 +1811,6 @@ document.addEventListener('click', async e => {
     return act('submit_clue', { p_clue: t });
   }
   if (a === 'guess') return act('submit_guess', { p_value: dialVal });
-  if (a === 'next') return act('next_round');
   if (a === 'continue') return act('continue_game');
   if (a === 'share') return share();
   if (a === 'kick') return act('kick_player',{ p_player_id:id });

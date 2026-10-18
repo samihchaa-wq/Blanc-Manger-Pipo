@@ -46,6 +46,7 @@ Current production migration tail:
 - `20260920120000_phase_timeouts_cleanup_admin_hardening` (minuteurs de phase via `rooms.phase_at` + `reap_idle`, retrait de `skip_question`/`add_reward_card`/`_draw_question` et des colonnes `skips_used`/`reward_*`, sérialisation globale de l'auth admin, `cf-connecting-ip` prioritaire dans `_client_hash`)
 - `20260920140000_reintroduce_bots` (colonne `players.is_bot`, `add_bot`, `bot_step`, `is_bot` exposé par `get_state` — pour tester une partie en solo)
 - `20260920150000_bot_step_advance_after_ack` (les bots relancent la manche / la partie quand ils sont les derniers à valider)
+- `20261018120000_tour_de_role_et_jeu_auto` (lecteur à tour de rôle via `_next_reader`, l'hôte d'abord ; `reap_idle` joue à la place des absents après 2 min au lieu de les exclure ; résultat de manche limité à 5 s ; suppression de `next_round` et `_random_reader`)
 
 ## Change workflow
 
