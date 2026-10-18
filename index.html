@@ -1268,11 +1268,11 @@ const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.i
 function clue(){
   const r = state.room, w = state.wave || {};
   if (!isMe(r.reader_id)) return `
-    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium. Lui seul voit la cible.</p>
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${dial()}
     <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche un indice…</p>`;
   return `
-    <p class="role"><b>Tu es le médium.</b> Toi seul vois la cible. Donne un indice qui la situe entre les deux extrêmes.</p>
+    <p class="role"><b>Tu es le médium.</b></p>
     ${dial({ target: w.target })}
     <label style="margin-top:22px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Donner l’indice</button></div>`;
@@ -1292,7 +1292,7 @@ function guessing(){
   if (w.my_guess != null) return `
     <p class="role"><b>Aiguille posée.</b> Verdict quand tout le monde aura visé.</p>${card}${dial({ mine: w.my_guess })}${progress}`;
   return `
-    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium. Place l’aiguille là où son indice te fait penser.</p>
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${card}${dial({ mine: dialVal })}
     <p class="swipehint">Fais glisser l’aiguille sur le cadran</p>
     <div class="dock"><button class="btn" data-act="guess" ${dis()}>Valider ma position</button></div>`;
