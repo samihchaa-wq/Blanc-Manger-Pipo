@@ -68,4 +68,10 @@ assert.match(scripts[0], /function fitDock\(\)/,
 assert.match(html, /<div class="scrim" aria-hidden="true">/,
   'Le voile de la barre d’état doit rester dans la page');
 
+// Les joueurs sont désignés à tour de rôle : plus de roue nulle part.
+assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
+// L'écran de résultat d'une manche passe seul après 5 s, sans bouton à valider.
+assert.match(scripts[0], /status === 'reveal' \? 5000 : 120000/, 'Le résultat d’une manche doit durer 5 s');
+assert.doesNotMatch(scripts[0], /next_round/, 'Plus de « Manche suivante » à valider');
+
 console.log('Frontend sanity checks passed.');
