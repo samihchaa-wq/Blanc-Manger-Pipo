@@ -219,7 +219,6 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
    une ou deux lignes, sinon elle saute d'un écran à l'autre. */
 .role{font-size:17px;color:var(--text-dim);margin:2px 0 14px;max-width:34ch;min-height:2.9em}
 .role b{color:var(--text)}
-h2.title{font-size:27px;margin:2px 0 14px}
 .qcard{position:relative;background:linear-gradient(168deg,var(--gold-paper-2) 0%,var(--gold-paper) 44%,var(--gold) 100%);
   color:var(--gold-ink);border-radius:20px;padding:16px 20px 24px;min-height:150px;
   box-shadow:0 4px 0 var(--gold-deep),var(--shadow-card);
@@ -1066,8 +1065,7 @@ function qselect(){
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
   return `
-    <h2 class="title">${chosen ? 'Tu dois lire la phrase aux autres joueurs' : 'À toi de lire'}</h2>
-    ${chosen ? '' : '<p class="role">Choisis la carte à trou que tu veux faire jouer.</p>'}
+    <p class="role"><b>Tu es le lecteur.</b></p>
     <ul class="qchoices">
       ${state.question_choices.map(q => {
         const off = chosen && q.id !== qpick;
@@ -1087,7 +1085,7 @@ function answering(){
   const bar = `<div class="bar"><i style="width:${others.length ? Math.round(done / others.length * 100) : 0}%"></i></div>`;
 
   if (isMe(r.reader_id)) return `
-    <p class="role"><b>C'est toi qui lis.</b> Lis la question à voix haute.</p>
+    <p class="role"><b>Tu es le lecteur.</b></p>
     ${qcard('Question', blank(q))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
     ${waiting(left)}`;
@@ -1104,7 +1102,7 @@ function answering(){
   const canDrop = !!state.me.can_discard;
   const reste = n - choisies.length;
   return `
-    <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi cette carte. À toi de la compléter${n > 1 ? ' — elle a <b>deux trous</b>' : ''}.</p>
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le lecteur.</p>
     ${qcard('Question', fill(q, choisies), 'sticky')}
     <p class="swipehint">${n > 1
       ? `Touche <b>${n}</b> cartes dans l'ordre des trous${canDrop ? ', glisse <b>←</b> pour jeter' : ''}`
@@ -1132,13 +1130,12 @@ function judging(){
   if (!isMe(r.reader_id)) return waitScreen('Le lecteur découvre les réponses',
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
-    <p class="role">Lis cette réponse <b>à voix haute</b>.</p>
+    <p class="role"><b>Tu es le lecteur.</b></p>
     ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards))}
     <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `
-    <h2 class="title">Laquelle gagne ?</h2>
-    <p class="role">Touche la réponse la plus drôle.</p>
+    <p class="role"><b>Tu es le lecteur.</b></p>
     <ul class="subs">
       ${subs.map(s => `<li><button class="scard ${s.id === picked ? 'sel' : ''}" data-act="pick" data-id="${s.id}" aria-pressed="${s.id === picked}">${fill(q, s.cards)}</button></li>`).join('')}
     </ul>
@@ -1180,9 +1177,7 @@ function ranking(){
 
   const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.filter(Boolean).length;
   return `
-    <p class="role">${judge
-      ? '<b>Tu es le juge.</b> Classe ces cartes, de la plus importante à la moins importante pour toi.'
-      : `<b>${nameOf(r.reader_id)}</b> est le juge. Devine son classement, de la plus importante à la moins importante à ses yeux.`}</p>
+    <p class="role">${judge ? '<b>Tu es le juge.</b>' : `<b>${nameOf(r.reader_id)}</b> est le juge.`}</p>
     ${ladder(picks, true)}
     ${pool.length
       ? `<ul class="hand${dealPending ? ' deal-in' : ''}">${pool.map((c,i) => `<li style="--i:${i}">
