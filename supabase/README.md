@@ -47,6 +47,7 @@ Current production migration tail:
 - `20260920140000_reintroduce_bots` (colonne `players.is_bot`, `add_bot`, `bot_step`, `is_bot` exposé par `get_state` — pour tester une partie en solo)
 - `20260920150000_bot_step_advance_after_ack` (les bots relancent la manche / la partie quand ils sont les derniers à valider)
 - `20261018153154_tour_de_role_et_jeu_auto` (lecteur à tour de rôle via `_next_reader`, l'hôte d'abord, et `_random_reader` qui y délègue pour ses appelants existants ; `reap_idle` joue à la place des absents après 2 min via les RPC de jeu au lieu de les exclure ; résultat de manche limité à 5 s ; migration additive : `next_round` reste pour les clients pas encore mis à jour)
+- `20261026140000_petit_bac` (quatrième jeu, à deux : `bac_category` pour proposer les six catégories de la partie à tour de rôle — gardées dans `rooms.bac_categories`, aucun catalogue —, `bac_save` pour la grille enregistrée au fil de la frappe, `bac_vote` pour juger catégorie par catégorie ; table `bac_answers` ; `_max_players` borne la salle à 2 joueurs ; migration additive)
 
 ## Change workflow
 
