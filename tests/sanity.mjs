@@ -74,4 +74,12 @@ assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doi
 assert.match(scripts[0], /status === 'reveal' \? 5000 : 120000/, 'Le résultat d’une manche doit durer 5 s');
 assert.doesNotMatch(scripts[0], /next_round/, 'Plus de « Manche suivante » à valider');
 
+// Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
+assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : 12/,
+  'Le Petit bac doit rester limité à deux joueurs');
+// La grille ne doit pas passer par act() : son refresh() redessinerait les
+// champs et fermerait le clavier à chaque enregistrement automatique.
+assert.match(scripts[0], /rpc\('bac_save', \{ p_code:session\.code, p_token:session\.token, p_answers:bacDraft, p_done:false \}\)/,
+  'L’enregistrement au fil de la frappe doit appeler rpc directement');
+
 console.log('Frontend sanity checks passed.');
