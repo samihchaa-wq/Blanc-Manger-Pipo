@@ -778,9 +778,9 @@ function scheduleBots(){
 }
 
 // Phases minutées : 2 min pour jouer (passé ce délai, le serveur joue à la
-// place des retardataires), 5 s pour l'écran de résultat d'une manche.
+// place des retardataires), 5 s pour l'écran de résultat d'une manche (2 min pour le classement de Priorités).
 const TIMED = ['question_select','answering','judging','ranking','clue','guessing','naming','writing','voting','reveal'];
-const phaseLength = () => state.room.status === 'reveal' ? 5000 : 120000;
+const phaseLength = () => state.room.status === 'reveal' ? (isPrio() ? 120000 : 5000) : 120000;
 const stamp = t => Date.parse(String(t || '').replace(' ','T')) || 0;
 function phaseDeadline(){
   if (!state || !TIMED.includes(state.room.status)) return 0;
@@ -814,7 +814,7 @@ function updateCountdown(){
   el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - Math.min(ms, len) / len)).toFixed(2);
   el.classList.toggle('low', ms < len / 4);
   // l'écran de résultat affiche aussi ses secondes restantes
-  el.querySelector('.cdn').textContent = state.room.status === 'reveal' ? Math.ceil(ms / 1000) : '';
+  el.querySelector('.cdn').textContent = state.room.status === 'reveal' ? (ms > 5000 ? Math.floor(ms / 60000) + ':' + String(Math.ceil(ms / 1000) % 60).padStart(2,'0') : Math.ceil(ms / 1000)) : '';
 }
 
 /* ---------- Cartes ---------- */
