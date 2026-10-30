@@ -70,8 +70,8 @@ assert.match(html, /<div class="scrim" aria-hidden="true">/,
 
 // Les joueurs sont désignés à tour de rôle : plus de roue nulle part.
 assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
-// L'écran de résultat d'une manche passe seul après 5 s, sans bouton à valider.
-assert.match(scripts[0], /status === 'reveal' \? 5000 : 120000/, 'Le résultat d’une manche doit durer 5 s');
+// L'écran de résultat d'une manche passe seul après 5 s (2 min pour le classement de Priorités), sans bouton à valider.
+assert.match(scripts[0], /status === 'reveal' \? \(isPrio\(\) \? 120000 : 5000\) : 120000/, 'Le résultat d’une manche doit durer 5 s, 2 min en Priorités');
 assert.doesNotMatch(scripts[0], /next_round/, 'Plus de « Manche suivante » à valider');
 
 // Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
