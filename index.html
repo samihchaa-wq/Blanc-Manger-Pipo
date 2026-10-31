@@ -437,8 +437,6 @@ button.scard:active{transform:translateY(2px)}
   background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));color:var(--gold-ink);box-shadow:0 4px 0 var(--gold-deep)}
 .bacnote{flex:1;min-width:0;color:var(--text-dim);font-size:16px;line-height:1.3}
 .bacnote b{color:var(--text)}
-.baccd{flex:none;font-size:24px;font-variant-numeric:tabular-nums;color:var(--text)}
-.baccd.low{color:var(--pop)}
 .bacfield{margin-bottom:12px}
 .bacfield>span{font-size:15px;letter-spacing:0;text-transform:none;color:var(--text)}
 .bacfield input:disabled{opacity:.6}
@@ -631,7 +629,7 @@ let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux aut
 let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et indice en cours
 // Petit bac : la grille en cours de saisie, ce qui en est déjà enregistré, et
 // l'instant local où la roue des lettres a démarré.
-let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve(), bacFlushed = false;
+let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve();
 let roueAt = 0, roueTimer = null, bacMyVote = null, catDraft = '';
 let pressedEl = null, lastHtml = '';
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
@@ -650,7 +648,7 @@ const GAMES = {
   phrases:   { name:'Phrases à trou',  desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
-  bac:       { name:'Petit bac', desc:'À deux. Chacun propose trois catégories, puis cinq manches : une lettre, 2 minutes pour tout remplir, et chacun juge les réponses de l’autre.' },
+  bac:       { name:'Petit bac', desc:'À deux. Chacun propose trois catégories, puis cinq manches : une lettre, tout le temps qu’il faut pour tout remplir, et chacun juge les réponses de l’autre.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -769,6 +767,7 @@ function scheduleBots(){
   else if (r.status === 'writing')    todo = bots.some(b => !b.bac_done);
   // une grille en attente de vote dont le juge est un bot
   else if (r.status === 'voting')     todo = (state.bac?.rows || []).some(x => x.pending && bots.some(b => b.id !== x.player_id));
+  else if (r.status === 'reveal' && r.mode === 'bac') todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
   botTimer = setTimeout(async () => {
@@ -783,7 +782,8 @@ const TIMED = ['question_select','answering','judging','ranking','clue','guessin
 const phaseLength = () => state.room.status === 'reveal' ? (isPrio() ? 120000 : 5000) : 120000;
 const stamp = t => Date.parse(String(t || '').replace(' ','T')) || 0;
 function phaseDeadline(){
-  if (!state || !TIMED.includes(state.room.status)) return 0;
+  // Petit bac : aucune notion de temps, ni minuteur ni passage automatique
+  if (!state || isBac() || !TIMED.includes(state.room.status)) return 0;
   const t = stamp(state.room.phase_at);
   return t ? t + phaseLength() : 0;
 }
@@ -808,7 +808,6 @@ function updateCountdown(){
   if (!dl) { el.hidden = true; return }
   el.hidden = false;
   let ms = dl - Date.now(); if (ms < 0) ms = 0;
-  if (state.room.status === 'writing') bacTick(ms);
   // pathLength=100 : l'arc part plein (offset 0) et se vide (offset 100).
   const len = phaseLength();
   el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - Math.min(ms, len) / len)).toFixed(2);
@@ -1138,7 +1137,7 @@ function gameBox(host){
     const on = String(r[k]) === String(v);
     return `<button type="button" class="seg-b ${on ? 'on' : ''}" data-act="opt" data-k="${k}" data-v="${v}" aria-pressed="${on}" ${dis()}>${t}</button>`;
   }).join('')}</div>`;
-  // le Petit bac n'a rien à régler : toujours 5 manches de 2 minutes
+  // le Petit bac n'a rien à régler : toujours 5 manches, sans limite de temps
   const opts = !host || r.mode === 'bac' ? ''
     : r.mode === 'priorites' || r.mode === 'ondes'
       ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
@@ -1455,7 +1454,7 @@ function bacSync(prev, s){
   const r = s.room, b = s.bac || {};
   if (r.status !== 'writing') bacRound = 0;
   else if (bacRound !== r.round) {
-    bacRound = r.round; bacFlushed = false;
+    bacRound = r.round;
     bacDraft = Array.from({ length:6 }, (_, i) => b.mine?.[i] || '');
     bacSent = JSON.stringify(bacDraft);
     // Horloge locale, pour qu'un téléphone mal réglé ne bloque pas la roue :
@@ -1468,21 +1467,6 @@ function bacSync(prev, s){
   if (prev?.room.status === 'writing' && r.status === 'writing' && !b.done)
     s.players.filter(p => !isMe(p.id) && p.bac_done && !prev.players.find(q => q.id === p.id)?.bac_done)
       .forEach(p => toast(`${p.name} a fini !`));
-}
-
-// Temps restant en minutes : secondes. À zéro, la grille se fige et part.
-function bacTick(ms){
-  const el = document.getElementById('bac-cd');
-  if (el) {
-    const s = Math.ceil(Math.min(ms, 120000) / 1000);
-    el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-    el.classList.toggle('low', s <= 15);
-  }
-  if (ms <= 0 && !bacFlushed && !state.bac?.done) {
-    bacFlushed = true;
-    render();
-    saveBac();
-  }
 }
 
 // Les champs sont remplis après coup : la saisie n'entre pas dans le HTML
@@ -1544,12 +1528,11 @@ function bacWrite(){
     ${waiting(state.players.filter(p => !p.bac_done), 'Tout le monde a fini.')}`;
   return `
     <div class="bachead"><span class="bacl">${L}</span>
-      <span class="bacnote">Un mot en <b>${L}</b> pour chaque catégorie</span>
-      <span class="baccd" id="bac-cd"></span></div>
+      <span class="bacnote">Un mot en <b>${L}</b> pour chaque catégorie</span></div>
     ${cats.map((c, i) => `<label class="bacfield"><span>${esc(c)}</span><input id="bac-${i}" data-i="${i}" maxlength="40"
       autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-      enterkeyhint="${i < cats.length - 1 ? 'next' : 'done'}" placeholder="${L}…" ${bacFlushed ? 'disabled' : ''}></label>`).join('')}
-    <div class="dock"><button class="btn" data-act="bac-done" ${dis(bacFlushed)}>${bacFlushed ? 'Temps écoulé' : 'J’ai fini'}</button></div>`;
+      enterkeyhint="${i < cats.length - 1 ? 'next' : 'done'}" placeholder="${L}…" ></label>`).join('')}
+    <div class="dock"><button class="btn" data-act="bac-done" ${dis()}>J’ai fini</button></div>`;
 }
 
 // Une case par catégorie, une ligne par joueur, avec le vote reçu s'il est connu.
@@ -1594,7 +1577,8 @@ function bacReveal(){
       <span class="nm"><span class="who">${isMe(x.player_id) ? 'Toi' : nameOf(x.player_id)}</span></span>
       <b class="plus">+${tot(x)}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}
-    <h3 class="sec">Lettre ${esc(b.letter)}</h3>${bacTable(b.categories || [], rows, 6)}`;
+    <h3 class="sec">Lettre ${esc(b.letter)}</h3>${bacTable(b.categories || [], rows, 6)}
+    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === state.room.round)}>${state.me.next_ack === state.room.round ? 'En attente de l’autre joueur…' : state.room.round >= BAC_ROUNDS ? 'Voir le résultat' : 'Manche suivante'}</button></div>`;
 }
 
 function result(){
@@ -2076,6 +2060,7 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'continue') return act('continue_game');
+  if (a === 'bac-next') return act('next_round');
   if (a === 'share') return share();
   if (a === 'kick') return act('kick_player',{ p_player_id:id });
   if (a === 'leave') { try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {} return leaveLocal() }

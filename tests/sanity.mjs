@@ -72,7 +72,11 @@ assert.match(html, /<div class="scrim" aria-hidden="true">/,
 assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
 // L'écran de résultat d'une manche passe seul après 5 s (2 min pour le classement de Priorités), sans bouton à valider.
 assert.match(scripts[0], /status === 'reveal' \? \(isPrio\(\) \? 120000 : 5000\) : 120000/, 'Le résultat d’une manche doit durer 5 s, 2 min en Priorités');
-assert.doesNotMatch(scripts[0], /next_round/, 'Plus de « Manche suivante » à valider');
+// Seul le Petit bac (sans aucune notion de temps) garde un bouton « Manche suivante ».
+assert.equal((scripts[0].match(/next_round/g) || []).length, 1, 'Seul le Petit bac valide la manche suivante');
+assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Le Petit bac avance par un bouton');
+assert.match(scripts[0], /isBac\(\) \|\| !TIMED\.includes/, 'Le Petit bac ne doit avoir aucun minuteur');
+assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Le Petit bac ne doit pas afficher de compte à rebours');
 
 // Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
 assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : 12/,
