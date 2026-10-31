@@ -87,3 +87,7 @@ assert.match(scripts[0], /rpc\('bac_save', \{ p_code:session\.code, p_token:sess
   'L’enregistrement au fil de la frappe doit appeler rpc directement');
 
 console.log('Frontend sanity checks passed.');
+
+// Petit bac : 1, 3 ou 5 manches au choix de l'hôte.
+assert.match(scripts[0], /\[1,3,5\]\.map\(v => \[v,v\]\)/, 'Le Petit bac propose 1, 3 ou 5 manches');
+assert.doesNotMatch(scripts[0], /BAC_ROUNDS/, 'Le nombre de manches du Petit bac ne doit plus être fixe');

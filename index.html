@@ -649,7 +649,7 @@ const GAMES = {
   phrases:   { name:'Phrases à trou',  desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
-  bac:       { name:'Petit bac', desc:'À deux. Chacun propose trois catégories, puis cinq manches : une lettre, tout le temps qu’il faut pour tout remplir, et chacun juge les réponses de l’autre.' },
+  bac:       { name:'Petit bac', desc:'À deux. Chacun propose trois catégories, puis 1, 3 ou 5 manches au choix de l’hôte : une lettre, tout le temps qu’il faut pour tout remplir, et chacun juge les réponses de l’autre.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -661,7 +661,8 @@ const isCounted = () => isPrio() || isWave() || isBac();
 // Le serveur applique les mêmes règles.
 const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' ? 2 : 3;
 const maxPlayers = mode => mode === 'bac' ? 2 : 12;
-const BAC_ROUNDS = 5;
+// Manches du Petit bac : 1, 3 ou 5, choisies au salon (stockées dans room.target)
+const bacRounds = () => [1, 3, 5].includes(+state.room.target) ? +state.room.target : 5;
 // K, Q, W, X, Y et Z ne sortent pas : trop peu de mots pour six catégories.
 const BAC_LETTRES = 'ABCDEFGHIJLMNOPRSTUV';
 // 3,4 s de rotation, puis la lettre reste affichée un instant avant la grille.
@@ -1134,12 +1135,14 @@ function lobby(){
 // l'hôte n'y règle que la durée de la partie.
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
-  const seg = (k, vals, cls, label) => `<div class="seg ${cls}" role="group" aria-label="${label}">${vals.map(([v,t]) => {
-    const on = String(r[k]) === String(v);
+  const seg = (k, vals, cls, label, cur = r[k]) => `<div class="seg ${cls}" role="group" aria-label="${label}">${vals.map(([v,t]) => {
+    const on = String(cur) === String(v);
     return `<button type="button" class="seg-b ${on ? 'on' : ''}" data-act="opt" data-k="${k}" data-v="${v}" aria-pressed="${on}" ${dis()}>${t}</button>`;
   }).join('')}</div>`;
-  // le Petit bac n'a rien à régler : toujours 5 manches, sans limite de temps
-  const opts = !host || r.mode === 'bac' ? ''
+  // Petit bac : 1, 3 ou 5 manches, toujours sans limite de temps
+  const opts = !host ? ''
+    : r.mode === 'bac'
+      ? `<div class="field"><span>Manches</span>${seg('target', [1,3,5].map(v => [v,v]), 's3', 'Nombre de manches', bacRounds())}</div>`
     : r.mode === 'priorites' || r.mode === 'ondes'
       ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
       : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`;
@@ -1249,10 +1252,10 @@ function judging(){
 
 /* ---------- Priorités ---------- */
 // Manches restantes après celle-ci : chaque joueur encore là doit encore juger
-// (tours choisis - fois où il a déjà jugé). Le Petit bac en compte toujours 5.
+// (tours choisis - fois où il a déjà jugé). Le Petit bac en compte 1, 3 ou 5 (au choix de l'hôte).
 function roundsLeft(){
   const r = state.room;
-  if (isBac()) return Math.max(0, BAC_ROUNDS - r.round);
+  if (isBac()) return Math.max(0, bacRounds() - r.round);
   return state.players.filter(p => p.active).reduce((n, p) => n + Math.max(0, r.turns - (p.judge_count || 0)), 0);
 }
 const rankCard = id => (state.rank_cards || []).find(c => c.id === id);
@@ -1508,7 +1511,7 @@ function roue(lettre){
 }
 
 // Début de partie : chacun propose une catégorie à son tour, jusqu'à six.
-// Elles servent pour les cinq manches et disparaissent avec la partie.
+// Elles servent pour toutes les manches et disparaissent avec la partie.
 function bacNaming(){
   const r = state.room, cats = state.bac?.categories || [], moi = isMe(r.reader_id);
   return `
@@ -1579,7 +1582,7 @@ function bacReveal(){
       <b class="plus">+${tot(x)}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     <h3 class="sec">Lettre ${esc(b.letter)}</h3>${bacTable(b.categories || [], rows, 6)}
-    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === state.room.round)}>${state.me.next_ack === state.room.round ? 'En attente de l’autre joueur…' : state.room.round >= BAC_ROUNDS ? 'Voir le résultat' : 'Manche suivante'}</button></div>`;
+    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === state.room.round)}>${state.me.next_ack === state.room.round ? 'En attente de l’autre joueur…' : state.room.round >= bacRounds() ? 'Voir le résultat' : 'Manche suivante'}</button></div>`;
 }
 
 function result(){
@@ -1869,7 +1872,9 @@ document.addEventListener('click', async e => {
   }
   if (a === 'opt') {
     const r = state.room, o = { mode:r.mode, target:r.target, turns:r.turns, [el.dataset.k]:el.dataset.v };
-    if (String(r[el.dataset.k]) === String(el.dataset.v)) return;
+    if (String(el.dataset.k === 'target' && r.mode === 'bac' ? bacRounds() : r[el.dataset.k]) === String(el.dataset.v)) return;
+    // « 1 manche » n'a de sens qu'au Petit bac : les autres jeux repartent sur 5
+    if (o.mode !== 'bac' && +o.target === 1) o.target = 5;
     return act('set_room_options', { p_mode:o.mode, p_target:+o.target, p_turns:+o.turns });
   }
   if (a === 'tab') {
