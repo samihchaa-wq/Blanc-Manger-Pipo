@@ -440,9 +440,12 @@ button.scard:active{transform:translateY(2px)}
 .punlist li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;
   border-radius:var(--r-sm);background:var(--field);border:1px solid var(--hairline);font-size:16px;line-height:1.3}
 .punlist li span{min-width:0;overflow-wrap:anywhere}
-.punadd{display:flex;gap:8px;align-items:center;margin:12px 0 0}
-.punadd input{flex:1;min-width:0}
-.tag.warn{background:rgba(255,92,141,.16);color:var(--pop-soft)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.duo .field{min-width:0}
+.punnb{text-align:center;font-size:22px;padding:12px 10px;font-variant-numeric:tabular-nums}
+.punnb:disabled{opacity:.45}
+.punfield{margin-bottom:12px}
+.punfield>span{font-size:13px;letter-spacing:.08em}
 /* Saisie : la lettre, la consigne et le temps restant sur une ligne. */
 .bachead{display:flex;align-items:center;gap:12px;margin:2px 0 18px}
 .bacl{flex:none;display:grid;place-items:center;width:60px;height:60px;border-radius:16px;font-size:36px;
@@ -647,7 +650,7 @@ let roueAt = 0, roueTimer = null, bacMyVote = null, catDraft = '';
 let pressedEl = null, lastHtml = '';
 // Punitions : état lu au salon et en fin de partie, saisie en cours, et
 // l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
-let pun = null, punDraft = '', punAnimAt = 0, punTimer = null;
+let pun = null, punDrafts = [], punAnimAt = 0, punTimer = null;
 const PUN_MS = 3400;
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
@@ -736,6 +739,10 @@ async function refresh(force = false){
       punAnimAt = Date.now();
       clearTimeout(punTimer); punTimer = setTimeout(render, PUN_MS + 600);
     } else if (!pu?.pick) punAnimAt = 0;
+    // saisie des punitions annulée faute de joueurs
+    if (pun?.phase && pu && !pu.phase && s.room.status === 'lobby')
+      toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, retour au salon.`);
+    if (pu?.phase && !pun?.phase) punDrafts = [];
     pun = pu;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
     const prev = state, prevStatus = state?.room.status;
@@ -938,12 +945,12 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const foc = document.activeElement?.id === 'pun-text' ? document.activeElement.selectionStart : null;
+    const ae = document.activeElement, focId = /^pun-\d$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
-    if (foc != null) { const c = document.getElementById('pun-text'); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
+    if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
-    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status;
+    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '');
     const newScreen = key !== renderedKey;
     if (newScreen) {
       renderedKey = key;
@@ -1139,9 +1146,8 @@ function topbar(){
 function lobby(){
   const r = state.room, host = isMe(r.host_id), n = state.players.length, min = minPlayers(r.mode), max = maxPlayers(r.mode);
   const all = state.players.every(p => p.ready), missing = Math.max(0, min - n);
-  // Punitions : chaque joueur humain doit en avoir proposé au moins une (le serveur revérifie)
-  const punOn = !!pun?.on, nbPun = p => +(pun?.counts?.[p.id] || 0);
-  const punManque = punOn && state.players.some(p => !p.is_bot && !nbPun(p));
+  // partie lancée avec punitions : chacun propose les siennes avant le jeu
+  if (pun?.phase) return punWrite();
   return `
     <div class="lobbytop">
       <div class="codeblock">
@@ -1151,19 +1157,18 @@ function lobby(){
       <button class="btn ghost invite" data-act="share">Inviter des joueurs</button>
     </div>
     ${gameBox(host)}
-    ${punOn ? punPanel() : ''}
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
         <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-        <span class="rt">${punOn && !p.is_bot ? `<span class="tag ${nbPun(p) ? '' : 'warn'}" title="Punitions proposées">🎡 ${nbPun(p)}</span>` : ''}<span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
+        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
-      ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all || punManque)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : punManque ? 'En attente des punitions' : 'Lancer la partie'}</button>` : ''}
+      ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : 'Lancer la partie'}</button>` : ''}
     </div>`;
 }
 
@@ -1182,11 +1187,16 @@ function gameBox(host){
     : r.mode === 'priorites' || r.mode === 'ondes'
       ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
       : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`;
-  const on = !!pun?.on;
+  // Punitions : oui/non sur une moitié, le nombre par joueur dans l'autre
+  const on = !!pun?.on, nb = +(pun?.count || 2);
   const punOpt = !pun ? ''
-    : host ? `<div class="field"><span>Punitions</span><div class="seg s2" role="group" aria-label="Punitions">${[[0,'Non'],[1,'Oui']].map(([v,t]) =>
-        `<button type="button" class="seg-b ${+on === v ? 'on' : ''}" data-act="punish-opt" data-v="${v}" aria-pressed="${+on === v}" ${dis()}>${t}</button>`).join('')}</div></div>`
-    : on ? '<p class="gdesc">🎡 Punitions activées : le dernier en tire une à la roue.</p>' : '';
+    : host ? `<div class="duo">
+        <div class="field"><span>Punitions</span><div class="seg s2" role="group" aria-label="Punitions">${[[0,'Non'],[1,'Oui']].map(([v,t]) =>
+          `<button type="button" class="seg-b ${+on === v ? 'on' : ''}" data-act="punish-opt" data-v="${v}" aria-pressed="${+on === v}" ${dis()}>${t}</button>`).join('')}</div></div>
+        <label class="field"><span>Par joueur</span><input id="pun-count" class="punnb" type="text" inputmode="numeric" pattern="[1-5]" maxlength="1"
+          autocomplete="off" enterkeyhint="done" value="${nb}" aria-label="Nombre de punitions par joueur (1 à 5)" ${on ? dis() : 'disabled'}></label>
+      </div>`
+    : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
       <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
       <p class="gdesc">${g.desc}</p>
@@ -1195,18 +1205,27 @@ function gameBox(host){
     </section>`;
 }
 
-// Saisie des punitions au salon : 1 ou 2 par joueur, secrètes jusqu'à la fin.
-function punPanel(){
-  const mine = pun?.mine || [];
-  return `<section class="panel">
-      <p class="eyebrow">Tes punitions</p>
-      <p class="gdesc">Propose-en 1 ou 2. Personne ne les voit avant la fin : le dernier tourne la roue et en tire une.</p>
-      ${mine.length ? `<ul class="punlist">${mine.map(x => `<li><span>${esc(x.text)}</span>
-        <button class="link" data-act="punish-del" data-id="${x.id}" ${dis()}>Retirer</button></li>`).join('')}</ul>` : ''}
-      ${mine.length < 2 ? `<div class="punadd"><input id="pun-text" maxlength="100" autocomplete="off" autocapitalize="sentences"
-          enterkeyhint="done" placeholder="${mine.length ? 'Une deuxième ?' : 'Imiter une poule pendant 30 s…'}" aria-label="Nouvelle punition" value="${esc(punDraft)}">
-        <button class="btn ghost small" data-act="punish-add" ${dis()}>Ajouter</button></div>` : ''}
-    </section>`;
+// Écran d'après « Lancer la partie » : chacun propose ses punitions, secrètes
+// jusqu'à la fin. Le jeu démarre tout seul quand tout le monde a validé.
+const PUN_EX = ['Imiter une poule pendant 30 s', 'Faire 10 pompes', 'Chanter le refrain de son choix', 'Parler avec un accent jusqu’au prochain verre', 'Raconter sa pire honte'];
+function punWrite(){
+  const mine = pun?.mine || [], nb = +(pun?.count || 1);
+  const attente = state.players.filter(p => !p.is_bot && !+(pun?.counts?.[p.id] || 0));
+  if (mine.length) return `
+    <p class="eyebrow">Punitions</p>
+    <h2 class="bigstate">C’est envoyé.</h2>
+    <p class="role">Le jeu démarre dès que tout le monde a proposé les siennes.</p>
+    <h3 class="sec">Tes punitions</h3>
+    <ul class="punlist">${mine.map(x => `<li><span>${esc(x.text)}</span></li>`).join('')}</ul>
+    ${waiting(attente, 'C’est parti…')}`;
+  return `
+    <p class="eyebrow">Punitions</p>
+    <h2 class="bigstate">${nb > 1 ? `Propose jusqu’à ${nb} punitions` : 'Propose une punition'}</h2>
+    <p class="role">Personne ne les voit avant la fin. Le dernier tourne la roue et en tire une.</p>
+    ${Array.from({ length: nb }, (_, i) => `<label class="punfield"><span>Punition ${i + 1}${i ? ' (facultative)' : ''}</span>
+      <input id="pun-${i}" data-i="${i}" maxlength="100" autocomplete="off" autocapitalize="sentences"
+        enterkeyhint="${i < nb - 1 ? 'next' : 'done'}" placeholder="${esc(PUN_EX[i % PUN_EX.length])}…" value="${esc(punDrafts[i] || '')}"></label>`).join('')}
+    <div class="dock"><button class="btn" data-act="punish-submit" ${dis()}>Valider</button></div>`;
 }
 
 // Fin de partie : la roue des punitions, lancée par le dernier du classement.
@@ -2089,7 +2108,8 @@ document.addEventListener('click', async e => {
   }
   if (a === 'bot') return act('add_bot');
   if (a === 'ready') return act('set_ready',{ p_ready: !state.me.ready });
-  if (a === 'start') return act('start_game');
+  // avec punitions, le lancement passe d'abord par l'écran de saisie
+  if (a === 'start') return act(pun?.on ? 'punish_start' : 'start_game');
   // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation
   if (a === 'question') { qpick = +id; return render() }
   if (a === 'question-back') { qpick = null; return render() }
@@ -2152,15 +2172,14 @@ document.addEventListener('click', async e => {
   }
   if (a === 'punish-opt') {
     if (+!!pun?.on === +el.dataset.v) return;
-    return act('punish_set', { p_on: el.dataset.v === '1' });
+    return act('punish_options', { p_on: el.dataset.v === '1', p_count: +(pun?.count || 2) });
   }
-  if (a === 'punish-add') {
-    const t = (document.getElementById('pun-text')?.value || '').trim();
-    if (!t) return toast('Écris une punition.');
-    if (await act('punish_add', { p_text: t })) punDraft = '';
-    return render();
+  if (a === 'punish-submit') {
+    const t = [...document.querySelectorAll('.punfield input')].map(c => c.value.trim());
+    if (!t.some(Boolean)) return toast('Écris au moins une punition.');
+    if (await act('punish_submit', { p_texts: t })) punDrafts = [];
+    return;
   }
-  if (a === 'punish-del') return act('punish_remove', { p_id: +id });
   if (a === 'punish-spin') return act('punish_spin');
   if (a === 'continue') return act('continue_game');
   if (a === 'bac-next') return act('next_round');
@@ -2171,7 +2190,8 @@ document.addEventListener('click', async e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
-  if (e.target.id === 'pun-text') punDraft = e.target.value;
+  if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
+  if (e.target.id === 'pun-count') e.target.value = e.target.value.replace(/[^1-5]/g, '');
   if (e.target.matches('.bacfield input')) {
     bacDraft[+e.target.dataset.i] = e.target.value;
     clearTimeout(bacTimer); bacTimer = setTimeout(saveBac, 700);
@@ -2184,12 +2204,25 @@ document.addEventListener('input', e => {
     catTimer = setTimeout(() => loadCatalog(0), 300);   // seule la liste est repeinte
   }
 });
+// nombre de punitions par joueur : envoyé quand on quitte la case
+document.addEventListener('change', e => {
+  if (e.target.id !== 'pun-count') return;
+  const v = +e.target.value;
+  if (!(v >= 1 && v <= 5)) { e.target.value = pun?.count || 2; return toast('Entre 1 et 5 punitions par joueur.') }
+  if (v !== +pun?.count) act('punish_options', { p_on: true, p_count: v });
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
-  if (e.key === 'Enter' && e.target.matches('#pun-text')) document.querySelector('[data-act=punish-add]')?.click();
+  // Punitions : Entrée passe au champ suivant, puis ferme le clavier
+  if (e.key === 'Enter' && e.target.matches('.punfield input')) {
+    e.preventDefault();
+    const suivant = document.getElementById('pun-' + (+e.target.dataset.i + 1));
+    suivant ? suivant.focus() : e.target.blur();
+  }
+  if (e.key === 'Enter' && e.target.matches('#pun-count')) e.target.blur();
   // Petit bac : Entrée passe à la catégorie suivante, et ferme le clavier à la dernière.
   if (e.key === 'Enter' && e.target.matches('.bacfield input')) {
     e.preventDefault();
