@@ -141,12 +141,13 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 /* barre à deux onglets */
 .tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;padding:5px;background:var(--surface);
   border:1.5px solid var(--hairline);border-radius:var(--r-pill)}
-.tab{padding:13px 6px;border-radius:var(--r-pill);font-size:clamp(13px,3.6vw,15px);
+.tab{padding:14px 6px;border-radius:var(--r-pill);font-size:clamp(17px,4.8vw,20px);
   white-space:nowrap;color:var(--text-dim);
   transition:background var(--dur),color var(--dur),transform var(--dur)}
 .tab.on{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:var(--gold-ink);
   box-shadow:0 3px 10px -4px rgba(0,0,0,.6)}
 .tab:active{transform:scale(.97)}
+.tabs:not(.jeux) .tab{font-weight:600}
 .pane[hidden]{display:none}
 .home .panel{margin-top:0}
 
