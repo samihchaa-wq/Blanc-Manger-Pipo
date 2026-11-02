@@ -431,6 +431,18 @@ button.scard:active{transform:translateY(2px)}
 .roueBox .rouel{position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-size:clamp(46px,14vw,64px);color:var(--gold);
   text-shadow:0 2px 14px rgba(255,194,61,.45);animation:sort .45s 3.3s var(--ease) both}
 @keyframes sort{from{transform:scale(.3);opacity:0}}
+/* Punitions : la roue tourne une fois, puis reste figée sur la part tirée. */
+.roue.still{animation:none;transform:rotate(var(--spin,0deg))}
+.roue.pun .lab i{font-size:clamp(16px,5vw,22px)}
+.punbox .roueBox{width:min(240px,64vw);margin:22px auto 18px}
+.punres{animation:sort .45s var(--ease) both}
+.punlist{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px}
+.punlist li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:var(--r-sm);background:var(--field);border:1px solid var(--hairline);font-size:16px;line-height:1.3}
+.punlist li span{min-width:0;overflow-wrap:anywhere}
+.punadd{display:flex;gap:8px;align-items:center;margin:12px 0 0}
+.punadd input{flex:1;min-width:0}
+.tag.warn{background:rgba(255,92,141,.16);color:var(--pop-soft)}
 /* Saisie : la lettre, la consigne et le temps restant sur une ligne. */
 .bachead{display:flex;align-items:center;gap:12px;margin:2px 0 18px}
 .bacl{flex:none;display:grid;place-items:center;width:60px;height:60px;border-radius:16px;font-size:36px;
@@ -633,6 +645,10 @@ let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et
 let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve();
 let roueAt = 0, roueTimer = null, bacMyVote = null, catDraft = '';
 let pressedEl = null, lastHtml = '';
+// Punitions : état lu au salon et en fin de partie, saisie en cours, et
+// l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
+let pun = null, punDraft = '', punAnimAt = 0, punTimer = null;
+const PUN_MS = 3400;
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
 let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases à trou
@@ -708,8 +724,19 @@ async function act(fn, extra = {}){
 async function refresh(force = false){
   if (!session) return;
   try {
-    const s = await rpc('get_state', { p_code: session.code, p_token: session.token }), j = JSON.stringify(s);
+    const s = await rpc('get_state', { p_code: session.code, p_token: session.token });
+    // les punitions ne servent qu'au salon et à l'écran de fin
+    let pu = null;
+    if (s.room.status === 'lobby' || s.room.status === 'finished')
+      try { pu = await rpc('punish_state', { p_code: session.code, p_token: session.token }) } catch {}
+    const j = JSON.stringify([s, pu]);
     if (!force && j === last) return;
+    // la roue vient d'être lancée : on l'anime ici ; arrivé après coup, on voit le résultat
+    if (pu?.pick && pun && !pun.pick && s.room.status === 'finished') {
+      punAnimAt = Date.now();
+      clearTimeout(punTimer); punTimer = setTimeout(render, PUN_MS + 600);
+    } else if (!pu?.pick) punAnimAt = 0;
+    pun = pu;
     const changed = !state || state.room.round !== s.room.round || state.room.status !== s.room.status;
     const prev = state, prevStatus = state?.room.status;
     // Retour brutal au salon en pleine partie = on est tombé sous le minimum du jeu.
@@ -910,16 +937,21 @@ function render(){
   document.body.classList.toggle('no-dock', !html.includes('class="dock"'));
   if (html !== lastHtml) {
     lastHtml = html;
+    // la saisie d'une punition survit au rafraîchissement du salon
+    const foc = document.activeElement?.id === 'pun-text' ? document.activeElement.selectionStart : null;
     app.innerHTML = html;
+    if (foc != null) { const c = document.getElementById('pun-text'); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
     const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status;
-    if (key !== renderedKey) {
+    const newScreen = key !== renderedKey;
+    if (newScreen) {
       renderedKey = key;
       app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
     }
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
-    else if (session && state && state.room.status === 'finished') confetti();
+    // les confettis à l'arrivée sur l'écran de fin, pas à chaque mise à jour
+    else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
     else if (session && state && state.room.status === 'writing') fillBac();
     fitDock();
   }
@@ -1107,6 +1139,9 @@ function topbar(){
 function lobby(){
   const r = state.room, host = isMe(r.host_id), n = state.players.length, min = minPlayers(r.mode), max = maxPlayers(r.mode);
   const all = state.players.every(p => p.ready), missing = Math.max(0, min - n);
+  // Punitions : chaque joueur humain doit en avoir proposé au moins une (le serveur revérifie)
+  const punOn = !!pun?.on, nbPun = p => +(pun?.counts?.[p.id] || 0);
+  const punManque = punOn && state.players.some(p => !p.is_bot && !nbPun(p));
   return `
     <div class="lobbytop">
       <div class="codeblock">
@@ -1116,18 +1151,19 @@ function lobby(){
       <button class="btn ghost invite" data-act="share">Inviter des joueurs</button>
     </div>
     ${gameBox(host)}
+    ${punOn ? punPanel() : ''}
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
       ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
         <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
+        <span class="rt">${punOn && !p.is_bot ? `<span class="tag ${nbPun(p) ? '' : 'warn'}" title="Punitions proposées">🎡 ${nbPun(p)}</span>` : ''}<span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
-      ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : (all ? 'Lancer la partie' : 'En attente des joueurs')}</button>` : ''}
+      ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all || punManque)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : punManque ? 'En attente des punitions' : 'Lancer la partie'}</button>` : ''}
     </div>`;
 }
 
@@ -1146,10 +1182,58 @@ function gameBox(host){
     : r.mode === 'priorites' || r.mode === 'ondes'
       ? `<div class="field"><span>Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur</span>${seg('turns', [1,2,3].map(v => [v,v]), 's3', 'Tours par joueur')}</div>`
       : `<div class="field"><span>Manches à gagner</span>${seg('target', [3,5,7,10].map(v => [v,v]), '', 'Manches à gagner')}</div>`;
+  const on = !!pun?.on;
+  const punOpt = !pun ? ''
+    : host ? `<div class="field"><span>Punitions</span><div class="seg s2" role="group" aria-label="Punitions">${[[0,'Non'],[1,'Oui']].map(([v,t]) =>
+        `<button type="button" class="seg-b ${+on === v ? 'on' : ''}" data-act="punish-opt" data-v="${v}" aria-pressed="${+on === v}" ${dis()}>${t}</button>`).join('')}</div></div>`
+    : on ? '<p class="gdesc">🎡 Punitions activées : le dernier en tire une à la roue.</p>' : '';
   return `<section class="panel gamebox">
       <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
       <p class="gdesc">${g.desc}</p>
       ${opts}
+      ${punOpt}
+    </section>`;
+}
+
+// Saisie des punitions au salon : 1 ou 2 par joueur, secrètes jusqu'à la fin.
+function punPanel(){
+  const mine = pun?.mine || [];
+  return `<section class="panel">
+      <p class="eyebrow">Tes punitions</p>
+      <p class="gdesc">Propose-en 1 ou 2. Personne ne les voit avant la fin : le dernier tourne la roue et en tire une.</p>
+      ${mine.length ? `<ul class="punlist">${mine.map(x => `<li><span>${esc(x.text)}</span>
+        <button class="link" data-act="punish-del" data-id="${x.id}" ${dis()}>Retirer</button></li>`).join('')}</ul>` : ''}
+      ${mine.length < 2 ? `<div class="punadd"><input id="pun-text" maxlength="100" autocomplete="off" autocapitalize="sentences"
+          enterkeyhint="done" placeholder="${mine.length ? 'Une deuxième ?' : 'Imiter une poule pendant 30 s…'}" aria-label="Nouvelle punition" value="${esc(punDraft)}">
+        <button class="btn ghost small" data-act="punish-add" ${dis()}>Ajouter</button></div>` : ''}
+    </section>`;
+}
+
+// Fin de partie : la roue des punitions, lancée par le dernier du classement.
+function punSection(){
+  const items = pun?.items || [];
+  if (!pun?.on || !items.length) return '';
+  const loser = P(pun.loser_id), pick = pun.pick;
+  // un bot ou un absent ne peut pas tourner : n'importe qui le fait à sa place
+  const peut = !pick && (isMe(pun.loser_id) || !loser || loser.is_bot);
+  const n = items.length, a = 360 / n, k = pick ? Math.max(0, items.findIndex(x => x.id === pick.id)) : 0;
+  const parts = items.map((_, i) => `${SEAT_COLORS[i % SEAT_COLORS.length]} ${(i * a).toFixed(1)}deg ${((i + 1) * a).toFixed(1)}deg`).join(',');
+  const ecoule = punAnimAt ? Date.now() - punAnimAt : Infinity, anim = !!pick && ecoule < PUN_MS;
+  const spin = pick ? 1440 + 360 - (k + .5) * a : 0;
+  // re-rendue en pleine rotation, la roue reprend là où elle en était
+  const disque = `<div class="roue pun ${anim ? '' : 'still'}" style="--spin:${spin.toFixed(1)}deg;${anim ? `animation-delay:-${ecoule}ms;` : ''}background:conic-gradient(${parts})" aria-hidden="true">${
+    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? '★' : '?'}</i></span>`).join('')}</div>`;
+  const qui = loser ? (isMe(loser.id) ? 'Toi' : esc(loser.name)) : '?';
+  const autres = pick ? items.filter(x => x.id !== pick.id) : [];
+  return `<section class="punbox">
+      <h3 class="sec">Punition</h3>
+      <p class="role">${pick ? '' : isMe(pun.loser_id) ? '<b>Tu finis dernier·e.</b> À toi de tourner la roue !' : `<b>${qui}</b> finit dernier·e et doit tourner la roue.`}</p>
+      <div class="roueBox"><span class="pointer" aria-hidden="true"></span>${disque}</div>
+      ${peut ? `<button class="btn" data-act="punish-spin" ${dis()}>Tourner la roue</button>` : ''}
+      ${pick ? `<div class="${anim || !punAnimAt ? 'punres' : ''}" style="animation-delay:${anim ? PUN_MS - ecoule : 0}ms">
+          ${qcard(`Punition pour ${qui}`, esc(pick.text), 'win', `<span class="by">proposée par ${esc(pick.author)}</span>`)}
+          ${autres.length ? `<h3 class="sec">Les autres punitions</h3><ul class="punlist">${autres.map(x => `<li><span>${esc(x.text)}</span></li>`).join('')}</ul>` : ''}
+        </div>` : ''}
     </section>`;
 }
 
@@ -1621,6 +1705,7 @@ function finished(){
     ${isCounted()
       ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
       : result()}
+    ${punSection()}
     <h3 class="sec">Classement final</h3>${rank()}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
@@ -2065,6 +2150,18 @@ document.addEventListener('click', async e => {
     if (!(await act('bac_vote', { p_vote: +el.dataset.v }))) { bacMyVote = null; render() }
     return;
   }
+  if (a === 'punish-opt') {
+    if (+!!pun?.on === +el.dataset.v) return;
+    return act('punish_set', { p_on: el.dataset.v === '1' });
+  }
+  if (a === 'punish-add') {
+    const t = (document.getElementById('pun-text')?.value || '').trim();
+    if (!t) return toast('Écris une punition.');
+    if (await act('punish_add', { p_text: t })) punDraft = '';
+    return render();
+  }
+  if (a === 'punish-del') return act('punish_remove', { p_id: +id });
+  if (a === 'punish-spin') return act('punish_spin');
   if (a === 'continue') return act('continue_game');
   if (a === 'bac-next') return act('next_round');
   if (a === 'share') return share();
@@ -2074,6 +2171,7 @@ document.addEventListener('click', async e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
+  if (e.target.id === 'pun-text') punDraft = e.target.value;
   if (e.target.matches('.bacfield input')) {
     bacDraft[+e.target.dataset.i] = e.target.value;
     clearTimeout(bacTimer); bacTimer = setTimeout(saveBac, 700);
@@ -2091,6 +2189,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#pun-text')) document.querySelector('[data-act=punish-add]')?.click();
   // Petit bac : Entrée passe à la catégorie suivante, et ferme le clavier à la dernière.
   if (e.key === 'Enter' && e.target.matches('.bacfield input')) {
     e.preventDefault();
