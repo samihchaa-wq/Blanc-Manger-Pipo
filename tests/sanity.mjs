@@ -47,10 +47,11 @@ assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},40
   'Fallback polling must remain at 4 seconds');
 assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
-// Manches et tours se tapent à la main dans le salon, dans les bornes du serveur.
+// Manches, tours et punitions se règlent avec − et + dans le salon, dans les bornes du serveur.
 assert.match(scripts[0], /const BORNES = \{ target:\[1, 20\], turns:\[1, 5\] \}/,
   'Les bornes des réglages doivent suivre celles du serveur (manches 1-20, tours 1-5)');
-assert.match(scripts[0], /class="optnb" data-k="\$\{k\}"/, 'Le réglage de manches/tours doit rester une case à remplir');
+assert.match(scripts[0], /const OPT_BORNES = \{ \.\.\.BORNES, pun:\[0, 5\] \}/, 'Punitions de 0 (aucune) à 5 par joueur');
+assert.match(scripts[0], /data-act="step" data-k="\$\{k\}" data-d="-1"/, 'Le réglage de manches/tours se fait avec − et +');
 assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
 assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
