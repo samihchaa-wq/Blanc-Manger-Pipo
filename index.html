@@ -1059,9 +1059,8 @@ function adminView(){
        </div>
        <section class="panel">
          ${w
-           ? `<p class="eyebrow">Catalogue</p><h2>Nouveaux extrêmes</h2>
-              <label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="Chaud"></label>
-              <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="Froid"></label>`
+           ? `              <label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next"></label>
+              <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done"></label>`
            : `<label><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}" aria-label="Texte de la ${MOT[k]}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
@@ -1075,7 +1074,7 @@ function adminView(){
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
-         <p class="eyebrow">Accès réservé</p><h2>Code admin</h2>
+         <p class="eyebrow">Accès réservé</p>
          <label><span>Code</span><input id="a-pwd" type="password" autocomplete="off" placeholder="••••••••"></label>
          <button class="btn" data-act="admin-login">Entrer</button>
        </section>`;
