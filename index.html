@@ -94,11 +94,8 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    haut, avec du défilement en prime. */
 .home{--pad:calc(30px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
-  display:flex;flex-direction:column;justify-content:center;gap:22px;
-  padding-bottom:7vh}  /* centrage optique : à égalité parfaite le bloc paraît trop bas */
-/* Écran court (iPhone SE) : avec quatre jeux, l'accueil dépassait d'un écran. */
-@media (max-height:700px){.home{gap:16px;padding-bottom:3vh}}
-.home-top{display:flex;justify-content:flex-end;margin-bottom:-8px}
+  display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(8px,2vh,18px)}
+.home-top{display:flex;justify-content:flex-end;margin-bottom:-6px}
 .iconbtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 16px 8px 13px;border-radius:var(--r-pill);
   background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
   font-size:13px;letter-spacing:.08em;text-transform:uppercase}
@@ -114,7 +111,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   background:radial-gradient(closest-side,rgba(255,194,61,.22),rgba(255,92,141,.10) 55%,transparent 72%);
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
-.home h1 img{display:block;width:min(100%,340px,38vh);height:auto;margin:0 auto;position:relative}
+.home h1 img{display:block;width:min(100%,300px,26vh);height:auto;margin:0 auto;position:relative}
 /* Amorçage : le titre s'allume comme un tube — deux hésitations, puis il
    tient. Joué une fois, à l'arrivée sur l'accueil, jamais en boucle. */
 .home h1{animation:ignite 1.3s both}
@@ -131,7 +128,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    lettres, le masque s'en charge. En « color », le ruban ne donne que sa
    teinte : le modelé et les ombres du tracé restent ceux du logo. */
 .home h1 .shift{position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:min(100%,340px,38vh);aspect-ratio:801/303;pointer-events:none;
+  width:min(100%,300px,26vh);aspect-ratio:801/303;pointer-events:none;
   background:linear-gradient(100deg,#FEDD26,#FC4184,#FC27AB,#FD854F,#FEDD26);
   background-size:280% 100%;opacity:.38;mix-blend-mode:color;
   -webkit-mask:url(logo.svg) center/contain no-repeat;mask:url(logo.svg) center/contain no-repeat;
@@ -179,7 +176,13 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg.s2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
 /* accueil : chaque jeu est une vignette ; celle choisie s'allume, les autres s'effacent */
-.seg.games{gap:10px;padding:0;background:none;border:0}
+/* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
+   de l'accueil (marges, Admin, logo, onglets, pseudo, bouton ≈ 342 px + logo),
+   pour que les quatre vignettes tiennent sans défiler. */
+.seg.games{gap:10px;padding:0;background:none;border:0;margin:0 auto;
+  --logo:calc(min(100vw - 36px,300px,26vh) * .378);
+  width:min(100%,calc(100vh - var(--pad) - 342px - var(--logo)));
+  width:min(100%,calc(100dvh - var(--pad) - 342px - var(--logo)))}
 .seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:.55;
   transition:opacity var(--dur),transform var(--dur)}
 .seg.games .seg-b.on{opacity:1;transform:scale(1.03)}
