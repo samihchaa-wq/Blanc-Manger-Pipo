@@ -331,7 +331,7 @@ button.scard:active{transform:translateY(2px)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
 .opts.solo{grid-template-columns:1fr}
 .opts .field{display:flex;flex-direction:column;min-width:0}
-.opts .field>span{flex:1;font-size:11px;letter-spacing:.08em;line-height:1.3;margin-bottom:6px}
+.opts .field>span{flex:1;font-size:15px;letter-spacing:.06em;line-height:1.3;margin-bottom:6px}
 .step{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:52px;padding:4px;
   background:var(--field);border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
 .step b{text-align:center;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
@@ -353,7 +353,7 @@ button.scard:active{transform:translateY(2px)}
 .punsw.on .mini{filter:none;opacity:1;animation:tourne .9s cubic-bezier(.12,.7,.1,1) both;--spin:360deg}
 .punsw.on::before{opacity:1}
 .punsw:active{transform:scale(.92)}
-.gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+.gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:0 0 10px}
 .gamebox .gname{font-size:22px;margin:0}
 /* « i » des règles : petit rond, zone de toucher élargie à 44 px */
 .info{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
@@ -1252,7 +1252,6 @@ function gameBox(host){
     : host ? punCheck()
     : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
-      <p class="eyebrow">Jeu</p>
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>` : ''}
