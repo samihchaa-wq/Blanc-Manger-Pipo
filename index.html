@@ -295,29 +295,28 @@ button.scard:active{transform:translateY(2px)}
 @keyframes rise{from{transform:translateY(16px);opacity:0}}
 
 /* ===== Salon ===== */
-/* Le code et l'invitation se partagent la largeur, à hauteur égale. */
-.lobbytop{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;margin:6px 0 18px}
-.lobbytop .invite{height:100%;margin:0;padding:16px;border-radius:var(--r-lg);
-  font-size:16px;line-height:1.25;text-align:center;text-wrap:balance}
+/* Le code de la partie à gauche, « Quitter » à droite, sur la même ligne. */
+.top.lobbytop{align-items:flex-end;margin:2px 0 16px}
+.lobbytop .link{padding-bottom:12px}
 .codeblock{min-width:0}
-.bigcode{display:flex;gap:6px;margin-top:10px}
-.bigcode .ch{flex:1;display:grid;place-items:center;aspect-ratio:3/4;max-height:104px;border-radius:14px;
-  font-size:clamp(20px,5.4vw,28px);color:var(--gold);
+.bigcode{display:flex;gap:6px;margin-top:8px}
+.bigcode .ch{display:grid;place-items:center;width:44px;height:54px;border-radius:12px;
+  font-size:24px;color:var(--gold);
   background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
 .sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
-.plist{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:8px}
-.plist li{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 10px 8px 12px;
-  border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:17px}
-.plist li.is-ready{border-color:rgba(63,220,156,.45);background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
-.plist .who{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+/* deux joueurs par ligne, l'hôte en premier ; contour vert = prêt */
+.plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
+  border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
+.plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
+.plist .nm{flex:1}
+.plist .kick{flex:none;display:grid;place-items:center;width:28px;height:28px;margin-right:-4px;border-radius:50%;
+  font-size:13px;color:var(--text-faint);background:var(--surface-2)}
+.plist .kick:active{transform:scale(.9)}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
-.plist .rt{display:flex;align-items:center;gap:6px;flex:none}
 .plist li.empty{background:transparent;border-style:dashed;border-color:var(--hairline-2);color:var(--text-faint);
-  font-size:15px;justify-content:center;min-height:48px}
-.state{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill)}
-.state.yes{background:rgba(63,220,156,.16);color:var(--mint)}
-.state.no{background:var(--surface-2);color:var(--text-dim)}
+  font-size:15px;justify-content:center;align-items:center;text-align:center;min-height:48px}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .tag.host{background:rgba(255,194,61,.16);color:var(--gold-soft)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
@@ -325,9 +324,27 @@ button.scard:active{transform:translateY(2px)}
 /* choix du jeu, dans le salon */
 .gamebox{margin-top:0;padding:18px}
 .gamebox .field{margin:14px 0 0}
-.gamebox .gname{font-size:22px;margin:2px 0 6px}
+/* manches et punitions par joueur sur une seule ligne, cases alignées en bas */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.opts.solo{grid-template-columns:1fr}
+.opts .field{display:flex;flex-direction:column;min-width:0}
+.opts .field>span{flex:1;font-size:11px;letter-spacing:.08em;line-height:1.3;margin-bottom:6px}
+.step{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:52px;padding:4px;
+  background:var(--field);border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
+.step b{text-align:center;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
+.step button:active{transform:scale(.92)}
+.step button:disabled{opacity:.3}
+.gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+.gamebox .gname{font-size:22px;margin:0}
+/* « i » des règles : petit rond, zone de toucher élargie à 44 px */
+.info{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  border:1.5px solid var(--hairline-2);color:var(--text-dim);font-size:14px;font-weight:700;line-height:1}
+.info::after{content:'';position:absolute;inset:-9px}
+.info.on{border-color:var(--gold);color:var(--gold)}
+.info:active{transform:scale(.9)}
 .gamebox .gdesc{font-size:15px;line-height:1.4;color:var(--text-dim);margin-top:12px}
-.gamebox .gname+.gdesc{margin-top:0}
+.gamebox .gtitle+.gdesc{margin-top:0}
 
 /* ===== Priorités ===== */
 /* Le classement en cours : cinq marches, la 1 en haut. Une marche vide est
@@ -440,11 +457,7 @@ button.scard:active{transform:translateY(2px)}
 .punlist li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;
   border-radius:var(--r-sm);background:var(--field);border:1px solid var(--hairline);font-size:16px;line-height:1.3}
 .punlist li span{min-width:0;overflow-wrap:anywhere}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.duo .field{min-width:0}
-.punnb,.optnb{text-align:center;font-size:22px;padding:12px 10px;font-variant-numeric:tabular-nums}
 .field>span small{font-size:11px;letter-spacing:.06em;text-transform:none;opacity:.8}
-.punnb:disabled{opacity:.45}
 .punfield{margin-bottom:12px}
 .punfield>span{font-size:13px;letter-spacing:.08em}
 /* Saisie : la lettre, la consigne et le temps restant sur une ligne. */
@@ -620,9 +633,6 @@ button.scard:active{transform:translateY(2px)}
 #app.enter{animation:screenIn .24s var(--ease)}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}}
 
-/* ===== « prêt » qui s'installe ===== */
-.state.yes{animation:readyPop .32s var(--ease)}
-@keyframes readyPop{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.12)}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
@@ -681,7 +691,7 @@ const isCounted = () => isPrio() || isWave() || isBac();
 // Le serveur applique les mêmes règles.
 const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' ? 2 : 3;
 const maxPlayers = mode => mode === 'bac' ? 2 : 12;
-// Réglages tapés à la main au salon (le serveur applique les mêmes bornes) :
+// Réglages du salon, à − et + (le serveur applique les mêmes bornes) :
 // manches de 1 à 20 (Phrases à trou, Petit bac), tours de 1 à 5 (Priorités, Baromètre).
 const BORNES = { target:[1, 20], turns:[1, 5] };
 // Manches du Petit bac, stockées dans room.target
@@ -1135,9 +1145,12 @@ async function loadCatalog(offset = 0){
 
 function topbar(){
   const r = state.room;
-  // Dans le lobby, le code s'affiche déjà en gros juste en dessous : le badge
-  // du haut ferait doublon, seul « Quitter » reste.
-  if (r.status === 'lobby') return '<div class="top"><span></span><button class="link" data-act="leave">Quitter</button></div>';
+  // Dans le salon, le code de la partie s'affiche en cases, sur la même ligne que « Quitter ».
+  if (r.status === 'lobby') return `<div class="top lobbytop">
+      <div class="codeblock"><p class="eyebrow">Code de la partie</p>
+        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div></div>
+      <button class="link" data-act="leave">Quitter</button>
+    </div>`;
   return `<div class="top">
       <div class="top-l"><span class="code">${esc(r.code)}</span>${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
       <div class="top-r">
@@ -1153,19 +1166,11 @@ function lobby(){
   // partie lancée avec punitions : chacun propose les siennes avant le jeu
   if (pun?.phase) return punWrite();
   return `
-    <div class="lobbytop">
-      <div class="codeblock">
-        <p class="eyebrow">Code de la partie</p>
-        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
-      </div>
-      <button class="btn ghost invite" data-act="share">Inviter des joueurs</button>
-    </div>
     ${gameBox(host)}
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
-      ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
+      ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
+        <span class="nm">${esc(p.name)}</span>${host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
@@ -1176,33 +1181,58 @@ function lobby(){
     </div>`;
 }
 
-// Le jeu est choisi à la création : le salon affiche le jeu et sa règle,
-// l'hôte n'y règle que la durée de la partie.
+// Réglages du salon : − et + changent la valeur à l'écran tout de suite,
+// l'envoi au serveur part quand l'hôte arrête de taper.
+const optKey = () => state.room.mode === 'priorites' || state.room.mode === 'ondes' ? 'turns' : 'target';
+const OPT_BORNES = { ...BORNES, pun:[0, 5] };
+let optDraft = {}, optTimer = null;
+function optValue(k){
+  if (k in optDraft) return optDraft[k];
+  if (k === 'pun') return pun?.on ? +pun.count : 0;
+  return k === 'target' && state.room.mode === 'bac' ? bacRounds() : +state.room[k];
+}
+function stepper(k, label){
+  const [lo, hi] = OPT_BORNES[k], v = optValue(k);
+  return `<div class="field"><span>${label}</span><div class="step" role="group" aria-label="${label}">
+      <button type="button" data-act="step" data-k="${k}" data-d="-1" aria-label="Moins" ${v <= lo ? 'disabled' : ''}>−</button>
+      <b aria-live="polite">${v}</b>
+      <button type="button" data-act="step" data-k="${k}" data-d="1" aria-label="Plus" ${v >= hi ? 'disabled' : ''}>+</button>
+    </div></div>`;
+}
+async function sendOpts(){
+  if (busy) { optTimer = setTimeout(() => { optTimer = null; sendOpts() }, 300); return }
+  const d = optDraft, k = optKey();
+  const serveur = c => { const keep = optDraft; optDraft = {}; const v = optValue(c); optDraft = keep; return v };
+  if ('pun' in d && d.pun !== serveur('pun'))
+    await act('punish_options', d.pun ? { p_on: true, p_count: d.pun } : { p_on: false, p_count: null });
+  if (k in d && d[k] !== serveur(k)) {
+    const r = state.room, o = { target:+r.target, turns:+r.turns, [k]:d[k] };
+    await act('set_room_options', { p_mode:r.mode, p_target:o.target, p_turns:o.turns });
+  }
+  // un tapotement pendant l'envoi a remplacé le brouillon : on le garde pour le prochain envoi
+  if (d === optDraft) { optDraft = {}; render() }
+}
+
+// Le jeu est choisi à la création : le salon affiche le jeu, sa règle repliée
+// derrière le « i », et l'hôte n'y règle que la durée de la partie.
+let rulesOpen = false;
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
-  // Le nombre se tape dans une case : manches à gagner, à jouer, ou tours par joueur.
-  const [k, label] = r.mode === 'bac' ? ['target', 'Manches à jouer']
-    : r.mode === 'priorites' || r.mode === 'ondes' ? ['turns', `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'} par joueur`]
-    : ['target', 'Manches à gagner'];
-  const [lo, hi] = BORNES[k], cur = k === 'target' && r.mode === 'bac' ? bacRounds() : r[k];
-  const opts = !host ? ''
-    : `<label class="field"><span>${label} <small>(${lo} à ${hi})</small></span><input id="opt-${k}" class="optnb" data-k="${k}" type="text" inputmode="numeric"
-        pattern="[0-9]*" maxlength="2" autocomplete="off" enterkeyhint="done" value="${esc(cur)}" aria-label="${label}, de ${lo} à ${hi}" ${dis()}></label>`;
-  // Punitions : oui/non sur une moitié, le nombre par joueur dans l'autre
+  // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
+  const k = optKey(), label = r.mode === 'bac' ? 'Manches à jouer'
+    : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
+  const opts = host ? stepper(k, label) : '';
+  // Punitions : un seul nombre par joueur, 0 (par défaut) = pas de punition
   const on = !!pun?.on, nb = +(pun?.count || 2);
   const punOpt = !pun ? ''
-    : host ? `<div class="duo">
-        <div class="field"><span>Punitions</span><div class="seg s2" role="group" aria-label="Punitions">${[[0,'Non'],[1,'Oui']].map(([v,t]) =>
-          `<button type="button" class="seg-b ${+on === v ? 'on' : ''}" data-act="punish-opt" data-v="${v}" aria-pressed="${+on === v}" ${dis()}>${t}</button>`).join('')}</div></div>
-        <label class="field"><span>Par joueur <small>(1 à 5)</small></span><input id="pun-count" class="punnb" type="text" inputmode="numeric" pattern="[1-5]" maxlength="1"
-          autocomplete="off" enterkeyhint="done" value="${nb}" aria-label="Nombre de punitions par joueur (1 à 5)" ${on ? dis() : 'disabled'}></label>
-      </div>`
+    : host ? stepper('pun', 'Punitions par joueur')
     : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
-      <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
-      <p class="gdesc">${g.desc}</p>
-      ${opts}
-      ${punOpt}
+      <p class="eyebrow">Jeu</p>
+      <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
+        aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>` : ''}
+      ${host ? `<div class="opts${pun ? '' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
     </section>`;
 }
 
@@ -1954,17 +1984,20 @@ async function enter(call, name){
     busy = false; startSession();
   } catch (e) { busy = false; toast(e.message) }
 }
-async function share(){
-  const url = location.origin + location.pathname + '?code=' + session.code;
-  if (navigator.share) { try { return await navigator.share({ title:'Le Soulièteur', text:'Rejoins ma partie du Soulièteur avec le code ' + session.code, url }) } catch {} }
-  try { await navigator.clipboard.writeText(url); toast('Lien copié.') } catch { toast(url) }
-}
 
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
+  if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
+  if (el.dataset.act === 'step') {
+    const k = el.dataset.k, [lo, hi] = OPT_BORNES[k];
+    const v = Math.min(hi, Math.max(lo, optValue(k) + +el.dataset.d));
+    optDraft = { ...optDraft, [k]: v };
+    clearTimeout(optTimer); optTimer = setTimeout(() => { optTimer = null; sendOpts() }, 600);
+    return render();
+  }
   pressedEl = el;
   const a = el.dataset.act, id = el.dataset.id;
   if (a === 'target' || a === 'turns' || a === 'mode') {
@@ -2164,10 +2197,6 @@ document.addEventListener('click', async e => {
     if (!(await act('bac_vote', { p_vote: +el.dataset.v }))) { bacMyVote = null; render() }
     return;
   }
-  if (a === 'punish-opt') {
-    if (+!!pun?.on === +el.dataset.v) return;
-    return act('punish_options', { p_on: el.dataset.v === '1', p_count: +(pun?.count || 2) });
-  }
   if (a === 'punish-submit') {
     const t = [...document.querySelectorAll('.punfield input')].map(c => c.value.trim());
     if (!t.some(Boolean)) return toast('Écris au moins une punition.');
@@ -2177,7 +2206,6 @@ document.addEventListener('click', async e => {
   if (a === 'punish-spin') return act('punish_spin');
   if (a === 'continue') return act('continue_game');
   if (a === 'bac-next') return act('next_round');
-  if (a === 'share') return share();
   if (a === 'kick') return act('kick_player',{ p_player_id:id });
   if (a === 'leave') { try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {} return leaveLocal() }
 });
@@ -2185,8 +2213,6 @@ document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
-  if (e.target.id === 'pun-count') e.target.value = e.target.value.replace(/[^1-5]/g, '');
-  if (e.target.matches('.optnb')) e.target.value = e.target.value.replace(/\D/g, '');
   if (e.target.matches('.bacfield input')) {
     bacDraft[+e.target.dataset.i] = e.target.value;
     clearTimeout(bacTimer); bacTimer = setTimeout(saveBac, 700);
@@ -2199,22 +2225,6 @@ document.addEventListener('input', e => {
     catTimer = setTimeout(() => loadCatalog(0), 300);   // seule la liste est repeinte
   }
 });
-// nombre de punitions par joueur : envoyé quand on quitte la case
-document.addEventListener('change', e => {
-  // manches / tours : envoyés quand on quitte la case, refusés hors bornes
-  if (e.target.matches('.optnb')) {
-    const r = state.room, k = e.target.dataset.k, [lo, hi] = BORNES[k], v = +e.target.value;
-    const cur = k === 'target' && r.mode === 'bac' ? bacRounds() : +r[k];
-    if (!(v >= lo && v <= hi)) { e.target.value = cur; return toast(`Choisis un nombre entre ${lo} et ${hi}.`) }
-    if (v === cur) return;
-    const o = { target:+r.target, turns:+r.turns, [k]:v };
-    return act('set_room_options', { p_mode:r.mode, p_target:o.target, p_turns:o.turns });
-  }
-  if (e.target.id !== 'pun-count') return;
-  const v = +e.target.value;
-  if (!(v >= 1 && v <= 5)) { e.target.value = pun?.count || 2; return toast('Entre 1 et 5 punitions par joueur.') }
-  if (v !== +pun?.count) act('punish_options', { p_on: true, p_count: v });
-});
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
@@ -2226,7 +2236,6 @@ document.addEventListener('keydown', e => {
     const suivant = document.getElementById('pun-' + (+e.target.dataset.i + 1));
     suivant ? suivant.focus() : e.target.blur();
   }
-  if (e.key === 'Enter' && e.target.matches('#pun-count, .optnb')) e.target.blur();
   // Petit bac : Entrée passe à la catégorie suivante, et ferme le clavier à la dernière.
   if (e.key === 'Enter' && e.target.matches('.bacfield input')) {
     e.preventDefault();
