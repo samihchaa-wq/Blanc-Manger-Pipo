@@ -1533,7 +1533,7 @@ function bacWrite(){
   return `
     <div class="bachead"><span class="bacl">${L}</span>
       <span class="bacnote">Un mot en <b>${L}</b> pour chaque catégorie</span></div>
-    ${cats.map((c, i) => `<label class="bacfield"><span>${esc(c)}</span><input id="bac-${i}" data-i="${i}" maxlength="40"
+    ${cats.map((c, i) => `<label class="bacfield"><span>${esc(c)}</span><input id="bac-${i}" data-i="${i}" maxlength="120"
       autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
       enterkeyhint="${i < cats.length - 1 ? 'next' : 'done'}" placeholder="${L}…" ></label>`).join('')}
     <div class="dock"><button class="btn" data-act="bac-done" ${dis()}>J’ai fini</button></div>`;
