@@ -47,10 +47,10 @@ assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},40
   'Fallback polling must remain at 4 seconds');
 assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
-assert.match(scripts[0], /\[3,\s*5,\s*7,\s*10\]\s*\.map/,
-  'Supported target scores changed unexpectedly');
-// Le score cible se règle désormais dans le salon (choix du jeu par l'hôte).
-assert.match(scripts[0], /seg\('target'/, 'Target-score control must remain available');
+// Manches et tours se tapent à la main dans le salon, dans les bornes du serveur.
+assert.match(scripts[0], /const BORNES = \{ target:\[1, 20\], turns:\[1, 5\] \}/,
+  'Les bornes des réglages doivent suivre celles du serveur (manches 1-20, tours 1-5)');
+assert.match(scripts[0], /class="optnb" data-k="\$\{k\}"/, 'Le réglage de manches/tours doit rester une case à remplir');
 assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
 assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
@@ -86,8 +86,9 @@ assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : 12/,
 assert.match(scripts[0], /rpc\('bac_save', \{ p_code:session\.code, p_token:session\.token, p_answers:bacDraft, p_done:false \}\)/,
   'L’enregistrement au fil de la frappe doit appeler rpc directement');
 
-console.log('Frontend sanity checks passed.');
-
-// Petit bac : 1, 3 ou 5 manches au choix de l'hôte.
-assert.match(scripts[0], /\[1,3,5\]\.map\(v => \[v,v\]\)/, 'Le Petit bac propose 1, 3 ou 5 manches');
+// Petit bac : le nombre de manches est celui tapé par l'hôte, borné de 1 à 20.
+assert.match(scripts[0], /const bacRounds = \(\) => Math\.min\(20, Math\.max\(1, \+state\.room\.target \|\| 5\)\)/,
+  'Le Petit bac joue le nombre de manches choisi (1 à 20)');
 assert.doesNotMatch(scripts[0], /BAC_ROUNDS/, 'Le nombre de manches du Petit bac ne doit plus être fixe');
+
+console.log('Frontend sanity checks passed.');
