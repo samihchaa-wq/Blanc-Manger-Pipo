@@ -338,13 +338,21 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
-/* Punitions : une roue ☸️ à droite du compteur, grisée tant qu'elle est éteinte */
-.opts.pun{grid-template-columns:1fr 52px}
-.roue{display:grid;place-items:center;width:52px;height:52px;margin-top:auto;border-radius:var(--r-sm);
-  border:1.5px solid var(--hairline-2);background:var(--field);font-size:28px;line-height:1;
-  filter:grayscale(1);opacity:.45;transition:opacity .15s,filter .15s,border-color .15s}
-.roue.on{filter:none;opacity:1;border-color:var(--gold);box-shadow:0 0 12px rgba(255,190,60,.25)}
-.roue:active{transform:scale(.92)}
+/* Punitions : une petite roue, la même qu'en fin de partie, à droite du
+   compteur. Grisée tant qu'elle est éteinte, elle fait un tour en s'allumant. */
+.opts.pun{grid-template-columns:1fr 56px}
+.punsw{position:relative;display:grid;place-items:center;width:56px;height:52px;margin-top:auto}
+.punsw .mini{width:44px;height:44px;border-radius:50%;border:3px solid var(--paper);position:relative;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,.35),0 6px 14px -6px rgba(0,0,0,.8);
+  filter:grayscale(1) brightness(.6);opacity:.55;transition:filter .2s,opacity .2s}
+.punsw .mini::after{content:"";position:absolute;inset:32%;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--surface-2),var(--bg-0));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.punsw::before{content:"";position:absolute;top:1px;left:50%;transform:translateX(-50%);z-index:1;
+  border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--paper);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));opacity:.5;transition:opacity .2s}
+.punsw.on .mini{filter:none;opacity:1;animation:tourne .9s cubic-bezier(.12,.7,.1,1) both;--spin:360deg}
+.punsw.on::before{opacity:1}
+.punsw:active{transform:scale(.92)}
 .gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
 .gamebox .gname{font-size:22px;margin:0}
 /* « i » des règles : petit rond, zone de toucher élargie à 44 px */
@@ -1202,8 +1210,10 @@ function optValue(k){
 const PUN_NB = 2;
 function punCheck(){
   const v = optValue('pun') > 0;
-  return `<div class="field"><button type="button" class="roue${v ? ' on' : ''}" data-act="pun-toggle"
-      role="switch" aria-checked="${v}" aria-label="Punitions">☸️</button></div>`;
+  const parts = Array.from({ length: 8 }, (_, i) =>
+    `${SEAT_COLORS[i % SEAT_COLORS.length]} ${i * 45}deg ${(i + 1) * 45}deg`).join(',');
+  return `<div class="field"><button type="button" class="punsw${v ? ' on' : ''}" data-act="pun-toggle"
+      role="switch" aria-checked="${v}" aria-label="Punitions"><span class="mini" style="background:conic-gradient(${parts})"></span></button></div>`;
 }
 function stepper(k, label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
