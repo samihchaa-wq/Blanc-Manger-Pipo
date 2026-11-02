@@ -147,6 +147,9 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 .tabs:not(.jeux) .tab{font-weight:600}
 .pane[hidden]{display:none}
 .home .panel{margin-top:0}
+/* Créer / Rejoindre : simple bascule, pas besoin d'un gros bouton */
+.home .tabs{padding:3px;gap:3px}
+.home .tabs .tab{padding:8px 6px;font-size:15px}
 
 /* ===== Panneaux & champs ===== */
 .panel{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);
@@ -177,12 +180,12 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
 /* accueil : chaque jeu est une vignette ; celle choisie s'allume, les autres s'effacent */
 /* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
-   de l'accueil (marges, Admin, logo, onglets, pseudo, bouton ≈ 342 px + logo),
+   de l'accueil (marges, Admin, logo, onglets, pseudo, bouton ≈ 322 px + logo),
    pour que les quatre vignettes tiennent sans défiler. */
 .seg.games{gap:10px;padding:0;background:none;border:0;margin:0 auto;
   --logo:calc(min(100vw - 36px,300px,26vh) * .378);
-  width:min(100%,calc(100vh - var(--pad) - 342px - var(--logo)));
-  width:min(100%,calc(100dvh - var(--pad) - 342px - var(--logo)))}
+  width:min(100%,calc(100vh - var(--pad) - 322px - var(--logo)));
+  width:min(100%,calc(100dvh - var(--pad) - 322px - var(--logo)))}
 .seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:.55;
   transition:opacity var(--dur),transform var(--dur)}
 .seg.games .seg-b.on{opacity:1;transform:scale(1.03)}
