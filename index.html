@@ -336,9 +336,9 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
-/* case « Punition » : même hauteur que les compteurs, la coche au centre */
-.check{display:grid;place-items:center;height:52px;width:100%;background:var(--field);
-  border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
+/* « Punition : ✓ » sans cadre, aligné sur la case du compteur voisin */
+.check{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;width:100%;margin-top:auto;
+  font-size:17px;font-weight:500;color:var(--text)}
 .check i{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;border:2px solid var(--hairline-2);
   font-style:normal;font-size:18px;font-weight:700;color:#1a1208}
 .check.on i{background:var(--gold);border-color:var(--gold)}
@@ -1202,8 +1202,8 @@ function optValue(k){
 const PUN_NB = 2;
 function punCheck(){
   const v = optValue('pun') > 0;
-  return `<div class="field"><span>Punition</span><button type="button" class="check${v ? ' on' : ''}" data-act="pun-toggle"
-      role="checkbox" aria-checked="${v}" aria-label="Punition"><i aria-hidden="true">${v ? '✓' : ''}</i></button></div>`;
+  return `<div class="field"><button type="button" class="check${v ? ' on' : ''}" data-act="pun-toggle"
+      role="checkbox" aria-checked="${v}">Punition :<i aria-hidden="true">${v ? '✓' : ''}</i></button></div>`;
 }
 function stepper(k, label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
