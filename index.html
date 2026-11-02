@@ -1653,7 +1653,7 @@ function bacNaming(){
     <ol class="bacslots">${Array.from({ length:6 }, (_, i) => `<li class="${i < cats.length ? 'full' : ''}${i === cats.length - 1 ? ' new' : ''}">
       <span class="num">${i + 1}</span>${i < cats.length ? `<span class="cat">${esc(cats[i])}</span>` : '<span class="slot"></span>'}</li>`).join('')}</ol>
     ${moi ? `<label style="margin-top:22px"><span>Ta catégorie</span><input id="bac-cat" maxlength="40" autocomplete="off" autocapitalize="sentences"
-        enterkeyhint="done" placeholder="Animal, Ville, Chose qui pue…" value="${esc(catDraft)}"></label>
+        enterkeyhint="done" value="${esc(catDraft)}"></label>
       <div class="dock"><button class="btn" data-act="bac-cat" ${dis()}>Proposer</button></div>` : ''}`;
 }
 
