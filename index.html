@@ -335,6 +335,13 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
+/* case « Punition » : même hauteur que les compteurs, la coche au centre */
+.check{display:grid;place-items:center;height:52px;width:100%;background:var(--field);
+  border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
+.check i{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;border:2px solid var(--hairline-2);
+  font-style:normal;font-size:18px;font-weight:700;color:#1a1208}
+.check.on i{background:var(--gold);border-color:var(--gold)}
+.check:active{transform:scale(.97)}
 .gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
 .gamebox .gname{font-size:22px;margin:0}
 /* « i » des règles : petit rond, zone de toucher élargie à 44 px */
@@ -1191,6 +1198,12 @@ function optValue(k){
   if (k === 'pun') return pun?.on ? +pun.count : 0;
   return k === 'target' && state.room.mode === 'bac' ? bacRounds() : +state.room[k];
 }
+const PUN_NB = 2;
+function punCheck(){
+  const v = optValue('pun') > 0;
+  return `<div class="field"><span>Punition</span><button type="button" class="check${v ? ' on' : ''}" data-act="pun-toggle"
+      role="checkbox" aria-checked="${v}" aria-label="Punition"><i aria-hidden="true">${v ? '✓' : ''}</i></button></div>`;
+}
 function stepper(k, label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
   return `<div class="field"><span>${label}</span><div class="step" role="group" aria-label="${label}">
@@ -1222,10 +1235,10 @@ function gameBox(host){
   const k = optKey(), label = r.mode === 'bac' ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
   const opts = host ? stepper(k, label) : '';
-  // Punitions : un seul nombre par joueur, 0 (par défaut) = pas de punition
-  const on = !!pun?.on, nb = +(pun?.count || 2);
+  // Punitions : une case à cocher, toujours 2 par joueur quand elles sont activées
+  const on = !!pun?.on, nb = +(pun?.count || PUN_NB);
   const punOpt = !pun ? ''
-    : host ? stepper('pun', 'Punitions par joueur')
+    : host ? punCheck()
     : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
       <p class="eyebrow">Jeu</p>
@@ -1991,6 +2004,11 @@ document.addEventListener('click', async e => {
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
+  if (el.dataset.act === 'pun-toggle') {
+    optDraft = { ...optDraft, pun: optValue('pun') > 0 ? 0 : PUN_NB };
+    clearTimeout(optTimer); optTimer = setTimeout(() => { optTimer = null; sendOpts() }, 600);
+    return render();
+  }
   if (el.dataset.act === 'step') {
     const k = el.dataset.k, [lo, hi] = OPT_BORNES[k];
     const v = Math.min(hi, Math.max(lo, optValue(k) + +el.dataset.d));
