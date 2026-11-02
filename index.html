@@ -335,9 +335,16 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
-.gamebox .gname{font-size:22px;margin:2px 0 6px}
+.gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+.gamebox .gname{font-size:22px;margin:0}
+/* « i » des règles : petit rond, zone de toucher élargie à 44 px */
+.info{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  border:1.5px solid var(--hairline-2);color:var(--text-dim);font-size:14px;font-weight:700;line-height:1}
+.info::after{content:'';position:absolute;inset:-9px}
+.info.on{border-color:var(--gold);color:var(--gold)}
+.info:active{transform:scale(.9)}
 .gamebox .gdesc{font-size:15px;line-height:1.4;color:var(--text-dim);margin-top:12px}
-.gamebox .gname+.gdesc{margin-top:0}
+.gamebox .gtitle+.gdesc{margin-top:0}
 
 /* ===== Priorités ===== */
 /* Le classement en cours : cinq marches, la 1 en haut. Une marche vide est
@@ -1206,8 +1213,9 @@ async function sendOpts(){
   if (d === optDraft) { optDraft = {}; render() }
 }
 
-// Le jeu est choisi à la création : le salon affiche le jeu et sa règle,
-// l'hôte n'y règle que la durée de la partie.
+// Le jeu est choisi à la création : le salon affiche le jeu, sa règle repliée
+// derrière le « i », et l'hôte n'y règle que la durée de la partie.
+let rulesOpen = false;
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
   // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
@@ -1220,8 +1228,10 @@ function gameBox(host){
     : host ? stepper('pun', 'Punitions par joueur')
     : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
-      <p class="eyebrow">Jeu</p><h3 class="gname">${g.name}</h3>
-      <p class="gdesc">${g.desc}</p>
+      <p class="eyebrow">Jeu</p>
+      <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
+        aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>` : ''}
       ${host ? `<div class="opts${pun ? '' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
     </section>`;
 }
@@ -1980,6 +1990,7 @@ document.addEventListener('click', async e => {
   if (!el || el.disabled) return;
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
+  if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'step') {
     const k = el.dataset.k, [lo, hi] = OPT_BORNES[k];
     const v = Math.min(hi, Math.max(lo, optValue(k) + +el.dataset.d));
