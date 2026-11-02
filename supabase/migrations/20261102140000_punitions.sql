@@ -43,8 +43,7 @@ begin
   return new;
 end $function$;
 
-drop trigger if exists punish_room_guard on public.rooms;
-create trigger punish_room_guard before update of status on public.rooms
+create or replace trigger punish_room_guard before update of status on public.rooms
   for each row execute function public._punish_room_guard();
 
 -- ---------- Perdant : le dernier du classement, tiré au sort en cas d'égalité ----------
