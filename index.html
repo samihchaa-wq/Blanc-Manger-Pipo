@@ -159,6 +159,10 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
 label,.field{display:block;margin-bottom:16px}
 label>span,.field>span{display:block;font-size:12px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--text-faint);margin-bottom:8px}
+/* « Pseudo : » et sa case sur la même ligne */
+label.inline{display:flex;align-items:center;gap:12px}
+label.inline>span{flex:none;margin:0;font-size:17px;letter-spacing:0;text-transform:none;color:var(--text)}
+label.inline input{flex:1;min-width:0}
 input,textarea{display:block;width:100%;padding:14px 16px;border-radius:var(--r-sm);background:var(--field);
   border:1.5px solid var(--hairline-2);font-size:17px;transition:border-color var(--dur),background var(--dur)}
 input::placeholder,textarea::placeholder{color:var(--text-faint)}
@@ -1019,8 +1023,8 @@ function home(){
       </div>
 
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
-        <label><span>Pseudo</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
-        <div class="field"><span>Jeu</span>
+        <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+        <div class="field">
           <div class="seg s2" role="group" aria-label="Jeu">
             ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}">${g.name}</button>`).join('')}
           </div>
@@ -1033,7 +1037,7 @@ function home(){
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
-        <label><span>Pseudo</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+        <label class="inline"><span>Pseudo :</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
