@@ -316,8 +316,6 @@ button.scard:active{transform:translateY(2px)}
   font-size:13px;color:var(--text-faint);background:var(--surface-2)}
 .plist .kick:active{transform:scale(.9)}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
-.plist li.empty{background:transparent;border-style:dashed;border-color:var(--hairline-2);color:var(--text-faint);
-  font-size:15px;justify-content:center;align-items:center;text-align:center;min-height:48px}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .tag.host{background:rgba(255,194,61,.16);color:var(--gold-soft)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
@@ -1180,7 +1178,6 @@ function lobby(){
       ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
         <span class="nm">${esc(p.name)}</span>${host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
       </li>`).join('')}
-      ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
