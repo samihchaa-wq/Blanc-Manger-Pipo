@@ -94,8 +94,12 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    haut, avec du défilement en prime. */
 .home{--pad:calc(30px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
-  display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(8px,2vh,18px)}
-.home-top{display:flex;justify-content:flex-end;margin-bottom:-6px}
+  display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(8px,2vh,18px);position:relative}
+/* Admin réduit à son badge, posé à droite du logo : le logo monte tout en haut.
+   Le logo garde 52 px de marge de chaque côté pour ne jamais passer dessous. */
+.home-top{position:absolute;top:0;right:0;z-index:1}
+.iconbtn.solo{width:44px;padding:0;justify-content:center}
+.iconbtn.solo svg{width:19px;height:19px}
 .iconbtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 16px 8px 13px;border-radius:var(--r-pill);
   background:var(--surface);border:1px solid var(--hairline);color:var(--text-dim);
   font-size:13px;letter-spacing:.08em;text-transform:uppercase}
@@ -111,7 +115,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
   background:radial-gradient(closest-side,rgba(255,194,61,.22),rgba(255,92,141,.10) 55%,transparent 72%);
   filter:blur(14px);animation:halo 5.5s ease-in-out infinite}
 @keyframes halo{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.9;transform:translate(-50%,-50%) scale(1.06)}}
-.home h1 img{display:block;width:min(100%,300px,26vh);height:auto;margin:0 auto;position:relative}
+.home h1 img{display:block;width:min(100% - 104px,340px,32vh);height:auto;margin:0 auto;position:relative}
 /* Amorçage : le titre s'allume comme un tube — deux hésitations, puis il
    tient. Joué une fois, à l'arrivée sur l'accueil, jamais en boucle. */
 .home h1{animation:ignite 1.3s both}
@@ -128,7 +132,7 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    lettres, le masque s'en charge. En « color », le ruban ne donne que sa
    teinte : le modelé et les ombres du tracé restent ceux du logo. */
 .home h1 .shift{position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:min(100%,300px,26vh);aspect-ratio:801/303;pointer-events:none;
+  width:min(100% - 104px,340px,32vh);aspect-ratio:801/303;pointer-events:none;
   background:linear-gradient(100deg,#FEDD26,#FC4184,#FC27AB,#FD854F,#FEDD26);
   background-size:280% 100%;opacity:.38;mix-blend-mode:color;
   -webkit-mask:url(logo.svg) center/contain no-repeat;mask:url(logo.svg) center/contain no-repeat;
@@ -180,12 +184,12 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
 /* accueil : chaque jeu est une vignette ; celle choisie s'allume, les autres s'effacent */
 /* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
-   de l'accueil (marges, Admin, logo, onglets, pseudo, bouton ≈ 322 px + logo),
+   de l'accueil (marges, onglets, pseudo, bouton ≈ 266 px + logo),
    pour que les quatre vignettes tiennent sans défiler. */
 .seg.games{gap:10px;padding:0;background:none;border:0;margin:0 auto;
-  --logo:calc(min(100vw - 36px,300px,26vh) * .378);
-  width:min(100%,calc(100vh - var(--pad) - 322px - var(--logo)));
-  width:min(100%,calc(100dvh - var(--pad) - 322px - var(--logo)))}
+  --logo:calc(min(100vw - 140px,340px,32vh) * .378);
+  width:min(100%,calc(100vh - var(--pad) - 266px - var(--logo)));
+  width:min(100%,calc(100dvh - var(--pad) - 266px - var(--logo)))}
 .seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:.55;
   transition:opacity var(--dur),transform var(--dur)}
 .seg.games .seg-b.on{opacity:1;transform:scale(1.03)}
@@ -1030,9 +1034,8 @@ function home(){
   return `
     <div class="home">
       <div class="home-top">
-        <button class="iconbtn" data-act="admin">
+        <button class="iconbtn solo" data-act="admin" aria-label="Admin" title="Admin">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/><path d="M9.5 12l1.8 1.8 3.5-3.6"/></svg>
-          Admin
         </button>
       </div>
 
