@@ -305,21 +305,16 @@ button.scard:active{transform:translateY(2px)}
   background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
 .sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
-/* deux joueurs par ligne : le nom (et ses étiquettes) en haut, l'état en dessous */
+/* deux joueurs par ligne, l'hôte en premier ; contour vert = prêt */
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.plist li{display:flex;flex-wrap:wrap;align-content:center;align-items:center;gap:6px;min-width:0;min-height:56px;padding:8px 10px;
+.plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
-.plist li.is-ready{border-color:rgba(63,220,156,.45);background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
-.plist .who,.plist .rt{display:contents}
-.plist .nm{flex:1 1 100%}
-.plist .rt .link{margin-left:auto}
+.plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
+.plist .nm{flex:1}
+.plist .link{flex:none;font-size:14px}
 .plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:2.5em}
-.plist .state{padding:4px 8px;font-size:11px}
 .plist li.empty{background:transparent;border-style:dashed;border-color:var(--hairline-2);color:var(--text-faint);
   font-size:15px;justify-content:center;align-items:center;text-align:center;min-height:48px}
-.state{font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill)}
-.state.yes{background:rgba(63,220,156,.16);color:var(--mint)}
-.state.no{background:var(--surface-2);color:var(--text-dim)}
 .tag{flex:none;font-size:11px;background:var(--surface-2);color:var(--text-dim);border-radius:6px;padding:3px 7px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .tag.host{background:rgba(255,194,61,.16);color:var(--gold-soft)}
 .meta{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:14px}
@@ -629,9 +624,6 @@ button.scard:active{transform:translateY(2px)}
 #app.enter{animation:screenIn .24s var(--ease)}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px)}}
 
-/* ===== « prêt » qui s'installe ===== */
-.state.yes{animation:readyPop .32s var(--ease)}
-@keyframes readyPop{0%{transform:scale(.7);opacity:.4}60%{transform:scale(1.12)}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
@@ -1168,9 +1160,8 @@ function lobby(){
     ${gameBox(host)}
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
-      ${state.players.map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="who"><span class="nm">${esc(p.name)}</span>${p.id === r.host_id ? '<span class="tag host">hôte</span>' : ''}${p.is_bot ? '<span class="tag">bot</span>' : ''}${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
-        <span class="rt"><span class="state ${p.ready ? 'yes' : 'no'}">${p.ready ? 'prêt ✓' : 'pas prêt'}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}">Retirer</button>` : ''}</span>
+      ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
+        <span class="nm">${esc(p.name)}</span>${host && !isMe(p.id) ? `<button class="link" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">Retirer</button>` : ''}
       </li>`).join('')}
       ${missing > 0 ? `<li class="empty">Il manque ${missing} joueur${missing > 1 ? 's' : ''}…</li>` : ''}
     </ul>
