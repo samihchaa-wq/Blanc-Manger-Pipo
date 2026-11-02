@@ -338,13 +338,13 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
-/* « Punition : ✓ » sans cadre, aligné sur la case du compteur voisin */
-.check{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;width:100%;margin-top:auto;
-  font-size:17px;font-weight:500;color:var(--text)}
-.check i{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;border:2px solid var(--hairline-2);
-  font-style:normal;font-size:18px;font-weight:700;color:#1a1208}
-.check.on i{background:var(--gold);border-color:var(--gold)}
-.check:active{transform:scale(.97)}
+/* Punitions : une roue ☸️ à droite du compteur, grisée tant qu'elle est éteinte */
+.opts.pun{grid-template-columns:1fr 52px}
+.roue{display:grid;place-items:center;width:52px;height:52px;margin-top:auto;border-radius:var(--r-sm);
+  border:1.5px solid var(--hairline-2);background:var(--field);font-size:28px;line-height:1;
+  filter:grayscale(1);opacity:.45;transition:opacity .15s,filter .15s,border-color .15s}
+.roue.on{filter:none;opacity:1;border-color:var(--gold);box-shadow:0 0 12px rgba(255,190,60,.25)}
+.roue:active{transform:scale(.92)}
 .gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
 .gamebox .gname{font-size:22px;margin:0}
 /* « i » des règles : petit rond, zone de toucher élargie à 44 px */
@@ -1202,8 +1202,8 @@ function optValue(k){
 const PUN_NB = 2;
 function punCheck(){
   const v = optValue('pun') > 0;
-  return `<div class="field"><button type="button" class="check${v ? ' on' : ''}" data-act="pun-toggle"
-      role="checkbox" aria-checked="${v}">Punition :<i aria-hidden="true">${v ? '✓' : ''}</i></button></div>`;
+  return `<div class="field"><button type="button" class="roue${v ? ' on' : ''}" data-act="pun-toggle"
+      role="switch" aria-checked="${v}" aria-label="Punitions">☸️</button></div>`;
 }
 function stepper(k, label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
@@ -1236,7 +1236,7 @@ function gameBox(host){
   const k = optKey(), label = r.mode === 'bac' ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
   const opts = host ? stepper(k, label) : '';
-  // Punitions : une case à cocher, toujours 2 par joueur quand elles sont activées
+  // Punitions : une roue à activer, toujours 2 par joueur quand elles sont activées
   const on = !!pun?.on, nb = +(pun?.count || PUN_NB);
   const punOpt = !pun ? ''
     : host ? punCheck()
@@ -1246,7 +1246,7 @@ function gameBox(host){
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>` : ''}
-      ${host ? `<div class="opts${pun ? '' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
+      ${host ? `<div class="opts${pun ? ' pun' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
     </section>`;
 }
 
