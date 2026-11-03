@@ -118,8 +118,9 @@ assert.match(whiteClueView, /host[\s\S]*Passer au vote/, 'Le bouton reste réser
 assert.doesNotMatch(whiteClueView, /<h1|<h3|whiteNote\(\)|white-feed|white-seats|class="role"|class="waiting"/,
   'Pas de titre, ordre de passage, indices des bots ni consignes sur cet écran');
 
-assert.match(scripts[0], /Tu es MrWhitz/, 'MrWhitz voit son propre rôle et l’emblème du jeu');
-assert.match(scripts[0], /games\/white\.svg/, 'MrWhitz voit le logo');
+assert.match(scripts[0], /Tu es Mr White/, 'Mr White voit son propre rôle et l’emblème du jeu');
+assert.doesNotMatch(scripts[0], /MrWhitz/, 'Le nom Mr White est orthographié correctement dans les vues');
+assert.match(scripts[0], /games\/white\.svg/, 'Mr White voit le logo');
 assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clue-input|white-guess-input/,
   'Un Civil ou un imposteur ne voit pas son rôle et les indices sont donnés à l’oral');
 assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
