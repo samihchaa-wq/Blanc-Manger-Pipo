@@ -46,6 +46,7 @@ create table if not exists public.white_clues (
   cycle integer not null,
   player_id uuid not null references public.players(id) on delete cascade,
   clue text not null check (length(clue) between 2 and 100),
+  created_at timestamptz not null default now(),
   primary key (room_id,round,cycle,player_id),
   foreign key (room_id,round) references public.white_rounds(room_id,round) on delete cascade
 );
@@ -244,8 +245,7 @@ begin
     'voted',exists(select 1 from public.white_votes v where v.room_id=r.id and v.round=r.round and v.cycle=r.white_cycle and v.player_id=me.id),
     'votes_count',(select count(*) from public.white_votes v where v.room_id=r.id and v.round=r.round and v.cycle=r.white_cycle),
     'clues',(select coalesce(json_agg(json_build_object('player_id',c.player_id,'text',c.clue) order by c.created_at),'[]'::json)
-             from (select c.player_id,c.clue,c.room_id,c.round,c.cycle,c.player_id as sortable, c.clue as text, ctid from public.white_clues c
-                   where c.room_id=r.id and c.round=r.round and c.cycle=r.white_cycle) c),
+             from public.white_clues c where c.room_id=r.id and c.round=r.round and c.cycle=r.white_cycle),
     'roles',(select coalesce(json_agg(json_build_object('player_id',wr.player_id,
       'out',wr.eliminated,'role',case when wr.eliminated or r.status in ('reveal','finished') then wr.role end)
       order by p.seat),'[]'::json)
