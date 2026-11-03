@@ -1286,24 +1286,22 @@ function gameBox(host){
 
 // Écran d'après « Lancer la partie » : chacun propose ses punitions, secrètes
 // jusqu'à la fin. Le jeu démarre tout seul quand tout le monde a validé.
-const PUN_EX = ['Imiter une poule pendant 30 s', 'Faire 10 pompes', 'Chanter le refrain de son choix', 'Parler avec un accent jusqu’au prochain verre', 'Raconter sa pire honte'];
+// Proposer est facultatif : valider sans rien écrire compte comme « validé ».
 function punWrite(){
-  const mine = pun?.mine || [], nb = +(pun?.count || 1);
-  const attente = state.players.filter(p => !p.is_bot && !+(pun?.counts?.[p.id] || 0));
-  if (mine.length) return `
-    <p class="eyebrow">Punitions</p>
+  const mine = pun?.mine || [], nb = +(pun?.count || 1), sent = pun?.sent || [];
+  const attente = state.players.filter(p => !p.is_bot && !sent.includes(p.id));
+  if (sent.some(isMe)) return `
     <h2 class="bigstate">C’est envoyé.</h2>
-    <p class="role">Le jeu démarre dès que tout le monde a proposé les siennes.</p>
-    <h3 class="sec">Tes punitions</h3>
-    <ul class="punlist">${mine.map(x => `<li><span>${esc(x.text)}</span></li>`).join('')}</ul>
+    <p class="role">Le jeu démarre dès que tout le monde a validé.</p>
+    ${mine.length ? `<h3 class="sec">Tes punitions</h3>
+    <ul class="punlist">${mine.map(x => `<li><span>${esc(x.text)}</span></li>`).join('')}</ul>` : ''}
     ${waiting(attente, 'C’est parti…')}`;
   return `
-    <p class="eyebrow">Punitions</p>
     <h2 class="bigstate">${nb > 1 ? `Propose jusqu’à ${nb} punitions` : 'Propose une punition'}</h2>
     <p class="role">Personne ne les voit avant la fin. Le dernier tourne la roue et en tire une.</p>
-    ${Array.from({ length: nb }, (_, i) => `<label class="punfield"><span>Punition ${i + 1}${i ? ' (facultative)' : ''}</span>
+    ${Array.from({ length: nb }, (_, i) => `<label class="punfield"><span>Punition ${i + 1} (facultative)</span>
       <input id="pun-${i}" data-i="${i}" maxlength="100" autocomplete="off" autocapitalize="sentences"
-        enterkeyhint="${i < nb - 1 ? 'next' : 'done'}" placeholder="${esc(PUN_EX[i % PUN_EX.length])}…" value="${esc(punDrafts[i] || '')}"></label>`).join('')}
+        enterkeyhint="${i < nb - 1 ? 'next' : 'done'}" value="${esc(punDrafts[i] || '')}"></label>`).join('')}
     <div class="dock"><button class="btn" data-act="punish-submit" ${dis()}>Valider</button></div>`;
 }
 
@@ -2251,7 +2249,6 @@ document.addEventListener('click', async e => {
   }
   if (a === 'punish-submit') {
     const t = [...document.querySelectorAll('.punfield input')].map(c => c.value.trim());
-    if (!t.some(Boolean)) return toast('Écris au moins une punition.');
     if (await act('punish_submit', { p_texts: t })) punDrafts = [];
     return;
   }
