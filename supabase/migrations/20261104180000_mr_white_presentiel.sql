@@ -43,9 +43,11 @@ begin
   if c.id is null then raise exception 'Aucune paire de mots Mr White disponible.'; end if;
   select count(*) into n from public.players where room_id=p_room and active;
   if n<3 then raise exception 'Mr White demande au moins 3 joueurs.'; end if;
-  -- Total d'imposteurs, MrWhitz compris :
-  -- 3–4 joueurs : 1 ; 5–7 : 2 ; 8–11 : 3 ; 12 : 4.
-  intruders := case when n>=12 then 4 when n>=8 then 3 when n>=5 then 2 else 1 end;
+  -- Distribution décidée pour les Civils et les imposteurs :
+  -- 3–7 joueurs : 1 imposteur ; 8–12 joueurs : 2 imposteurs.
+  -- À 7 joueurs, on obtient 6 Civils + 1 imposteur.
+  -- MrWhitz remplace un imposteur, il ne s'ajoute jamais au groupe.
+  intruders := case when n>=8 then 2 else 1 end;
   white_count := case when r.white_has_white then 1 else 0 end;
   insert into public.white_rounds(room_id,round,word_id,civil_word,undercover_word)
   values(p_room,p_next_round,c.id,c.civil,c.undercover);
