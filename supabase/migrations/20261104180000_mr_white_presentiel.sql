@@ -203,6 +203,7 @@ begin
       select civil into guess from public.white_words where deleted_at is null order by random() limit 1;
       perform public.white_guess(r.code,bot.token,coalesce(guess,'aucune idée'));
     end if;
+  end if;
 end $fn$;
 
 
