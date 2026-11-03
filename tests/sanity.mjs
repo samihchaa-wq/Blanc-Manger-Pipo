@@ -110,7 +110,7 @@ assert.match(scripts[0], /white_bot_step/, 'Bots côté serveur');
 const whiteCardView = scripts[0].split('function whiteSecret(){')[1].split('function whitePeople(){')[0];
 const whiteClueView = scripts[0].split('function whiteClue(){')[1].split('function whiteVote(){')[0];
 assert.ok(whiteCardView && whiteClueView, 'Écrans du jeu Mr White disponibles');
-assert.match(whiteCardView, /Ta carte :/, 'Une étiquette unique sur la carte');
+assert.match(whiteCardView, /Ta Carte :/, 'Une étiquette unique sur la carte');
 assert.doesNotMatch(whiteCardView, /<small>|Ta carte secrète|Ton mot secret|Ne la montre à personne/,
   'Aucun paragraphe explicatif sur la carte');
 assert.match(whiteClueView, /whiteSecret\(\)/, 'La carte est toujours visible');
