@@ -77,10 +77,10 @@ assert.match(html, /<div class="scrim" aria-hidden="true">/,
 assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
 // L'écran de résultat d'une manche passe seul après 5 s (2 min pour le classement de Priorités), sans bouton à valider.
 assert.match(scripts[0], /status === 'reveal' \? \(isPrio\(\) \? 120000 : 5000\) : 120000/, 'Le résultat d’une manche doit durer 5 s, 2 min en Priorités');
-// Seul le Petit bac (sans aucune notion de temps) garde un bouton « Manche suivante ».
-assert.equal((scripts[0].match(/next_round/g) || []).length, 1, 'Seul le Petit bac valide la manche suivante');
+// Petit bac et Mr White avancent sans chronomètre et avec « Manche suivante ».
+assert.equal((scripts[0].match(/next_round/g) || []).length, 1, 'Petit bac et Mr White partagent le même appel next_round');
 assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Le Petit bac avance par un bouton');
-assert.match(scripts[0], /isBac\(\) \|\| !TIMED\.includes/, 'Le Petit bac ne doit avoir aucun minuteur');
+assert.match(scripts[0], /isBac\(\) \|\| isWhite\(\) \|\| !TIMED\.includes/, 'Petit bac et Mr White ne doivent avoir aucun minuteur');
 assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Le Petit bac ne doit pas afficher de compte à rebours');
 
 // Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
@@ -95,5 +95,18 @@ assert.match(scripts[0], /rpc\('bac_save', \{ p_code:session\.code, p_token:sess
 assert.match(scripts[0], /const bacRounds = \(\) => Math\.min\(20, Math\.max\(1, \+state\.room\.target \|\| 5\)\)/,
   'Le Petit bac joue le nombre de manches choisi (1 à 20)');
 assert.doesNotMatch(scripts[0], /BAC_ROUNDS/, 'Le nombre de manches du Petit bac ne doit plus être fixe');
+
+
+
+// Mr White doit rester branché sur les salons, bots, catalogues et rôles privés.
+assert.match(scripts[0], /white:\s*\{ name:'Mr White'/, 'Jeu Mr White présent');
+assert.match(scripts[0], /white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess/, 'Phases Mr White déclarées');
+assert.match(scripts[0], /s\.white = await rpc\('white_state'/, 'Rôles secrets issus du serveur');
+assert.match(scripts[0], /act\('white_clue', \{ p_clue:t \}\)/, 'Indices côté joueur');
+assert.match(scripts[0], /act\('white_vote', \{ p_target:id \}\)/, 'Votes côté joueur');
+assert.match(scripts[0], /act\('white_guess', \{ p_word:t \}\)/, 'Tentative de Mr White');
+assert.match(scripts[0], /white_bot_step/, 'Bots côté serveur');
+assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
+assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Vignette Mr White');
 
 console.log('Frontend sanity checks passed.');

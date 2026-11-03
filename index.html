@@ -545,6 +545,7 @@ button.scard:active{transform:translateY(2px)}
 .tabs.jeux{grid-auto-columns:minmax(0,1fr)}
 .tabs.jeux .tab{padding:14px 3px;font-size:clamp(11.5px,3.1vw,14px);letter-spacing:-.01em;
   line-height:1.2;white-space:normal;text-wrap:balance}
+.tabs.jeux .tab{font-size:clamp(10px,2.6vw,13px);padding:12px 2px}
 /* Les catalogues du jeu : un cran sous la barre, en onglets soulignés. */
 .soustabs{display:flex;gap:26px;margin:14px 6px 0;border-bottom:1px solid var(--hairline)}
 .soustab{position:relative;padding:12px 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
@@ -606,6 +607,32 @@ button.scard:active{transform:translateY(2px)}
 .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:8px;
   animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+
+
+/* ===== Mr White : cartes personnelles et vote, mêmes couleurs que le salon ===== */
+.white-secret{padding:20px;margin:14px 0 24px;border-radius:var(--r-lg);
+  background:linear-gradient(150deg,var(--gold-paper-2),var(--gold-paper));color:var(--ink);
+  text-align:center;box-shadow:0 5px 0 var(--gold-deep),var(--shadow-card)}
+.white-secret .eyebrow{color:var(--ink);opacity:.7}
+.white-secret strong{display:block;font-size:clamp(25px,7vw,37px);margin:4px 0;letter-spacing:-.035em}
+.white-secret small{display:block;font-size:14px;opacity:.85}
+.white-note{padding:12px 15px;border:1px solid var(--hairline-2);border-radius:var(--r-md);
+  margin:14px 0;background:var(--surface);color:var(--text)}
+.white-list{list-style:none;padding:0;margin:12px 0 20px;display:grid;gap:8px}
+.white-list li{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--hairline);
+  background:var(--surface);border-radius:var(--r-md)}
+.white-list li.out{opacity:.6}
+.white-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.white-list .meta{font-size:13px;color:var(--text-dim)}
+.white-list button{width:100%;padding:14px;border:1.5px solid var(--hairline-2);
+  border-radius:var(--r-md);background:var(--surface);color:var(--text);text-align:left;font-size:17px}
+.white-list button:active:not(:disabled){border-color:var(--gold);background:var(--surface-2)}
+.white-list button:disabled{opacity:.55}
+.white-feed{padding-left:22px;margin:10px 0 20px}
+.white-feed li{padding:5px 0;color:var(--text-dim)}
+.white-feed b{color:var(--text)}
+.white-result{margin:12px 0 24px;text-align:center}
+.white-result strong{display:block;font-size:27px;color:var(--gold)}
 
 /* ===== Fin ===== */
 .bigwin{font-size:clamp(38px,11.5vw,54px);margin:8px 0 20px;letter-spacing:-.045em;
@@ -701,6 +728,7 @@ let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et
 // l'instant local où la roue des lettres a démarré.
 let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve();
 let roueAt = 0, roueTimer = null, bacMyVote = null, catDraft = '';
+let whiteDraft = '', whiteGuessDraft = '';
 let pressedEl = null, lastHtml = '';
 // Punitions : état lu au salon et en fin de partie, saisie en cours, et
 // l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
@@ -712,9 +740,9 @@ let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases �
 let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
 // Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
 // deux textes : l'extrême de gauche et celui de droite.
-const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']] };
+const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']] };
 const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
-const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte' };
+const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte', m:'paire' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
@@ -723,12 +751,14 @@ const GAMES = {
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, sans chrono, puis jugez ceux de votre adversaire.' },
+  white:     { name:'Mr White', desc:'Chacun reçoit secrètement un mot, sauf Mr White. À tour de rôle, donnez un indice puis votez pour démasquer les intrus. Mr White peut gagner en devinant le mot des Civils.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
 const isBac = () => state?.room.mode === 'bac';
+const isWhite = () => state?.room.mode === 'white';
 // Priorités, Baromètre et Petit bac se jouent en manches comptées, pas au score cible.
-const isCounted = () => isPrio() || isWave() || isBac();
+const isCounted = () => isPrio() || isWave() || isBac() || isWhite();
 // Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
 // moins deux réponses à départager. Le Petit bac se joue à deux exactement.
 // Le serveur applique les mêmes règles.
@@ -786,6 +816,8 @@ async function refresh(force = false){
   lastSync = Date.now();
   try {
     let s = await rpc('get_state', { p_code: session.code, p_token: session.token });
+    if (s.room.mode === 'white' && s.room.status !== 'lobby')
+      s.white = await rpc('white_state', { p_code:session.code, p_token:session.token });
     // les punitions ne servent qu'au salon et à l'écran de fin
     let pu = null;
     if (s.room.status === 'lobby' || s.room.status === 'finished')
@@ -818,7 +850,7 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; whiteDraft = ''; whiteGuessDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     render(); scheduleAuto();
@@ -882,11 +914,14 @@ function scheduleBots(){
   else if (r.status === 'writing')    todo = bots.some(b => !b.bac_done);
   // une grille en attente de vote dont le juge est un bot
   else if (r.status === 'voting')     todo = (state.bac?.rows || []).some(x => x.pending && bots.some(b => b.id !== x.player_id));
-  else if (r.status === 'reveal' && r.mode === 'bac') todo = bots.some(b => b.next_ack !== r.round);
+  else if (r.status === 'white_clue') todo = bots.some(b => b.id === state.white?.speaker_id);
+  else if (r.status === 'white_vote') todo = (state.white?.roles || []).some(x => !x.out && !x.voted && bots.some(b => b.id === x.player_id));
+  else if (r.status === 'white_guess') todo = bots.some(b => b.id === state.white?.last_eliminated);
+  else if (r.status === 'reveal' && (r.mode === 'bac' || r.mode === 'white')) todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
   botTimer = setTimeout(async () => {
-    try { await rpc('bot_step', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
+    try { await rpc(r.mode === 'white' && r.status.startsWith('white_') ? 'white_bot_step' : 'bot_step', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
     catch {}
   }, 900);
 }
@@ -898,7 +933,7 @@ const phaseLength = () => state.room.status === 'reveal' ? (isPrio() ? 120000 : 
 const stamp = t => Date.parse(String(t || '').replace(' ','T')) || 0;
 function phaseDeadline(){
   // Petit bac : aucune notion de temps, ni minuteur ni passage automatique
-  if (!state || isBac() || !TIMED.includes(state.room.status)) return 0;
+  if (!state || isBac() || isWhite() || !TIMED.includes(state.room.status)) return 0;
   const t = stamp(state.room.phase_at);
   return t ? t + phaseLength() : 0;
 }
@@ -1016,7 +1051,8 @@ function render(){
   else if (!session) html = home();
   else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
-    naming: bacNaming, writing: bacWrite, voting: bacVote, reveal, finished }[state.room.status]();
+    naming: bacNaming, writing: bacWrite, voting: bacVote,
+    white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -1024,12 +1060,12 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const ae = document.activeElement, focId = /^pun-\d$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
+    const ae = document.activeElement, focId = /^(?:pun-\d|white-clue-input|white-guess-input)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
-    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '');
+    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '') + (isWhite() ? '-' + (state.white?.cycle || 0) : '');
     const newScreen = key !== renderedKey;
     if (newScreen) {
       renderedKey = key;
@@ -1080,7 +1116,7 @@ function home(){
         <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field">
           <div class="seg s2 games" role="group" aria-label="Jeu">
-            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k}.webp" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
+            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white.svg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
         </div>
@@ -1101,7 +1137,7 @@ function home(){
 // Une barre pour le jeu, puis les catalogues de ce jeu.
 function adminView(){
   const plus = adminLevel === 'plus';
-  const k = adminTab, q = k === 'q', w = k === 'w', jeu = jeuDe(k), sous = CATALOGUES[jeu];
+  const k = adminTab, q = k === 'q', w = k === 'w' || k === 'm', jeu = jeuDe(k), sous = CATALOGUES[jeu];
   const body = adminLevel
     ? `<div class="tabs jeux" role="tablist" aria-label="Jeu">
          ${Object.keys(CATALOGUES).map(g =>
@@ -1113,8 +1149,8 @@ function adminView(){
        </div>
        <section class="panel">
          ${w
-           ? `              <label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next"></label>
-              <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done"></label>`
+           ? `              <label><span>${k === 'm' ? 'Mot des Civils' : 'Extrême gauche'}</span><input id="a-left" maxlength="60" autocomplete="off" enterkeyhint="next"></label>
+              <label><span>${k === 'm' ? 'Mot Undercover' : 'Extrême droite'}</span><input id="a-right" maxlength="60" autocomplete="off" enterkeyhint="done"></label>`
            : `<label><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}" aria-label="Texte de la ${MOT[k]}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
@@ -1124,7 +1160,7 @@ function adminView(){
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="Rechercher ${w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="Rechercher ${k === 'm' ? 'une paire de mots' : w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -1173,10 +1209,10 @@ function paintCatalog(){
     ? catalog.items.map(c => `<li>
         ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
             : catalog.kind === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
-            : catalog.kind === 'w' ? ''
+            : catalog.kind === 'w' || catalog.kind === 'm' ? ''
             : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
           aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
-        <span class="ct">${catalog.kind === 'w'
+        <span class="ct">${catalog.kind === 'w' || catalog.kind === 'm'
           ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
           : esc(c.text)}</span>
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
@@ -1199,7 +1235,9 @@ function adminSwitch(k){
 async function loadCatalog(offset = 0){
   if (adminLevel !== 'plus') return;
   try {
-    const d = await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
+    const d = catalog.kind === 'm'
+      ? await rpc('admin_list_white_words', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
+      : await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
     catalog.total = d.total;
     catalog.items = offset ? catalog.items.concat(d.items) : d.items;
     paintCatalog();
@@ -1210,7 +1248,7 @@ function topbar(){
   const r = state.room;
   // Salon : la vignette du jeu à gauche, le code au milieu, la croix à droite.
   if (r.status === 'lobby') return `<div class="top lobbytop">
-      <img class="gamelogo" src="games/${GAMES[r.mode] ? r.mode : 'phrases'}.webp" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
+      <img class="gamelogo" src="games/${r.mode === 'white' ? 'white.svg' : (GAMES[r.mode] ? r.mode : 'phrases') + '.webp'}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
       <div class="codeblock"><p class="eyebrow">Code de la partie</p>
         <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div></div>
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -1290,7 +1328,7 @@ let rulesOpen = false;
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
   // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
-  const k = optKey(), label = r.mode === 'bac' ? 'Manches à jouer'
+  const k = optKey(), label = (r.mode === 'bac' || r.mode === 'white') ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
   const opts = host ? stepper(k, label) : '';
   // Punitions : une roue à activer, toujours 2 par joueur quand elles sont activées
@@ -1457,7 +1495,7 @@ function judging(){
 // (tours choisis - fois où il a déjà jugé). Le Petit bac en compte 1, 3 ou 5 (au choix de l'hôte).
 function roundsLeft(){
   const r = state.room;
-  if (isBac()) return Math.max(0, bacRounds() - r.round);
+  if (isBac() || isWhite()) return Math.max(0, bacRounds() - r.round);
   return state.players.filter(p => p.active).reduce((n, p) => n + Math.max(0, r.turns - (p.judge_count || 0)), 0);
 }
 const rankCard = id => (state.rank_cards || []).find(c => c.id === id);
@@ -1653,6 +1691,82 @@ function endDial(e){
 document.addEventListener('pointerup', endDial);
 document.addEventListener('pointercancel', endDial);
 
+
+/* ---------- Mr White ---------- */
+// Les rôles et les mots sont demandés à un RPC distinct : personne ne peut lire
+// ceux des autres dans le HTML, le salon ou les tables exposées.
+function whiteSecret(){
+  const w=state.white||{}, role=w.role==='white'?'Mr White':w.role==='undercover'?'Undercover':'Civil';
+  return `<section class="white-secret">
+    <p class="eyebrow">Ton rôle · Ne le montre à personne</p>
+    <strong>${esc(role)}</strong>
+    <small>${w.role==='white'?'Tu ne connais pas le mot. Bluffe pour ne pas te faire repérer.':
+      w.role==='undercover'?'Ton mot ressemble à celui des Civils. Trouve leur mot sans te trahir.':'Garde ton mot secret et repère les intrus.'}</small>
+    ${w.word?`<strong>${esc(w.word)}</strong>`:'<strong>?</strong>'}
+  </section>`;
+}
+function whitePeople(){
+  const w=state.white||{};
+  return `<ul class="white-list">${(w.roles||[]).map(p=>
+    `<li class="${p.out?'out':''}"><span class="nm">${nameOf(p.player_id)}${isMe(p.player_id)?' · toi':''}</span>
+      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'Mr White':'Undercover'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
+}
+function whiteNote(){
+  return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
+}
+function whiteClue(){
+  const w=state.white||{}, mine=isMe(w.speaker_id), name=nameOf(w.speaker_id);
+  return `
+    <h1 class="bigstate">Tour d’indices · ${w.cycle||1}</h1>
+    ${whiteSecret()}${whiteNote()}
+    <p class="role">${w.eliminated?'Tu es éliminé, observe la suite.':
+      mine?'C’est ton tour de donner un indice sans prononcer ton mot.':
+      'Au tour de <b>'+name+'</b> de donner son indice.'}</p>
+    ${(w.clues||[]).length?`<h3 class="sec">Indices donnés</h3>
+       <ol class="white-feed">${w.clues.map(x=>`<li><b>${nameOf(x.player_id)}</b> : ${esc(x.text)}</li>`).join('')}</ol>`:''}
+    ${mine&&!w.eliminated?`<label><span>Ton indice</span><input id="white-clue-input" maxlength="100" autocomplete="off"
+       placeholder="Un mot ou une petite expression" value="${esc(whiteDraft)}"></label>
+       <div class="dock"><button class="btn" data-act="white-send-clue" ${dis()}>Envoyer mon indice</button></div>`:
+      '<p class="waiting">On attend le prochain indice…</p>'}`;
+}
+function whiteVote(){
+  const w=state.white||{}, available=(w.roles||[]).filter(p=>!p.out&&!isMe(p.player_id));
+  return `
+    <h1 class="bigstate">Qui est l’intrus ?</h1>
+    ${whiteSecret()}${whiteNote()}
+    <p class="role">Débattez, puis choisissez le joueur à éliminer. Chacun vote sur son téléphone.</p>
+    ${w.voted||w.eliminated?`<p class="waiting">${w.eliminated?'Tu es éliminé, tu ne votes plus.':'Vote enregistré. On attend les autres joueurs…'}</p>`:
+       `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
+        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
+    <h3 class="sec">Joueurs</h3>${whitePeople()}`;
+}
+function whiteGuess(){
+  const w=state.white||{}, mine=w.role==='white'&&w.last_eliminated===state.me.id;
+  return `
+    <h1 class="bigstate">Mr White démasqué !</h1>
+    ${whiteNote()}
+    <p class="role">Mr White a une dernière chance de gagner la manche en devinant le mot des Civils.</p>
+    ${mine?`<label><span>Quel est le mot des Civils ?</span>
+      <input id="white-guess-input" maxlength="60" autocomplete="off" value="${esc(whiteGuessDraft)}" placeholder="Ta réponse"></label>
+      <div class="dock"><button class="btn" data-act="white-guess" ${dis()}>Tenter ma chance</button></div>`:
+      '<p class="waiting">Mr White réfléchit…</p>'}`;
+}
+function whiteReveal(){
+  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'Mr White'};
+  return `
+    <div class="white-result"><p class="eyebrow">Fin de la manche ${state.room.round}</p>
+      <strong>${esc(noms[w.winner]||'Résultat')}</strong></div>
+    ${whiteNote()}
+    <div class="white-secret"><p class="eyebrow">Mots de la manche</p>
+      <strong>${esc(w.civil_word||'?')}</strong><small>Mot des Civils</small>
+      <strong>${esc(w.undercover_word||'?')}</strong><small>Mot Undercover</small></div>
+    <h3 class="sec">Qui était qui ?</h3>${whitePeople()}
+    <h3 class="sec">Classement</h3>${rank()}
+    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
+      ${state.me.next_ack===state.room.round?'En attente des autres…':
+        state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>`;
+}
+
 /* ---------- Petit bac ---------- */
 // Le brouillon suit la manche : il est relu sur le serveur en arrivant sur la
 // saisie, pour qu'un rechargement de la page ne fasse rien perdre.
@@ -1804,6 +1918,7 @@ function reveal(){
   if (isPrio()) return rankReveal();
   if (isWave()) return waveReveal();
   if (isBac()) return bacReveal();
+  if (isWhite()) return whiteReveal();
   const r = state.room;
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
@@ -2141,16 +2256,17 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const k = adminTab, mot = MOT[k], w = k === 'w';
+    const k = adminTab, mot = MOT[k], w = k === 'w' || k === 'm';
     const text = val('a-text'), gauche = val('a-left'), droite = val('a-right');
-    if (w ? !gauche || !droite : !text) return toast(w ? 'Remplis les deux extrêmes.' : `Écris une ${mot}.`);
+    if (w ? !gauche || !droite : !text) return toast(w ? (k === 'm' ? 'Remplis les deux mots.' : 'Remplis les deux extrêmes.') : `Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
     try {
-      const d = w
-        ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
+      const d = k === 'm'
+        ? await rpc('admin_add_white_word', { p_password:adminPwd, p_civil:gauche, p_undercover:droite })
+        : w ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
         : await rpc('admin_add_card', { p_password: adminPwd, p_kind: k, p_text: text });
-      toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
+      toast(k === 'm' ? 'Paire de mots ajoutée.' : `Ajoutée. ${d.total} ${mot}s au catalogue.`);
       // le rendu identique n'écrit plus le DOM : on vide les champs à la main
       const saisie = document.activeElement?.id;
       for (const id of ['a-text', 'a-left', 'a-right']) { const c = document.getElementById(id); if (c) c.value = '' }
@@ -2187,7 +2303,8 @@ document.addEventListener('click', async e => {
     if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
     el.disabled = true;
     try {
-      await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
+      if (catalog.kind === 'm') await rpc('admin_delete_white_word', { p_password:adminPwd, p_id:+id });
+      else await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
       paintCatalog();
@@ -2269,6 +2386,19 @@ document.addEventListener('click', async e => {
     if (!(await act('bac_vote', { p_vote: +el.dataset.v }))) { bacMyVote = null; render() }
     return;
   }
+  if (a === 'white-send-clue') {
+    const t = val('white-clue-input');
+    if (t.length < 2) return toast('Donne un indice.');
+    if (await act('white_clue', { p_clue:t })) whiteDraft = '';
+    return;
+  }
+  if (a === 'white-vote') return act('white_vote', { p_target:id });
+  if (a === 'white-guess') {
+    const t = val('white-guess-input');
+    if (!t) return toast('Écris le mot que tu proposes.');
+    if (await act('white_guess', { p_word:t })) whiteGuessDraft = '';
+    return;
+  }
   if (a === 'punish-submit') {
     const t = [...document.querySelectorAll('.punfield input')].map(c => c.value.trim());
     if (await act('punish_submit', { p_texts: t })) punDrafts = [];
@@ -2282,6 +2412,8 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
+  if (e.target.id === 'white-clue-input') whiteDraft = e.target.value;
+  if (e.target.id === 'white-guess-input') whiteGuessDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
   if (e.target.matches('.bacfield input')) {
@@ -2300,6 +2432,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#white-clue-input')) document.querySelector('[data-act=white-send-clue]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#white-guess-input')) document.querySelector('[data-act=white-guess]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
   // Punitions : Entrée passe au champ suivant, puis ferme le clavier
   if (e.key === 'Enter' && e.target.matches('.punfield input')) {
