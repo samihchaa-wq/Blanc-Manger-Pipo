@@ -247,7 +247,9 @@ begin
     'clues',(select coalesce(json_agg(json_build_object('player_id',c.player_id,'text',c.clue) order by c.created_at),'[]'::json)
              from public.white_clues c where c.room_id=r.id and c.round=r.round and c.cycle=r.white_cycle),
     'roles',(select coalesce(json_agg(json_build_object('player_id',wr.player_id,
-      'out',wr.eliminated,'role',case when wr.eliminated or r.status in ('reveal','finished') then wr.role end)
+      'out',wr.eliminated,'role',case when wr.eliminated or r.status in ('reveal','finished') then wr.role end,
+      'voted',exists(select 1 from public.white_votes v where v.room_id=r.id and v.round=r.round
+        and v.cycle=r.white_cycle and v.player_id=wr.player_id))
       order by p.seat),'[]'::json)
       from public.white_roles wr join public.players p on p.id=wr.player_id
       where wr.room_id=r.id and wr.round=r.round),
@@ -614,4 +616,48 @@ revoke execute on function public._white_speaker(uuid),public._white_finish(uuid
 grant execute on function public.white_state(text,uuid),public.white_clue(text,uuid,text),
  public.white_vote(text,uuid,uuid),public.white_guess(text,uuid,text),
  public.white_bot_step(text,uuid)
+ to anon,authenticated;
+
+-- Catalogue Mr White, soumis aux mêmes niveaux admin et admin+.
+create or replace function public.admin_white_list(p_password text,p_search text default '',p_offset integer default 0)
+returns json language plpgsql security definer set search_path to '' as $fn$
+declare s text:='%'||lower(btrim(coalesce(p_search,'')))||'%';
+begin
+ if not public._is_admin_plus(p_password) then raise exception 'Mot de passe incorrect.'; end if;
+ return json_build_object(
+  'total',(select count(*) from public.white_words w where w.deleted_at is null and
+    (lower(w.civil) like s or lower(w.undercover) like s)),
+  'items',(select coalesce(json_agg(json_build_object('id',t.id,'left',t.civil,'right',t.undercover,
+    'text',t.civil||' ↔ '||t.undercover,'by',t.added_by) order by t.created_at desc,t.id desc),'[]'::json)
+   from (select * from public.white_words w where w.deleted_at is null and
+       (lower(w.civil) like s or lower(w.undercover) like s)
+       order by w.created_at desc,w.id desc offset greatest(p_offset,0) limit 50) t));
+end $fn$;
+
+create or replace function public.admin_white_add(p_password text,p_civil text,p_undercover text)
+returns json language plpgsql security definer set search_path to '' as $fn$
+declare a text:=btrim(regexp_replace(coalesce(p_civil,''),'\s+',' ','g'));
+        b text:=btrim(regexp_replace(coalesce(p_undercover,''),'\s+',' ','g'));
+begin
+ if not public._is_admin(p_password) then raise exception 'Mot de passe incorrect.'; end if;
+ if length(a) not between 2 and 60 or length(b) not between 2 and 60
+ then raise exception 'Chaque mot doit faire entre 2 et 60 caractères.'; end if;
+ if lower(a)=lower(b) then raise exception 'Les deux mots doivent être différents.'; end if;
+ if exists(select 1 from public.white_words where lower(civil)=lower(a)
+   and lower(undercover)=lower(b) and deleted_at is null) then raise exception 'Cette paire existe déjà.'; end if;
+ insert into public.white_words(civil,undercover,added_by) values(a,b,'admin')
+  on conflict (civil,undercover) do update set deleted_at=null,added_by='admin';
+ return json_build_object('total',(select count(*) from public.white_words where deleted_at is null));
+end $fn$;
+
+create or replace function public.admin_white_delete(p_password text,p_id integer)
+returns void language plpgsql security definer set search_path to '' as $fn$
+begin
+ if not public._is_admin_plus(p_password) then raise exception 'Mot de passe incorrect.'; end if;
+ update public.white_words set deleted_at=now() where id=p_id and deleted_at is null;
+ if not found then raise exception 'Paire introuvable.'; end if;
+end $fn$;
+
+grant execute on function public.admin_white_list(text,text,integer),
+ public.admin_white_add(text,text,text),public.admin_white_delete(text,integer)
  to anon,authenticated;
