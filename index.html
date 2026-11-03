@@ -545,6 +545,7 @@ button.scard:active{transform:translateY(2px)}
 .tabs.jeux{grid-auto-columns:minmax(0,1fr)}
 .tabs.jeux .tab{padding:14px 3px;font-size:clamp(11.5px,3.1vw,14px);letter-spacing:-.01em;
   line-height:1.2;white-space:normal;text-wrap:balance}
+.tabs.jeux .tab{font-size:clamp(10px,2.6vw,13px);padding:12px 2px}
 /* Les catalogues du jeu : un cran sous la barre, en onglets soulignés. */
 .soustabs{display:flex;gap:26px;margin:14px 6px 0;border-bottom:1px solid var(--hairline)}
 .soustab{position:relative;padding:12px 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
@@ -739,9 +740,9 @@ let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases �
 let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
 // Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
 // deux textes : l'extrême de gauche et celui de droite.
-const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']] };
+const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']] };
 const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
-const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte' };
+const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte', m:'paire' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
@@ -1136,7 +1137,7 @@ function home(){
 // Une barre pour le jeu, puis les catalogues de ce jeu.
 function adminView(){
   const plus = adminLevel === 'plus';
-  const k = adminTab, q = k === 'q', w = k === 'w', jeu = jeuDe(k), sous = CATALOGUES[jeu];
+  const k = adminTab, q = k === 'q', w = k === 'w' || k === 'm', jeu = jeuDe(k), sous = CATALOGUES[jeu];
   const body = adminLevel
     ? `<div class="tabs jeux" role="tablist" aria-label="Jeu">
          ${Object.keys(CATALOGUES).map(g =>
@@ -1148,8 +1149,8 @@ function adminView(){
        </div>
        <section class="panel">
          ${w
-           ? `              <label><span>Extrême gauche</span><input id="a-left" maxlength="40" autocomplete="off" enterkeyhint="next"></label>
-              <label><span>Extrême droite</span><input id="a-right" maxlength="40" autocomplete="off" enterkeyhint="done"></label>`
+           ? `              <label><span>${k === 'm' ? 'Mot des Civils' : 'Extrême gauche'}</span><input id="a-left" maxlength="60" autocomplete="off" enterkeyhint="next"></label>
+              <label><span>${k === 'm' ? 'Mot Undercover' : 'Extrême droite'}</span><input id="a-right" maxlength="60" autocomplete="off" enterkeyhint="done"></label>`
            : `<label><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}" aria-label="Texte de la ${MOT[k]}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
@@ -1159,7 +1160,7 @@ function adminView(){
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="Rechercher ${w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="Rechercher ${k === 'm' ? 'une paire de mots' : w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -1208,10 +1209,10 @@ function paintCatalog(){
     ? catalog.items.map(c => `<li>
         ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
             : catalog.kind === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
-            : catalog.kind === 'w' ? ''
+            : catalog.kind === 'w' || catalog.kind === 'm' ? ''
             : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
           aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
-        <span class="ct">${catalog.kind === 'w'
+        <span class="ct">${catalog.kind === 'w' || catalog.kind === 'm'
           ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
           : esc(c.text)}</span>
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
@@ -1234,7 +1235,9 @@ function adminSwitch(k){
 async function loadCatalog(offset = 0){
   if (adminLevel !== 'plus') return;
   try {
-    const d = await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
+    const d = catalog.kind === 'm'
+      ? await rpc('admin_white_list', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
+      : await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
     catalog.total = d.total;
     catalog.items = offset ? catalog.items.concat(d.items) : d.items;
     paintCatalog();
@@ -2253,14 +2256,15 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const k = adminTab, mot = MOT[k], w = k === 'w';
+    const k = adminTab, mot = MOT[k], w = k === 'w' || k === 'm';
     const text = val('a-text'), gauche = val('a-left'), droite = val('a-right');
-    if (w ? !gauche || !droite : !text) return toast(w ? 'Remplis les deux extrêmes.' : `Écris une ${mot}.`);
+    if (w ? !gauche || !droite : !text) return toast(w ? (k === 'm' ? 'Remplis les deux mots.' : 'Remplis les deux extrêmes.') : `Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
     try {
-      const d = w
-        ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
+      const d = k === 'm'
+        ? await rpc('admin_white_add', { p_password:adminPwd, p_civil:gauche, p_undercover:droite })
+        : w ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
         : await rpc('admin_add_card', { p_password: adminPwd, p_kind: k, p_text: text });
       toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
       // le rendu identique n'écrit plus le DOM : on vide les champs à la main
@@ -2299,7 +2303,8 @@ document.addEventListener('click', async e => {
     if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
     el.disabled = true;
     try {
-      await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
+      if (catalog.kind === 'm') await rpc('admin_white_delete', { p_password:adminPwd, p_id:+id });
+      else await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
       paintCatalog();
