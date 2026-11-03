@@ -1700,15 +1700,13 @@ document.addEventListener('pointercancel', endDial);
 function whiteSecret(){
   const w=state.white||{};
   if (w.role==='white') return `<section class="white-secret">
-    <p class="eyebrow">Ta carte secrète · Ne la montre à personne</p>
+    <p class="eyebrow">Ta carte :</p>
     <img class="white-mark" src="games/white.svg" alt="Emblème de MrWhitz">
     <strong>Tu es MrWhitz</strong>
-    <small>Tu n'as aucun mot. Écoute les indices et bluffe pour passer inaperçu.</small>
   </section>`;
   return `<section class="white-secret">
-    <p class="eyebrow">Ton mot secret · Ne le montre à personne</p>
+    <p class="eyebrow">Ta carte :</p>
     <strong>${esc(w.word||'—')}</strong>
-    <small>Garde ce mot pour toi. Tout le monde n'a pas forcément le même.</small>
   </section>`;
 }
 function whitePeople(){
@@ -1721,20 +1719,10 @@ function whiteNote(){
   return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
 }
 function whiteClue(){
-  const w=state.white||{}, host=isMe(state.room.host_id);
-  const participants=[...state.players].filter(p=>p.active&&!(w.roles||[]).some(x=>x.player_id===p.id&&x.out)).sort((a,b)=>a.seat-b.seat);
-  const k=participants.findIndex(p=>p.id===state.room.reader_id);
-  const order=k<0?participants:participants.slice(k).concat(participants.slice(0,k));
-  return `
-    <h1 class="bigstate">Indices à voix haute · Tour ${w.cycle||1}</h1>
-    ${whiteSecret()}${whiteNote()}
-    <p class="role">Vous êtes dans la même pièce : chacun donne un indice à voix haute, sans prononcer son mot. Écoutez, discutez, puis votez.</p>
-    <h3 class="sec">Ordre de passage</h3>
-    <div class="white-seats">${order.map((p,i)=>`<span class="chip">${i+1}. ${esc(p.name)}${p.is_bot?' (bot)':''}</span>`).join('')}</div>
-    ${(w.clues||[]).length?`<h3 class="sec">Indices des bots (à lire à voix haute)</h3>
-      <ol class="white-feed">${w.clues.map(x=>`<li><b>${nameOf(x.player_id)}</b> : ${esc(x.text)}</li>`).join('')}</ol>`:''}
-    ${host?`<div class="dock"><button class="btn" data-act="white-open-vote" ${dis()}>Passer au vote</button></div>`:
-      '<p class="waiting">Quand les échanges sont terminés, l’hôte ouvre le vote.</p>'}`;
+  const host=isMe(state.room.host_id);
+  return `${whiteSecret()}${host
+    ? `<div class="dock"><button class="btn" data-act="white-open-vote" ${dis()}>Passer au vote</button></div>`
+    : ''}`;
 }
 function whiteVote(){
   const w=state.white||{}, available=(w.roles||[]).filter(p=>!p.out&&!isMe(p.player_id));
