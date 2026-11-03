@@ -186,7 +186,7 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
    de l'accueil (marges, onglets, pseudo, bouton ≈ 266 px + logo),
    pour que les quatre vignettes tiennent sans défiler. */
-.seg.games{gap:10px;padding:0;background:none;border:0;margin:0 auto;
+.seg.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin:0 auto;
   --logo:calc(min(100vw - 140px,340px,32vh) * .378);
   width:min(100%,calc(100vh - var(--pad) - 266px - var(--logo)));
   width:min(100%,calc(100dvh - var(--pad) - 266px - var(--logo)))}
