@@ -43,8 +43,12 @@ assert.match(html, /sb_publishable_[A-Za-z0-9_-]+/,
   'Client must use a publishable Supabase key');
 assert.doesNotMatch(html, /service[_-]?role|sb_secret_/i,
   'Never expose a service-role or secret key in the browser');
-assert.match(html, /setInterval\(\(\)=>\{if\(!document\.hidden\)refresh\(\)\},4000\)/,
-  'Fallback polling must remain at 4 seconds');
+// Relecture de secours : 4 s si le temps réel est coupé, 30 s s'il marche
+// (chaque relecture coûte une requête journalisée et tout l'état en sortie).
+assert.match(html, /\(rtOk \? 30000 : 4000\)/,
+  'Fallback polling must be 4 s without realtime and 30 s with it');
+assert.match(html, /\}, 4000\);/,
+  'The polling check must still run every 4 seconds');
 assert.match(html, /setTimeout\(refresh,250\)/,
   'Realtime bumps must remain debounced');
 // Manches, tours et punitions se règlent avec − et + dans le salon, dans les bornes du serveur.
