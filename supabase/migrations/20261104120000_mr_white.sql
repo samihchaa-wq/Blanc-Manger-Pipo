@@ -373,16 +373,27 @@ begin
     update public.rooms set status='lobby',white_note=null,phase_at=now(),updated_at=now() where id=p_room;
     return;
   end if;
-  if r.status='white_guess' then
+  -- Un départ ne doit pas effacer les indices ou les votes du tour en cours.
+  -- On termine seulement si les équipes ont effectivement atteint la condition de fin.
+  if not exists (
+      select 1 from public.white_roles wr join public.players p on p.id=wr.player_id and p.active
+      where wr.room_id=p_room and wr.round=r.round and not wr.eliminated and wr.role<>'civil'
+    ) or (
+      (select count(*) from public.white_roles wr join public.players p on p.id=wr.player_id and p.active
+       where wr.room_id=p_room and wr.round=r.round and not wr.eliminated and wr.role='civil')
+      <=
+      (select count(*) from public.white_roles wr join public.players p on p.id=wr.player_id and p.active
+       where wr.room_id=p_room and wr.round=r.round and not wr.eliminated and wr.role<>'civil')
+    ) then
+    perform public._white_check_end(p_room);
+  elsif r.status='white_guess' then
     perform public._white_check_end(p_room);
   elsif r.status='white_clue' then
     if public._white_speaker(p_room) is null then
       update public.rooms set status='white_vote',phase_at=now(),updated_at=now() where id=p_room;
     end if;
-    perform public._white_check_end(p_room);
   else
-    perform public._white_check_end(p_room);
-    if (select status from public.rooms where id=p_room)='white_vote' then perform public._white_resolve_vote(p_room); end if;
+    perform public._white_resolve_vote(p_room);
   end if;
 end $fn$;
 
