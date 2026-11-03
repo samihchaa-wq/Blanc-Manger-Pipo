@@ -1700,12 +1700,12 @@ document.addEventListener('pointercancel', endDial);
 function whiteSecret(){
   const w=state.white||{};
   if (w.role==='white') return `<section class="white-secret">
-    <p class="eyebrow">Ta carte :</p>
+    <p class="eyebrow">Ta Carte :</p>
     <img class="white-mark" src="games/white.svg" alt="Emblème de MrWhitz">
     <strong>Tu es MrWhitz</strong>
   </section>`;
   return `<section class="white-secret">
-    <p class="eyebrow">Ta carte :</p>
+    <p class="eyebrow">Ta Carte :</p>
     <strong>${esc(w.word||'—')}</strong>
   </section>`;
 }
