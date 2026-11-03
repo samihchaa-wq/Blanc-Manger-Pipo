@@ -1060,12 +1060,12 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const ae = document.activeElement, focId = /^pun-\d$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
+    const ae = document.activeElement, focId = /^(?:pun-\d|white-clue-input|white-guess-input)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
-    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '');
+    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '') + (isWhite() ? '-' + (state.white?.cycle || 0) : '');
     const newScreen = key !== renderedKey;
     if (newScreen) {
       renderedKey = key;
@@ -1236,7 +1236,7 @@ async function loadCatalog(offset = 0){
   if (adminLevel !== 'plus') return;
   try {
     const d = catalog.kind === 'm'
-      ? await rpc('admin_white_list', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
+      ? await rpc('admin_list_white_words', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
       : await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
     catalog.total = d.total;
     catalog.items = offset ? catalog.items.concat(d.items) : d.items;
@@ -2263,10 +2263,10 @@ document.addEventListener('click', async e => {
     busy = true; el.disabled = true;
     try {
       const d = k === 'm'
-        ? await rpc('admin_white_add', { p_password:adminPwd, p_civil:gauche, p_undercover:droite })
+        ? await rpc('admin_add_white_word', { p_password:adminPwd, p_civil:gauche, p_undercover:droite })
         : w ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
         : await rpc('admin_add_card', { p_password: adminPwd, p_kind: k, p_text: text });
-      toast(`Ajoutée. ${d.total} ${mot}s au catalogue.`);
+      toast(k === 'm' ? 'Paire de mots ajoutée.' : `Ajoutée. ${d.total} ${mot}s au catalogue.`);
       // le rendu identique n'écrit plus le DOM : on vide les champs à la main
       const saisie = document.activeElement?.id;
       for (const id of ['a-text', 'a-left', 'a-right']) { const c = document.getElementById(id); if (c) c.value = '' }
@@ -2303,7 +2303,7 @@ document.addEventListener('click', async e => {
     if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
     el.disabled = true;
     try {
-      if (catalog.kind === 'm') await rpc('admin_white_delete', { p_password:adminPwd, p_id:+id });
+      if (catalog.kind === 'm') await rpc('admin_delete_white_word', { p_password:adminPwd, p_id:+id });
       else await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
