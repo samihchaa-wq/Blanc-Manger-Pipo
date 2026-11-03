@@ -10,9 +10,57 @@ returns uuid language sql stable security definer set search_path to '' as $fn$
   join public.white_roles wr on wr.room_id=r.id and wr.round=r.round and wr.role='civil'
   join public.players p on p.id=wr.player_id and p.active
   where r.id=p_room
-  order by p.seat
+  order by p.is_bot, p.seat
   limit 1
 $fn$;
+
+create or replace function public._begin_white_round(p_room uuid,p_next_round integer)
+returns void language plpgsql security definer set search_path to '' as $fn$
+declare r public.rooms; c public.white_words; n integer; wid uuid; uid uuid; champ uuid;
+begin
+  select * into r from public.rooms where id=p_room for update;
+  if p_next_round>r.target_score then
+    select id into champ from public.players where room_id=p_room and active order by score desc,seat limit 1;
+    update public.rooms set status='finished',winner_id=champ,phase_at=now(),updated_at=now() where id=p_room;
+    return;
+  end if;
+  if p_next_round=1 then
+    delete from public.white_rounds where room_id=p_room;
+    update public.rooms set white_used_words='{}' where id=p_room;
+    r.white_used_words:='{}';
+  end if;
+  select * into c from public.white_words
+   where deleted_at is null and not (id=any(r.white_used_words)) order by random() limit 1;
+  if c.id is null then
+    select * into c from public.white_words where deleted_at is null order by random() limit 1;
+    update public.rooms set white_used_words='{}' where id=p_room;
+  end if;
+  if c.id is null then raise exception 'Aucune paire de mots Mr White disponible.'; end if;
+  select count(*) into n from public.players where room_id=p_room and active;
+  if n<3 then raise exception 'Mr White demande au moins 3 joueurs.'; end if;
+  -- Distribution équilibrée : 3–4 = 1 imposteur, pas de MrWhitz ;
+  -- 5–7 = 1 imposteur + MrWhitz ; 8–11 = 2 imposteurs + MrWhitz ;
+  -- 12 = 3 imposteurs + MrWhitz.
+  insert into public.white_rounds(room_id,round,word_id,civil_word,undercover_word)
+  values(p_room,p_next_round,c.id,c.civil,c.undercover);
+  with distribution as (
+    select p.id,row_number() over(order by random()) as tirage
+    from public.players p where p.room_id=p_room and p.active
+  )
+  insert into public.white_roles(room_id,round,player_id,role)
+  select p_room,p_next_round,d.id,
+    case when d.tirage <= case when n>=5 then 1 else 0 end then 'white'
+         when d.tirage <= (case when n>=5 then 1 else 0 end) +
+           (case when n>=12 then 3 when n>=8 then 2 else 1 end) then 'undercover'
+         else 'civil' end
+  from distribution d;
+  update public.players set next_ack_round=0 where room_id=p_room and active;
+  update public.rooms set status='white_clue',round=p_next_round,
+    previous_reader_id=reader_id,reader_id=(select id from public.players where room_id=p_room and active order by random() limit 1),
+    white_cycle=1,white_note=null,white_used_words=white_used_words||c.id,
+    question_id=null,question_choices='{}',winner_id=null,winning_submission_id=null,
+    phase_at=now(),updated_at=now() where id=p_room;
+end $fn$;
 
 -- Les indices sont prononcés autour de la table, plus saisis un par un.
 -- L'hôte ouvre le vote quand tout le monde a parlé et débattu.
@@ -136,15 +184,12 @@ begin
       if tid is not null then perform public.white_vote(r.code,bot.token,tid); end if;
     end loop;
   elsif r.status='white_guess' then
-    select p.* into bot from public.players p join public.white_roles wr on wr.player_id=p.id
-      join public.white_rounds w on w.room_id=wr.room_id and w.round=wr.round
-      where wr.room_id=r.id and wr.round=r.round and wr.role='white' and wr.eliminated
-        and w.last_eliminated=p.id and p.active and p.is_bot limit 1;
+    -- Il n'y a pas de réponse textuelle saisie. Si tous les Civils sont des
+    -- bots, le bot arbitre une tentative orale (non vérifiable) comme ratée.
+    select p.* into bot from public.players p where p.id=public._white_referee(r.id) and p.is_bot;
     if bot.id is not null then
-      select civil into guess from public.white_words where deleted_at is null order by random() limit 1;
-      perform public.white_guess(r.code,bot.token,coalesce(guess,'aucune idée'));
+      perform public.white_oral_verdict(r.code,bot.token,false);
     end if;
-  end if;
 end $fn$;
 
 
