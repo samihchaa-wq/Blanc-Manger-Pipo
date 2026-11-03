@@ -114,7 +114,7 @@ assert.match(whiteCardView, /Ta carte :/, 'Une étiquette unique sur la carte');
 assert.doesNotMatch(whiteCardView, /<small>|Ta carte secrète|Ton mot secret|Ne la montre à personne/,
   'Aucun paragraphe explicatif sur la carte');
 assert.match(whiteClueView, /whiteSecret\(\)/, 'La carte est toujours visible');
-assert.match(whiteClueView, /host[\\s\\S]*Passer au vote/, 'Le bouton reste réservé à l’hôte');
+assert.match(whiteClueView, /host[\s\S]*Passer au vote/, 'Le bouton reste réservé à l’hôte');
 assert.doesNotMatch(whiteClueView, /<h1|<h3|whiteNote\(\)|white-feed|white-seats|class="role"|class="waiting"/,
   'Pas de titre, ordre de passage, indices des bots ni consignes sur cet écran');
 
