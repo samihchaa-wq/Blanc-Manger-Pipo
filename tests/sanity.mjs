@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const scripts = [...html.matchAll(/<script(?:assert.match(scripts[0], /isBac\(\) \|\| isWhite\(\) \|\| !TIMED\.includes/, 'Petit bac et Mr White n’ont pas de minuteur');s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
   .map(m => m[1].trim())
   .filter(Boolean);
 
@@ -77,10 +77,10 @@ assert.match(html, /<div class="scrim" aria-hidden="true">/,
 assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
 // L'écran de résultat d'une manche passe seul après 5 s (2 min pour le classement de Priorités), sans bouton à valider.
 assert.match(scripts[0], /status === 'reveal' \? \(isPrio\(\) \? 120000 : 5000\) : 120000/, 'Le résultat d’une manche doit durer 5 s, 2 min en Priorités');
-// Petit bac et Mr White avancent par un bouton « Manche suivante », sans minuteur.
+// Petit bac et Mr White avancent sans chronomètre et avec « Manche suivante ».
 assert.equal((scripts[0].match(/next_round/g) || []).length, 1, 'Petit bac et Mr White partagent le même appel next_round');
-assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Petit bac et Mr White avancent par un bouton');
-assert.match(scripts[0], /isBac\(\) \|\| !TIMED\.includes/, 'Le Petit bac ne doit avoir aucun minuteur');
+assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Le Petit bac avance par un bouton');
+assert.match(scripts[0], /isBac\(\) \|\| isWhite\(\) \|\| !TIMED\.includes/, 'Petit bac et Mr White ne doivent avoir aucun minuteur');
 assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Le Petit bac ne doit pas afficher de compte à rebours');
 
 // Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
@@ -96,16 +96,17 @@ assert.match(scripts[0], /const bacRounds = \(\) => Math\.min\(20, Math\.max\(1,
   'Le Petit bac joue le nombre de manches choisi (1 à 20)');
 assert.doesNotMatch(scripts[0], /BAC_ROUNDS/, 'Le nombre de manches du Petit bac ne doit plus être fixe');
 
+
+
+// Mr White doit rester branché sur les salons, bots, catalogues et rôles privés.
+assert.match(scripts[0], /white:\s*\{ name:'Mr White'/, 'Jeu Mr White présent');
+assert.match(scripts[0], /white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess/, 'Phases Mr White déclarées');
+assert.match(scripts[0], /s\.white = await rpc\('white_state'/, 'Rôles secrets issus du serveur');
+assert.match(scripts[0], /act\('white_clue', \{ p_clue:t \}\)/, 'Indices côté joueur');
+assert.match(scripts[0], /act\('white_vote', \{ p_target:id \}\)/, 'Votes côté joueur');
+assert.match(scripts[0], /act\('white_guess', \{ p_word:t \}\)/, 'Tentative de Mr White');
+assert.match(scripts[0], /white_bot_step/, 'Bots côté serveur');
+assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
+assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Vignette Mr White');
+
 console.log('Frontend sanity checks passed.');
-
-
-// Mr White emploie les salons, codes, bots, classements et catalogues existants.
-assert.match(scripts[0], /white:\s*\{ name:'Mr White'/, 'Mr White doit apparaître dans les jeux');
-assert.match(scripts[0], /white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess/, 'Les trois écrans Mr White doivent être déclarés');
-assert.match(scripts[0], /s\.white = await rpc\('white_state'/, 'Les rôles secrets doivent provenir d’un RPC personnel');
-assert.match(scripts[0], /act\('white_clue', \{ p_clue:t \}\)/, 'Un joueur doit pouvoir donner un indice');
-assert.match(scripts[0], /act\('white_vote', \{ p_target:id \}\)/, 'Les joueurs doivent pouvoir voter');
-assert.match(scripts[0], /act\('white_guess', \{ p_word:t \}\)/, 'Mr White doit pouvoir proposer le mot des Civils');
-assert.match(scripts[0], /white_bot_step/, 'Les bots Mr White doivent suivre leur tour');
-assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Le catalogue Mr White doit être administrable');
-assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Mr White doit avoir sa vignette');
