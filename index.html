@@ -616,6 +616,8 @@ button.scard:active{transform:translateY(2px)}
 .white-secret .eyebrow{color:var(--ink);opacity:.7}
 .white-secret strong{display:block;font-size:clamp(25px,7vw,37px);margin:4px 0;letter-spacing:-.035em}
 .white-secret small{display:block;font-size:14px;opacity:.85}
+.white-mark{display:block;width:76px;height:76px;object-fit:contain;margin:8px auto 12px}
+.white-seats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 20px}
 .white-note{padding:12px 15px;border:1px solid var(--hairline-2);border-radius:var(--r-md);
   margin:14px 0;background:var(--surface);color:var(--text)}
 .white-list{list-style:none;padding:0;margin:12px 0 20px;display:grid;gap:8px}
@@ -728,7 +730,6 @@ let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et
 // l'instant local où la roue des lettres a démarré.
 let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve();
 let roueAt = 0, roueTimer = null, bacMyVote = null, catDraft = '';
-let whiteDraft = '', whiteGuessDraft = '';
 let pressedEl = null, lastHtml = '';
 // Punitions : état lu au salon et en fin de partie, saisie en cours, et
 // l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
@@ -751,7 +752,7 @@ const GAMES = {
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, sans chrono, puis jugez ceux de votre adversaire.' },
-  white:     { name:'Mr White', desc:'Chacun reçoit secrètement un mot, sauf Mr White. À tour de rôle, donnez un indice puis votez pour démasquer les intrus. Mr White peut gagner en devinant le mot des Civils.' },
+  white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient MrWhitz et ne reçoit aucun mot.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -850,7 +851,7 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; whiteDraft = ''; whiteGuessDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     render(); scheduleAuto();
@@ -914,9 +915,9 @@ function scheduleBots(){
   else if (r.status === 'writing')    todo = bots.some(b => !b.bac_done);
   // une grille en attente de vote dont le juge est un bot
   else if (r.status === 'voting')     todo = (state.bac?.rows || []).some(x => x.pending && bots.some(b => b.id !== x.player_id));
-  else if (r.status === 'white_clue') todo = bots.some(b => b.id === state.white?.speaker_id);
+  else if (r.status === 'white_clue') todo = !!state.white?.bot_pending;
   else if (r.status === 'white_vote') todo = (state.white?.roles || []).some(x => !x.out && !x.voted && bots.some(b => b.id === x.player_id));
-  else if (r.status === 'white_guess') todo = bots.some(b => b.id === state.white?.last_eliminated);
+  else if (r.status === 'white_guess') todo = !!state.white?.bot_pending;
   else if (r.status === 'reveal' && (r.mode === 'bac' || r.mode === 'white')) todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
@@ -1060,7 +1061,7 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const ae = document.activeElement, focId = /^(?:pun-\d|white-clue-input|white-guess-input)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
+    const ae = document.activeElement, focId = /^pun-\d$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
@@ -1695,46 +1696,52 @@ document.addEventListener('pointercancel', endDial);
 /* ---------- Mr White ---------- */
 // Les rôles et les mots sont demandés à un RPC distinct : personne ne peut lire
 // ceux des autres dans le HTML, le salon ou les tables exposées.
+
 function whiteSecret(){
-  const w=state.white||{}, role=w.role==='white'?'Mr White':w.role==='undercover'?'Undercover':'Civil';
+  const w=state.white||{};
+  if (w.role==='white') return `<section class="white-secret">
+    <p class="eyebrow">Ta carte secrète · Ne la montre à personne</p>
+    <img class="white-mark" src="games/white.svg" alt="Emblème de MrWhitz">
+    <strong>Tu es MrWhitz</strong>
+    <small>Tu n'as aucun mot. Écoute les indices et bluffe pour passer inaperçu.</small>
+  </section>`;
   return `<section class="white-secret">
-    <p class="eyebrow">Ton rôle · Ne le montre à personne</p>
-    <strong>${esc(role)}</strong>
-    <small>${w.role==='white'?'Tu ne connais pas le mot. Bluffe pour ne pas te faire repérer.':
-      w.role==='undercover'?'Ton mot ressemble à celui des Civils. Trouve leur mot sans te trahir.':'Garde ton mot secret et repère les intrus.'}</small>
-    ${w.word?`<strong>${esc(w.word)}</strong>`:'<strong>?</strong>'}
+    <p class="eyebrow">Ton mot secret · Ne le montre à personne</p>
+    <strong>${esc(w.word||'—')}</strong>
+    <small>Garde ce mot pour toi. Tout le monde n'a pas forcément le même.</small>
   </section>`;
 }
 function whitePeople(){
   const w=state.white||{};
   return `<ul class="white-list">${(w.roles||[]).map(p=>
     `<li class="${p.out?'out':''}"><span class="nm">${nameOf(p.player_id)}${isMe(p.player_id)?' · toi':''}</span>
-      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'Mr White':'Undercover'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
+      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'MrWhitz':'Imposteur'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
 }
 function whiteNote(){
   return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
 }
 function whiteClue(){
-  const w=state.white||{}, mine=isMe(w.speaker_id), name=nameOf(w.speaker_id);
+  const w=state.white||{}, host=isMe(state.room.host_id);
+  const participants=[...state.players].filter(p=>p.active&&!(w.roles||[]).some(x=>x.player_id===p.id&&x.out)).sort((a,b)=>a.seat-b.seat);
+  const k=participants.findIndex(p=>p.id===state.room.reader_id);
+  const order=k<0?participants:participants.slice(k).concat(participants.slice(0,k));
   return `
-    <h1 class="bigstate">Tour d’indices · ${w.cycle||1}</h1>
+    <h1 class="bigstate">Indices à voix haute · Tour ${w.cycle||1}</h1>
     ${whiteSecret()}${whiteNote()}
-    <p class="role">${w.eliminated?'Tu es éliminé, observe la suite.':
-      mine?'C’est ton tour de donner un indice sans prononcer ton mot.':
-      'Au tour de <b>'+name+'</b> de donner son indice.'}</p>
-    ${(w.clues||[]).length?`<h3 class="sec">Indices donnés</h3>
-       <ol class="white-feed">${w.clues.map(x=>`<li><b>${nameOf(x.player_id)}</b> : ${esc(x.text)}</li>`).join('')}</ol>`:''}
-    ${mine&&!w.eliminated?`<label><span>Ton indice</span><input id="white-clue-input" maxlength="100" autocomplete="off"
-       placeholder="Un mot ou une petite expression" value="${esc(whiteDraft)}"></label>
-       <div class="dock"><button class="btn" data-act="white-send-clue" ${dis()}>Envoyer mon indice</button></div>`:
-      '<p class="waiting">On attend le prochain indice…</p>'}`;
+    <p class="role">Vous êtes dans la même pièce : chacun donne un indice à voix haute, sans prononcer son mot. Écoutez, discutez, puis votez.</p>
+    <h3 class="sec">Ordre de passage</h3>
+    <div class="white-seats">${order.map((p,i)=>`<span class="chip">${i+1}. ${esc(p.name)}${p.is_bot?' (bot)':''}</span>`).join('')}</div>
+    ${(w.clues||[]).length?`<h3 class="sec">Indices des bots (à lire à voix haute)</h3>
+      <ol class="white-feed">${w.clues.map(x=>`<li><b>${nameOf(x.player_id)}</b> : ${esc(x.text)}</li>`).join('')}</ol>`:''}
+    ${host?`<div class="dock"><button class="btn" data-act="white-open-vote" ${dis()}>Passer au vote</button></div>`:
+      '<p class="waiting">Quand les échanges sont terminés, l’hôte ouvre le vote.</p>'}`;
 }
 function whiteVote(){
   const w=state.white||{}, available=(w.roles||[]).filter(p=>!p.out&&!isMe(p.player_id));
   return `
-    <h1 class="bigstate">Qui est l’intrus ?</h1>
+    <h1 class="bigstate">Qui est l’imposteur ?</h1>
     ${whiteSecret()}${whiteNote()}
-    <p class="role">Débattez, puis choisissez le joueur à éliminer. Chacun vote sur son téléphone.</p>
+    <p class="role">Discutez ensemble, puis votez secrètement sur votre téléphone pour éliminer un joueur.</p>
     ${w.voted||w.eliminated?`<p class="waiting">${w.eliminated?'Tu es éliminé, tu ne votes plus.':'Vote enregistré. On attend les autres joueurs…'}</p>`:
        `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
         `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
@@ -1743,23 +1750,26 @@ function whiteVote(){
 function whiteGuess(){
   const w=state.white||{}, mine=w.role==='white'&&w.last_eliminated===state.me.id;
   return `
-    <h1 class="bigstate">Mr White démasqué !</h1>
+    <h1 class="bigstate">MrWhitz démasqué !</h1>
     ${whiteNote()}
-    <p class="role">Mr White a une dernière chance de gagner la manche en devinant le mot des Civils.</p>
-    ${mine?`<label><span>Quel est le mot des Civils ?</span>
-      <input id="white-guess-input" maxlength="60" autocomplete="off" value="${esc(whiteGuessDraft)}" placeholder="Ta réponse"></label>
-      <div class="dock"><button class="btn" data-act="white-guess" ${dis()}>Tenter ma chance</button></div>`:
-      '<p class="waiting">Mr White réfléchit…</p>'}`;
+    <p class="role">MrWhitz peut encore gagner : il annonce le mot des Civils à voix haute. Un Civil vérifie la proposition.</p>
+    ${mine?'<p class="waiting">Dis à voix haute le mot que tu proposes. Un Civil confirmera la réponse.</p>':
+      w.can_validate?`<section class="white-secret"><p class="eyebrow">Mot des Civils à vérifier</p>
+        <strong>${esc(w.civil_word||'?')}</strong>
+        <small>Écoute la proposition prononcée par MrWhitz, sans lui montrer ton écran.</small></section>
+        <div class="dock"><button class="btn alt" data-act="white-oral-verdict" data-correct="0" ${dis()}>Mauvaise réponse</button>
+          <button class="btn" data-act="white-oral-verdict" data-correct="1" ${dis()}>Bonne réponse</button></div>`:
+      '<p class="waiting">Un Civil vérifie la réponse de MrWhitz…</p>'}`;
 }
 function whiteReveal(){
-  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'Mr White'};
+  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'MrWhitz'};
   return `
     <div class="white-result"><p class="eyebrow">Fin de la manche ${state.room.round}</p>
       <strong>${esc(noms[w.winner]||'Résultat')}</strong></div>
     ${whiteNote()}
     <div class="white-secret"><p class="eyebrow">Mots de la manche</p>
       <strong>${esc(w.civil_word||'?')}</strong><small>Mot des Civils</small>
-      <strong>${esc(w.undercover_word||'?')}</strong><small>Mot Undercover</small></div>
+      <strong>${esc(w.undercover_word||'?')}</strong><small>Mot des imposteurs</small></div>
     <h3 class="sec">Qui était qui ?</h3>${whitePeople()}
     <h3 class="sec">Classement</h3>${rank()}
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
@@ -2386,19 +2396,9 @@ document.addEventListener('click', async e => {
     if (!(await act('bac_vote', { p_vote: +el.dataset.v }))) { bacMyVote = null; render() }
     return;
   }
-  if (a === 'white-send-clue') {
-    const t = val('white-clue-input');
-    if (t.length < 2) return toast('Donne un indice.');
-    if (await act('white_clue', { p_clue:t })) whiteDraft = '';
-    return;
-  }
+  if (a === 'white-open-vote') return act('white_open_vote');
   if (a === 'white-vote') return act('white_vote', { p_target:id });
-  if (a === 'white-guess') {
-    const t = val('white-guess-input');
-    if (!t) return toast('Écris le mot que tu proposes.');
-    if (await act('white_guess', { p_word:t })) whiteGuessDraft = '';
-    return;
-  }
+  if (a === 'white-oral-verdict') return act('white_oral_verdict', { p_correct:el.dataset.correct==='1' });
   if (a === 'punish-submit') {
     const t = [...document.querySelectorAll('.punfield input')].map(c => c.value.trim());
     if (await act('punish_submit', { p_texts: t })) punDrafts = [];
@@ -2412,8 +2412,6 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
-  if (e.target.id === 'white-clue-input') whiteDraft = e.target.value;
-  if (e.target.id === 'white-guess-input') whiteGuessDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
   if (e.target.matches('.bacfield input')) {
@@ -2432,8 +2430,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
-  if (e.key === 'Enter' && e.target.matches('#white-clue-input')) document.querySelector('[data-act=white-send-clue]')?.click();
-  if (e.key === 'Enter' && e.target.matches('#white-guess-input')) document.querySelector('[data-act=white-guess]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
   // Punitions : Entrée passe au champ suivant, puis ferme le clavier
   if (e.key === 'Enter' && e.target.matches('.punfield input')) {

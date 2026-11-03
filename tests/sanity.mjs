@@ -102,10 +102,14 @@ assert.doesNotMatch(scripts[0], /BAC_ROUNDS/, 'Le nombre de manches du Petit bac
 assert.match(scripts[0], /white:\s*\{ name:'Mr White'/, 'Jeu Mr White présent');
 assert.match(scripts[0], /white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess/, 'Phases Mr White déclarées');
 assert.match(scripts[0], /s\.white = await rpc\('white_state'/, 'Rôles secrets issus du serveur');
-assert.match(scripts[0], /act\('white_clue', \{ p_clue:t \}\)/, 'Indices côté joueur');
+assert.match(scripts[0], /act\('white_open_vote'\)/, 'En présentiel, l’hôte ouvre le vote');
 assert.match(scripts[0], /act\('white_vote', \{ p_target:id \}\)/, 'Votes côté joueur');
-assert.match(scripts[0], /act\('white_guess', \{ p_word:t \}\)/, 'Tentative de Mr White');
+assert.match(scripts[0], /act\('white_oral_verdict', \{ p_correct:el\.dataset\.correct==='1' \}\)/, 'La réponse orale est validée par un Civil');
 assert.match(scripts[0], /white_bot_step/, 'Bots côté serveur');
+assert.match(scripts[0], /Tu es MrWhitz/, 'MrWhitz voit son propre rôle et l’emblème du jeu');
+assert.match(scripts[0], /games\/white\.svg/, 'MrWhitz voit le logo');
+assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clue-input|white-guess-input/,
+  'Un Civil ou un imposteur ne voit pas son rôle et les indices sont donnés à l’oral');
 assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
 assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Vignette Mr White');
 
