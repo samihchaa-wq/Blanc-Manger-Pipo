@@ -1,5 +1,7 @@
 -- Mr White en présentiel : mots sur chaque téléphone, indices et devinette à l'oral,
 -- puis seulement votes secrets et arbitrage dans l'application.
+-- MrWhitz remplace un imposteur tiré au sort une partie sur cinq (20 %).
+alter table public.rooms add column if not exists white_has_white boolean not null default false;
 
 -- La validation de la proposition orale est confiée à un Civil de la salle.
 -- Cela évite d'afficher le vrai mot sur le téléphone de Mr White.
@@ -16,7 +18,7 @@ $fn$;
 
 create or replace function public._begin_white_round(p_room uuid,p_next_round integer)
 returns void language plpgsql security definer set search_path to '' as $fn$
-declare r public.rooms; c public.white_words; n integer; wid uuid; uid uuid; champ uuid;
+declare r public.rooms; c public.white_words; n integer; intruders integer; white_count integer; champ uuid;
 begin
   select * into r from public.rooms where id=p_room for update;
   if p_next_round>r.target_score then
@@ -26,7 +28,10 @@ begin
   end if;
   if p_next_round=1 then
     delete from public.white_rounds where room_id=p_room;
-    update public.rooms set white_used_words='{}' where id=p_room;
+    -- Un tirage par partie complète, et non à chaque manche :
+    -- MrWhitz apparaît dans environ 20 % des parties.
+    r.white_has_white := random() < 0.20;
+    update public.rooms set white_used_words='{}',white_has_white=r.white_has_white where id=p_room;
     r.white_used_words:='{}';
   end if;
   select * into c from public.white_words
@@ -38,9 +43,10 @@ begin
   if c.id is null then raise exception 'Aucune paire de mots Mr White disponible.'; end if;
   select count(*) into n from public.players where room_id=p_room and active;
   if n<3 then raise exception 'Mr White demande au moins 3 joueurs.'; end if;
-  -- Distribution équilibrée : 3–4 = 1 imposteur, pas de MrWhitz ;
-  -- 5–7 = 1 imposteur + MrWhitz ; 8–11 = 2 imposteurs + MrWhitz ;
-  -- 12 = 3 imposteurs + MrWhitz.
+  -- Total d'imposteurs, MrWhitz compris :
+  -- 3–4 joueurs : 1 ; 5–7 : 2 ; 8–11 : 3 ; 12 : 4.
+  intruders := case when n>=12 then 4 when n>=8 then 3 when n>=5 then 2 else 1 end;
+  white_count := case when r.white_has_white then 1 else 0 end;
   insert into public.white_rounds(room_id,round,word_id,civil_word,undercover_word)
   values(p_room,p_next_round,c.id,c.civil,c.undercover);
   with distribution as (
@@ -49,9 +55,8 @@ begin
   )
   insert into public.white_roles(room_id,round,player_id,role)
   select p_room,p_next_round,d.id,
-    case when d.tirage <= case when n>=5 then 1 else 0 end then 'white'
-         when d.tirage <= (case when n>=5 then 1 else 0 end) +
-           (case when n>=12 then 3 when n>=8 then 2 else 1 end) then 'undercover'
+    case when d.tirage <= white_count then 'white'
+         when d.tirage <= intruders then 'undercover'
          else 'civil' end
   from distribution d;
   update public.players set next_ack_round=0 where room_id=p_room and active;
@@ -111,7 +116,9 @@ begin
   select * into round_data from public.white_rounds where room_id=r.id and round=r.round;
   select * into mine from public.white_roles where room_id=r.id and round=r.round and player_id=me.id;
   return json_build_object(
-    'phase',r.status,'cycle',r.white_cycle,'note',r.white_note,'role',mine.role,
+    'phase',r.status,'cycle',r.white_cycle,'note',r.white_note,
+    -- Ne révéler aucun rôle aux Civils ni aux imposteurs, même dans la réponse réseau.
+    'role',case when mine.role='white' then 'white' end,
     'word',case when mine.role='civil' then round_data.civil_word when mine.role='undercover' then round_data.undercover_word end,
     'eliminated',coalesce(mine.eliminated,false),
     'speaker_id',case when r.status='white_clue' then public._white_speaker(r.id) end,
@@ -184,11 +191,15 @@ begin
       if tid is not null then perform public.white_vote(r.code,bot.token,tid); end if;
     end loop;
   elsif r.status='white_guess' then
-    -- Il n'y a pas de réponse textuelle saisie. Si tous les Civils sont des
-    -- bots, le bot arbitre une tentative orale (non vérifiable) comme ratée.
-    select p.* into bot from public.players p where p.id=public._white_referee(r.id) and p.is_bot;
+    -- Un MrWhitz bot peut deviner automatiquement, comme avant :
+    -- les vraies personnes, elles, annoncent leur proposition à voix haute.
+    select p.* into bot from public.players p join public.white_roles wr on wr.player_id=p.id
+      join public.white_rounds w on w.room_id=wr.room_id and w.round=wr.round
+      where wr.room_id=r.id and wr.round=r.round and wr.role='white' and wr.eliminated
+        and w.last_eliminated=p.id and p.active and p.is_bot limit 1;
     if bot.id is not null then
-      perform public.white_oral_verdict(r.code,bot.token,false);
+      select civil into guess from public.white_words where deleted_at is null order by random() limit 1;
+      perform public.white_guess(r.code,bot.token,coalesce(guess,'aucune idée'));
     end if;
 end $fn$;
 
