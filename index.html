@@ -1694,74 +1694,74 @@ document.addEventListener('pointercancel', endDial);
 // ceux des autres dans le HTML, le salon ou les tables exposées.
 function whiteSecret(){
   const w=state.white||{}, role=w.role==='white'?'Mr White':w.role==='undercover'?'Undercover':'Civil';
-  return \`<section class="white-secret">
+  return `<section class="white-secret">
     <p class="eyebrow">Ton rôle · Ne le montre à personne</p>
-    <strong>\${esc(role)}</strong>
-    <small>\${w.role==='white'?'Tu ne connais pas le mot. Bluffe pour ne pas te faire repérer.':
+    <strong>${esc(role)}</strong>
+    <small>${w.role==='white'?'Tu ne connais pas le mot. Bluffe pour ne pas te faire repérer.':
       w.role==='undercover'?'Ton mot ressemble à celui des Civils. Trouve leur mot sans te trahir.':'Garde ton mot secret et repère les intrus.'}</small>
-    \${w.word?\`<strong>\${esc(w.word)}</strong>\`:'<strong>?</strong>'}
-  </section>\`;
+    ${w.word?`<strong>${esc(w.word)}</strong>`:'<strong>?</strong>'}
+  </section>`;
 }
 function whitePeople(){
   const w=state.white||{};
-  return \`<ul class="white-list">\${(w.roles||[]).map(p=>
-    \`<li class="\${p.out?'out':''}"><span class="nm">\${nameOf(p.player_id)}\${isMe(p.player_id)?' · toi':''}</span>
-      <span class="meta">\${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'Mr White':'Undercover'):'En jeu'}\${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>\`).join('')}</ul>\`;
+  return `<ul class="white-list">${(w.roles||[]).map(p=>
+    `<li class="${p.out?'out':''}"><span class="nm">${nameOf(p.player_id)}${isMe(p.player_id)?' · toi':''}</span>
+      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'Mr White':'Undercover'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
 }
 function whiteNote(){
-  return state.white?.note?\`<div class="white-note">\${esc(state.white.note)}</div>\`:'';
+  return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
 }
 function whiteClue(){
   const w=state.white||{}, mine=isMe(w.speaker_id), name=nameOf(w.speaker_id);
-  return \`
-    <h1 class="bigstate">Tour d’indices · \${w.cycle||1}</h1>
-    \${whiteSecret()}\${whiteNote()}
-    <p class="role">\${w.eliminated?'Tu es éliminé, observe la suite.':
+  return `
+    <h1 class="bigstate">Tour d’indices · ${w.cycle||1}</h1>
+    ${whiteSecret()}${whiteNote()}
+    <p class="role">${w.eliminated?'Tu es éliminé, observe la suite.':
       mine?'C’est ton tour de donner un indice sans prononcer ton mot.':
       'Au tour de <b>'+name+'</b> de donner son indice.'}</p>
-    \${(w.clues||[]).length?\`<h3 class="sec">Indices donnés</h3>
-       <ol class="white-feed">\${w.clues.map(x=>\`<li><b>\${nameOf(x.player_id)}</b> : \${esc(x.text)}</li>\`).join('')}</ol>\`:''}
-    \${mine&&!w.eliminated?\`<label><span>Ton indice</span><input id="white-clue-input" maxlength="100" autocomplete="off"
-       placeholder="Un mot ou une petite expression" value="\${esc(whiteDraft)}"></label>
-       <div class="dock"><button class="btn" data-act="white-send-clue" \${dis()}>Envoyer mon indice</button></div>\`:
-      '<p class="waiting">On attend le prochain indice…</p>'}\`;
+    ${(w.clues||[]).length?`<h3 class="sec">Indices donnés</h3>
+       <ol class="white-feed">${w.clues.map(x=>`<li><b>${nameOf(x.player_id)}</b> : ${esc(x.text)}</li>`).join('')}</ol>`:''}
+    ${mine&&!w.eliminated?`<label><span>Ton indice</span><input id="white-clue-input" maxlength="100" autocomplete="off"
+       placeholder="Un mot ou une petite expression" value="${esc(whiteDraft)}"></label>
+       <div class="dock"><button class="btn" data-act="white-send-clue" ${dis()}>Envoyer mon indice</button></div>`:
+      '<p class="waiting">On attend le prochain indice…</p>'}`;
 }
 function whiteVote(){
   const w=state.white||{}, available=(w.roles||[]).filter(p=>!p.out&&!isMe(p.player_id));
-  return \`
+  return `
     <h1 class="bigstate">Qui est l’intrus ?</h1>
-    \${whiteSecret()}\${whiteNote()}
+    ${whiteSecret()}${whiteNote()}
     <p class="role">Débattez, puis choisissez le joueur à éliminer. Chacun vote sur son téléphone.</p>
-    \${w.voted||w.eliminated?\`<p class="waiting">\${w.eliminated?'Tu es éliminé, tu ne votes plus.':'Vote enregistré. On attend les autres joueurs…'}</p>\`:
-       \`<h3 class="sec">Ton vote</h3><ul class="white-list">\${available.map(p=>
-        \`<li><button data-act="white-vote" data-id="\${p.player_id}" \${dis()}>\${nameOf(p.player_id)}</button></li>\`).join('')}</ul>\`}
-    <h3 class="sec">Joueurs</h3>\${whitePeople()}\`;
+    ${w.voted||w.eliminated?`<p class="waiting">${w.eliminated?'Tu es éliminé, tu ne votes plus.':'Vote enregistré. On attend les autres joueurs…'}</p>`:
+       `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
+        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
+    <h3 class="sec">Joueurs</h3>${whitePeople()}`;
 }
 function whiteGuess(){
   const w=state.white||{}, mine=w.role==='white'&&w.last_eliminated===state.me.id;
-  return \`
+  return `
     <h1 class="bigstate">Mr White démasqué !</h1>
-    \${whiteNote()}
+    ${whiteNote()}
     <p class="role">Mr White a une dernière chance de gagner la manche en devinant le mot des Civils.</p>
-    \${mine?\`<label><span>Quel est le mot des Civils ?</span>
-      <input id="white-guess-input" maxlength="60" autocomplete="off" value="\${esc(whiteGuessDraft)}" placeholder="Ta réponse"></label>
-      <div class="dock"><button class="btn" data-act="white-guess" \${dis()}>Tenter ma chance</button></div>\`:
-      '<p class="waiting">Mr White réfléchit…</p>'}\`;
+    ${mine?`<label><span>Quel est le mot des Civils ?</span>
+      <input id="white-guess-input" maxlength="60" autocomplete="off" value="${esc(whiteGuessDraft)}" placeholder="Ta réponse"></label>
+      <div class="dock"><button class="btn" data-act="white-guess" ${dis()}>Tenter ma chance</button></div>`:
+      '<p class="waiting">Mr White réfléchit…</p>'}`;
 }
 function whiteReveal(){
   const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'Mr White'};
-  return \`
-    <div class="white-result"><p class="eyebrow">Fin de la manche \${state.room.round}</p>
-      <strong>\${esc(noms[w.winner]||'Résultat')}</strong></div>
-    \${whiteNote()}
+  return `
+    <div class="white-result"><p class="eyebrow">Fin de la manche ${state.room.round}</p>
+      <strong>${esc(noms[w.winner]||'Résultat')}</strong></div>
+    ${whiteNote()}
     <div class="white-secret"><p class="eyebrow">Mots de la manche</p>
-      <strong>\${esc(w.civil_word||'?')}</strong><small>Mot des Civils</small>
-      <strong>\${esc(w.undercover_word||'?')}</strong><small>Mot Undercover</small></div>
-    <h3 class="sec">Qui était qui ?</h3>\${whitePeople()}
-    <h3 class="sec">Classement</h3>\${rank()}
-    <div class="dock"><button class="btn" data-act="bac-next" \${dis(state.me.next_ack===state.room.round)}>
-      \${state.me.next_ack===state.room.round?'En attente des autres…':
-        state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>\`;
+      <strong>${esc(w.civil_word||'?')}</strong><small>Mot des Civils</small>
+      <strong>${esc(w.undercover_word||'?')}</strong><small>Mot Undercover</small></div>
+    <h3 class="sec">Qui était qui ?</h3>${whitePeople()}
+    <h3 class="sec">Classement</h3>${rank()}
+    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
+      ${state.me.next_ack===state.room.round?'En attente des autres…':
+        state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>`;
 }
 
 /* ---------- Petit bac ---------- */
