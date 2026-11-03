@@ -106,6 +106,18 @@ assert.match(scripts[0], /act\('white_open_vote'\)/, 'En présentiel, l’hôte 
 assert.match(scripts[0], /act\('white_vote', \{ p_target:id \}\)/, 'Votes côté joueur');
 assert.match(scripts[0], /act\('white_oral_verdict', \{ p_correct:el\.dataset\.correct==='1' \}\)/, 'La réponse orale est validée par un Civil');
 assert.match(scripts[0], /white_bot_step/, 'Bots côté serveur');
+// L'écran en présentiel doit rester volontairement minimal : carte + bouton de vote.
+const whiteCardView = scripts[0].split('function whiteSecret(){')[1].split('function whitePeople(){')[0];
+const whiteClueView = scripts[0].split('function whiteClue(){')[1].split('function whiteVote(){')[0];
+assert.ok(whiteCardView && whiteClueView, 'Écrans du jeu Mr White disponibles');
+assert.match(whiteCardView, /Ta carte :/, 'Une étiquette unique sur la carte');
+assert.doesNotMatch(whiteCardView, /<small>|Ta carte secrète|Ton mot secret|Ne la montre à personne/,
+  'Aucun paragraphe explicatif sur la carte');
+assert.match(whiteClueView, /whiteSecret\(\)/, 'La carte est toujours visible');
+assert.match(whiteClueView, /host[\\s\\S]*Passer au vote/, 'Le bouton reste réservé à l’hôte');
+assert.doesNotMatch(whiteClueView, /<h1|<h3|whiteNote\(\)|white-feed|white-seats|class="role"|class="waiting"/,
+  'Pas de titre, ordre de passage, indices des bots ni consignes sur cet écran');
+
 assert.match(scripts[0], /Tu es MrWhitz/, 'MrWhitz voit son propre rôle et l’emblème du jeu');
 assert.match(scripts[0], /games\/white\.svg/, 'MrWhitz voit le logo');
 assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clue-input|white-guess-input/,
