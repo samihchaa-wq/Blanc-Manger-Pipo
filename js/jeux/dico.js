@@ -101,8 +101,7 @@ function dicoWrite(){
   return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi un mot. Invente sa définition, façon dictionnaire.</p>
     ${dicoMot('short')}
-    <label class="dwrite"><span>Ta définition</span><textarea id="dico-def" rows="3" maxlength="300" autocapitalize="sentences"
-      placeholder="Ex. : Petit outil de cordonnier servant à…">${esc(dicoDraft)}</textarea></label>
+    <label class="dwrite"><span>Ta définition</span><textarea id="dico-def" rows="3" maxlength="300" autocapitalize="sentences">${esc(dicoDraft)}</textarea></label>
     <div class="dock"><button class="btn" data-act="dico-send" ${dis()}>Envoyer ma définition</button></div>`;
 }
 
