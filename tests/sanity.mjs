@@ -234,7 +234,9 @@ assert.match(mimeMigration, /if r\.reader_id <> me\.id then raise exception 'Seu
 // d'avant tant que la migration n'est pas appliquée.
 assert.match(scripts[0], /rpc\('get_full_state', args\)/, 'La relecture passe par get_full_state');
 assert.match(scripts[0], /function readStateLegacy\(args\)/, 'Repli sur get_state, white_state et punish_state');
-const fullMigration = fs.readFileSync(new URL('../supabase/migrations/20261107120000_etat_complet.sql', import.meta.url), 'utf8');
+const fullMigration = fs.readFileSync(new URL('../supabase/migrations/20261104175401_etat_complet_phase_false.sql', import.meta.url), 'utf8');
+// punish_state renvoie phase:false hors saisie : la relecture doit s'y faire aussi
+assert.match(fullMigration, /coalesce\(pu->>'phase', ''\) in \('', 'false'\)/, 'Relecture quand phase vaut false');
 assert.match(fullMigration, /security definer set search_path to ''/, 'get_full_state : search_path vide');
 assert.match(fullMigration, /public\.white_state\(p_code, p_token\)/, 'Les mots secrets passent toujours par white_state');
 assert.match(fullMigration, /revoke execute on function public\.get_full_state\(text, uuid\) from public;/, 'Pas d’exécution par public');

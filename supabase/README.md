@@ -50,7 +50,7 @@ Current production migration tail:
 - `20261026140000_petit_bac` (quatrième jeu, à deux : `bac_category` pour proposer les six catégories de la partie à tour de rôle — gardées dans `rooms.bac_categories`, aucun catalogue —, `bac_save` pour la grille enregistrée au fil de la frappe, `bac_vote` pour juger catégorie par catégorie ; table `bac_answers` ; `_max_players` borne la salle à 2 joueurs ; migration additive)
 - `20261105120000_barometre_inverse_mimes_white_tour` (Mr White : premier joueur tiré au sort puis rotation, `starter_id` dans `white_state` ; Baromètre `wave_variant` normal/inversé avec `set_wave_variant`, `submit_theme`, `wave_bot_step` ; nouveau jeu Mimes : tables `mime_cards`/`mime_parts`, `mime_rate`, `mime_bot_step`, statut `mime_play` ; `get_state`, `white_state`, `white_resume`, `create_room`, `set_room_options`, `_remove_player`, `_begin_wave_round`, `_begin_white_round` enveloppent leur ancienne version renommée en `*_base`)
 
-- `20261107120000_etat_complet` (`get_full_state` : une seule RPC par relecture, qui enchaîne `get_state`, `white_state` et `punish_state` côté serveur et relit l'état si `punish_state` vient de lancer la partie ; migration additive, le client retombe sur les trois RPC si elle est absente)
+- `20261104175320_etat_complet` et `20261104175401_etat_complet_phase_false` (`get_full_state` : une seule RPC par relecture, qui enchaîne `get_state`, `white_state` et `punish_state` côté serveur et relit l'état si `punish_state` vient de lancer la partie ; migration additive, le client retombe sur les trois RPC si elle est absente ; la seconde migration relit aussi l'état quand `punish_state` renvoie `phase: false`, sa valeur réelle hors saisie)
 
 ## Change workflow
 

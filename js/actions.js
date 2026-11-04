@@ -44,6 +44,8 @@ document.addEventListener('click', async e => {
     el.parentElement.querySelectorAll('.seg-b').forEach(b => {
       const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     });
+    // l'accroche suit la vignette choisie, sans re-rendre (la saisie du pseudo reste)
+    if (a === 'mode') { const p = document.getElementById('c-pitch'); if (p) p.innerHTML = pitch(el.dataset.v) }
     return;
   }
   if (a === 'tab') {

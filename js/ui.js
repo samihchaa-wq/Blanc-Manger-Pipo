@@ -81,6 +81,9 @@ function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);
+  // Couleur d'accent du jeu en cours (voir body[data-game] dans la feuille de style)
+  const jeu = !adminOpen && session && state ? state.room.mode : '';
+  if (jeu) document.body.dataset.game = jeu; else delete document.body.dataset.game;
   let html;
   if (adminOpen) html = adminView();
   else if (!session) html = home();
@@ -135,6 +138,19 @@ function fitDock(){
 // (retour à la ligne du libellé) : la réserve doit suivre.
 addEventListener('resize', fitDock);
 
+// Accueil : une ligne pour le jeu choisi (nom, nombre de joueurs, principe).
+const PITCH = {
+  phrases:'Complète la phrase du lecteur avec ta carte la plus drôle.',
+  priorites:'Devine dans quel ordre le juge classe cinq cartes.',
+  ondes:'Place l’aiguille au plus près de la cible du médium.',
+  bac:'Une lettre, six catégories, un duel.',
+  white:'Démasquez l’imposteur, autour de la même table.',
+  mimes:'Mime une action à l’intensité tirée au sort.',
+};
+function pitch(k){
+  const n = minPlayers(k) === maxPlayers(k) ? `${minPlayers(k)} joueurs` : `${minPlayers(k)} à ${maxPlayers(k)} joueurs`;
+  return `<b>${(GAMES[k] || GAMES.phrases).name}</b> · ${n}<br><span>${PITCH[k] || ''}</span>`;
+}
 function home(){
   const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,4);
   let nm = ''; try { nm = localStorage.getItem('pdcat-name') || '' } catch {}
@@ -155,12 +171,13 @@ function home(){
       </div>
 
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
-        <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+        <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Ton prénom ou surnom" value="${esc(nm)}"></label>
         <div class="field">
           <div class="seg s2 games" role="group" aria-label="Jeu">
             ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
+          <p class="pitch" id="c-pitch" aria-live="polite">${pitch('phrases')}</p>
         </div>
         <!-- le réglage propre à chaque jeu se fait dans le salon : l'accueil tient sur un écran -->
         <input type="hidden" id="c-turns" value="2">
@@ -169,7 +186,7 @@ function home(){
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
-        <label class="inline"><span>Pseudo :</span><input id="j-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
+        <label class="inline"><span>Pseudo :</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Ton prénom ou surnom" value="${esc(nm)}"></label>
         <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" spellcheck="false" placeholder="••••" value="${esc(code)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
@@ -288,9 +305,14 @@ async function loadCatalog(offset = 0){
 
 // Le point devant le code dit l'état du réseau : vert en direct, doré quand
 // le temps réel est coupé (relecture toutes les 4 s), rose hors connexion.
+// En partie, la barre du haut montre le jeu (vignette + nom) plutôt que le
+// code, inutile une fois la partie lancée. Le point de connexion se pose sur
+// la vignette ; le code reste lu par les lecteurs d'écran.
 function netBadge(code){
   const [cls, msg] = !navigator.onLine ? [' down', 'Hors connexion'] : rtOk || !rtSeen ? ['', 'Connecté'] : [' slow', 'Connexion lente, reconnexion…'];
-  return `<span class="code${cls}" title="${msg}" role="status" aria-label="Partie ${esc(code)} · ${msg}">${esc(code)}</span>`;
+  const g = GAMES[state.room.mode] || GAMES.phrases;
+  return `<span class="gchip${cls}" title="${msg}" role="status" aria-label="${g.name}, partie ${esc(code)} · ${msg}">
+      <img src="games/${gameImg(state.room.mode)}" width="720" height="720" alt=""></span>`;
 }
 addEventListener('offline', () => { toast('Connexion perdue. On reprend dès qu’elle revient.'); render() });
 addEventListener('online', () => { render(); if (session) refresh(true) });
@@ -306,7 +328,7 @@ function topbar(){
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>`;
   return `<div class="top">
-      <div class="top-l">${netBadge(r.code)}${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</div>
+      <div class="top-l">${netBadge(r.code)}<span class="gmeta"><b>${(GAMES[r.mode] || GAMES.phrases).name}</b>${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</span></div>
       <div class="top-r">
         <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg><b class="cdn"></b></span>
         <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
