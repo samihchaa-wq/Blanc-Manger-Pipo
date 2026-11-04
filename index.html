@@ -1775,10 +1775,10 @@ function whiteWinnerSentence(){
     return mr.length?`<p class="role"><b>${whiteTeamNames(mr)}</b> était Mr White, il a gagné.</p>`:'';
   }
   if (w.winner==='imposteurs') {
-    const imposteurs=roles.filter(p=>(p.role==='undercover'||p.role==='white')&&!p.out&&P(p.player_id)?.active);
+    const imposteurs=roles.filter(p=>p.role==='undercover'&&P(p.player_id)?.active);
     if (!imposteurs.length) return '';
     if (imposteurs.length===1)
-      return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> était ${imposteurs[0].role==='white'?'Mr White':'l’imposteur'}, il a gagné.</p>`;
+      return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> était l’imposteur, il a gagné.</p>`;
     return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> étaient les imposteurs, ils ont gagné.</p>`;
   }
   return '';
