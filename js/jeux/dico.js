@@ -70,11 +70,11 @@ function dicoPick(){
     </div>`;
 }
 
-// Le mot du tour, sa nature en italique.
+// Le mot du tour, seul (sans sa nature grammaticale).
 function dicoMot(cls = ''){
   const d = state.dico || {};
   return qcard(cls.includes('aloud') ? ic('voice') + 'Le mot à lire' : 'Le mot du Dico',
-    `<span class="dmot">${esc(d.word || '')}</span> <i class="dnat">${esc(d.nature || '')}</i>`, cls);
+    `<span class="dmot">${esc(d.word || '')}</span>`, cls);
 }
 // Qui a fini d'écrire ou de voter, comme dans les autres jeux.
 function dicoSuivi(faits, mot){
@@ -89,7 +89,7 @@ function dicoSuivi(faits, mot){
 function dicoWrite(){
   const r = state.room, d = state.dico || {}, suivi = dicoSuivi(d.written || [], 'ont écrit');
   if (isMe(r.reader_id)) return `
-    <p class="role"><b>Lis le mot à voix haute</b>, avec sa nature. Les autres en écrivent une définition.</p>
+    <p class="role"><b>Lis le mot à voix haute.</b> Les autres en écrivent une définition.</p>
     ${dicoMot('aloud short')}
     <section class="dbox dtrue"><p class="eyebrow">La vraie définition, toi seul la vois</p><p>${esc(d.definition || '')}</p></section>
     ${suivi}`;
@@ -134,7 +134,7 @@ function dicoReveal(){
   const pts = (d.points || []).filter(x => P(x.player_id)).sort((a, b) => b.points - a.points);
   return `
     <p class="role">La vraie définition de <b>${esc(d.word || '')}</b></p>
-    ${qcard(`${esc(d.word || '')} · ${esc(d.nature || '')}`, esc(d.definition || vraie?.text || ''), 'win dtruecard',
+    ${qcard(esc(d.word || ''), esc(d.definition || vraie?.text || ''), 'win dtruecard',
       `<span class="by">Trouvée par</span>${qui(vraie?.voters)}`)}
     ${fausses.length ? `<h3 class="sec">Les fausses définitions</h3>
     <ol class="dfakes">${fausses.map(x => { const n = (x.voters || []).length; return `<li class="dbox">
