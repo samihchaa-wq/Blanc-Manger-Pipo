@@ -39,9 +39,9 @@ function ticks(){
 // opts : target (bandes visibles), needles [{v,color}], mine (aiguille déplaçable)
 function dial({ target = null, needles = [], mine = null, sweep = false } = {}){
   // en mode inversé, l'échelle est celle du thème écrit par un joueur
-  const w = isInverse() ? { left:'Le moins', right:'Le plus' } : (state.wave || {});
+  const w = isInverse() ? { left:'−', right:'+' } : (state.wave || {});
   return `<div class="dialbox">
-    <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${esc(w.left)} et ${esc(w.right)}">
+    <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${isInverse() ? 'le moins et le plus' : esc(w.left) + ' et ' + esc(w.right)}">
       <path class="face" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
       ${ticks()}
       ${target == null ? '' : sweep ? `<g class="sweep" style="--t:${(-1.8 * target).toFixed(1)}deg">${bands(target)}</g>` : bands(target)}
@@ -50,7 +50,7 @@ function dial({ target = null, needles = [], mine = null, sweep = false } = {}){
       ${mine != null ? needle(mine, null, true) : ''}
       <circle class="hub" cx="${DC.x}" cy="${DC.y}" r="7"/>
     </svg>
-    <div class="wlabs"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
+    <div class="wlabs${isInverse() ? ' signs' : ''}"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
   </div>`;
 }
 
@@ -62,7 +62,7 @@ function inverseClue(){
   if (w.theme == null) {
     if (canWrite) return `
     <p class="role"><b>Écris un thème.</b> ${nameOf(r.reader_id)} y répondra selon la cible qu’il voit.</p>
-    <label><span>Ton thème</span><input id="w-theme" maxlength="80" autocomplete="off" autocapitalize="sentences" placeholder="Ex. : un salaire que j’aimerais toucher" value="${esc(themeDraft)}"></label>
+    <label><span>Ton thème</span><input id="w-theme" maxlength="80" autocomplete="off" autocapitalize="sentences" value="${esc(themeDraft)}"></label>
     <div class="dock"><button class="btn" data-act="theme" ${dis()}>Envoyer le thème</button></div>`;
     return `
     <p class="role">${isMe(r.reader_id) ? '<b>Tu es le médium.</b> ' : `<b>${nameOf(r.reader_id)}</b> est le médium. `}${asker ? `<b>${nameOf(w.asker_id)}</b> écrit le thème…` : 'On attend le thème…'}</p>
@@ -75,7 +75,7 @@ function inverseClue(){
   return `
     <p class="role"><b>Tu es le médium.</b> Réponds au thème selon la position de la cible.</p>
     ${themeCard()}${dial({ target: w.target })}
-    <label style="margin-top:22px"><span>Ta réponse</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Ex. : 100 000 €" value="${esc(clueDraft)}"></label>
+    <label style="margin-top:22px"><span>Ta réponse</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nombre, une idée…" value="${esc(clueDraft)}"></label>
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Envoyer ma réponse</button></div>`;
 }
 
@@ -124,10 +124,10 @@ function waveReveal(){
     <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
     ${isInverse() ? themeCard() + qcard('Réponse', esc(w.clue), 'clue') : qcard('Indice', esc(w.clue), 'clue')}
     ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })), sweep: true })}
-    <div class="legend">${guessers.map(g => `<span class="chip">${avatar(g.player_id, 'sm')}${nameOf(g.player_id)}</span>`).join('')}</div>
+    <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(g => `<li>
-      ${avatar(g.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
+      <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
       <b class="plus" data-n="${g.points ?? 0}">+${g.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }

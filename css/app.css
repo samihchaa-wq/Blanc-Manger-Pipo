@@ -582,7 +582,7 @@ button.scard:active{transform:translateY(2px)}
 .waiting{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:16px;color:var(--text-faint);
   font-size:14px}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--hairline);
-  border-radius:var(--r-pill);padding:4px 11px 4px 5px;color:var(--text-dim);font-size:14px}
+  border-radius:var(--r-pill);padding:4px 11px;color:var(--text-dim);font-size:14px}
 .bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:14px}
 .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--mint));
   transition:width .35s var(--ease)}
@@ -747,20 +747,6 @@ button.scard:active{transform:translateY(2px)}
 .rank b,.step b,.bigcode .ch{font-weight:600}
 .rank .nm span.who,.plist .nm{font-weight:500}
 
-/* ===== Pastilles des joueurs ===== */
-/* Une couleur de siège et une initiale par joueur, les mêmes partout : salon,
-   attentes, classements, votes, notes, aiguilles du Baromètre. */
-.av{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;
-  background:var(--c,var(--gold));color:var(--ink);font-size:14px;font-weight:700;line-height:1;
-  box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),0 0 0 2px rgba(15,12,20,.6)}
-.av.sm{width:22px;height:22px;font-size:11px;box-shadow:inset 0 -1.5px 0 rgba(0,0,0,.2)}
-.av.lg{width:64px;height:64px;font-size:30px;font-weight:800;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 3px rgba(15,12,20,.7)}
-.chip .av.sm{margin-right:1px}
-.chip:has(.av){padding-left:3px}
-.av{position:relative}
-.plist .kick{width:24px;height:24px;font-size:12px}
-.rank .av{margin-right:-2px}
-.role .av{vertical-align:-6px;margin-right:6px}
 
 /* ===== Icônes ===== */
 .ic{display:inline-block;width:1.05em;height:1.05em;flex:none;vertical-align:-.16em;
@@ -786,7 +772,6 @@ button.scard:active{transform:translateY(2px)}
 .mime-notes{grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
 .mime-notes button{height:40px;padding:0;border-radius:8px;font-size:15px;font-weight:600}
 .mime-order li{display:list-item}
-.mime-order .av{vertical-align:-5px;margin-right:7px}
 
 /* ===== Cadran du Baromètre ===== */
 .dial .tk{stroke:var(--paper-edge);stroke-width:1;stroke-linecap:round}
@@ -820,7 +805,6 @@ button.scard:active{transform:translateY(2px)}
   font-style:normal;font-size:24px;font-weight:800;color:var(--ink);transform-origin:bottom;
   background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.18)),var(--c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
 .pod.p1 .stepb{height:98px} .pod.p2 .stepb{height:70px}
-.pod.p1 .av.lg{width:76px;height:76px;font-size:36px}
 #app.fresh .pod .stepb{animation:rise-up .6s var(--ease) both}
 #app.fresh .pod.p2 .stepb{animation-delay:.15s} #app.fresh .pod.p1 .stepb{animation-delay:.3s}
 #app.fresh .pod>:not(.stepb){animation:pop-in .4s var(--ease) both;animation-delay:.75s}
@@ -859,7 +843,7 @@ button.scard:active{transform:translateY(2px)}
 .striphead.l{text-align:left;margin-top:26px}
 .strip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
 .strip.l{justify-content:flex-start}
-.strip .chip{padding:3px 11px 3px 3px;gap:7px}
+.strip .chip{padding:4px 12px;gap:8px}
 .strip .chip b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .strip .chip.me{border-color:rgba(255,194,61,.55);background:linear-gradient(90deg,rgba(255,194,61,.12),var(--surface))}
 
@@ -1028,3 +1012,6 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
 .dfakes .found{margin-top:8px}
 /* accueil : la septième vignette se centre sur sa ligne */
 .seg.games .seg-b:last-child:nth-child(3n+1){grid-column:2}
+
+/* Baromètre inversé : − et + aux deux bouts du cadran */
+.wlabs.signs .wlab{min-width:52px;text-align:center;font-size:24px;font-weight:700;line-height:1}

@@ -130,7 +130,7 @@ function dicoReveal(){
   const r = state.room, d = state.dico || {}, defs = d.defs || [];
   const vraie = defs.find(x => x.is_true), fausses = defs.filter(x => !x.is_true && P(x.author_id));
   const qui = ids => `<div class="found">${(ids || []).length
-    ? ids.map(id => `<span class="chip">${avatar(id, 'sm')}${nameOf(id)}</span>`).join('') : 'Personne'}</div>`;
+    ? ids.map(id => `<span class="chip">${nameOf(id)}</span>`).join('') : 'Personne'}</div>`;
   const pts = (d.points || []).filter(x => P(x.player_id)).sort((a, b) => b.points - a.points);
   return `
     <p class="role">La vraie définition de <b>${esc(d.word || '')}</b></p>
@@ -139,10 +139,10 @@ function dicoReveal(){
     ${fausses.length ? `<h3 class="sec">Les fausses définitions</h3>
     <ol class="dfakes">${fausses.map(x => { const n = (x.voters || []).length; return `<li class="dbox">
       <p>${esc(x.text)}</p>
-      <p class="dby">${avatar(x.author_id, 'sm')}<span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b> · ${n ? `${n} joueur${n > 1 ? 's' : ''} dupé${n > 1 ? 's' : ''}` : 'personne n’y a cru'}</span></p>
+      <p class="dby"><span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b> · ${n ? `${n} joueur${n > 1 ? 's' : ''} dupé${n > 1 ? 's' : ''}` : 'personne n’y a cru'}</span></p>
       ${n ? qui(x.voters) : ''}</li>` }).join('')}</ol>` : ''}
     <h3 class="sec">Points de la manche</h3>
-    <ol class="rank">${pts.map(x => `<li>${avatar(x.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(x.player_id)}</span>${
+    <ol class="rank">${pts.map(x => `<li><span class="nm"><span class="who">${nameOf(x.player_id)}</span>${
       x.player_id === r.reader_id ? '<span class="tag host">meneur</span>' : ''}</span><b class="plus" data-n="${x.points}">+${x.points}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
