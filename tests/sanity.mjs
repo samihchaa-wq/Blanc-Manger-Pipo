@@ -75,13 +75,15 @@ assert.match(html, /<div class="scrim" aria-hidden="true">/,
 
 // Les joueurs sont désignés à tour de rôle : plus de roue nulle part.
 assert.doesNotMatch(html, /wheel|spinning\(/i, 'La roue de tirage au sort ne doit pas revenir');
-// L'écran de résultat d'une manche passe seul après 5 s (2 min pour le classement de Priorités), sans bouton à valider.
-assert.match(scripts[0], /status === 'reveal' \? \(isPrio\(\) \? 120000 : 5000\) : 120000/, 'Le résultat d’une manche doit durer 5 s, 2 min en Priorités');
-// Petit bac et Mr White avancent sans chronomètre et avec « Manche suivante ».
-assert.equal((scripts[0].match(/next_round/g) || []).length, 1, 'Petit bac et Mr White partagent le même appel next_round');
-assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Le Petit bac avance par un bouton');
-assert.match(scripts[0], /isBac\(\) \|\| isWhite\(\) \|\| !TIMED\.includes/, 'Petit bac et Mr White ne doivent avoir aucun minuteur');
-assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Le Petit bac ne doit pas afficher de compte à rebours');
+// Le serveur fournit les durées et dates limites ; les votes subjectifs restent manuels.
+assert.match(scripts[0], /function timeField\(host\)/, 'Réglage Temps dans le salon');
+assert.match(scripts[0], /act\('set_time_mode', \{ p_mode: el\.dataset\.v \}\)/, 'Option persistée');
+assert.match(scripts[0], /phase_deadline/, 'Échéance serveur');
+assert.match(scripts[0], /advisoryPhase\(\)/, 'Chronos oraux non bloquants');
+assert.match(scripts[0], /function sharedRoundNext\(\)/, 'Validation manuelle des résultats');
+assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Manches synchronisées');
+assert.match(scripts[0], /rpc\('reap_idle'/, 'Expiration traitée côté serveur');
+assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Pas de minuteur autonome Petit Bac');
 
 // Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
 assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : 12/,
@@ -207,12 +209,12 @@ assert.match(scripts[0], /act\('submit_theme', \{ p_theme: t \}\)/, 'Le thème e
 assert.match(scripts[0], /if \(isInverse\(\)\) return inverseClue\(\);/, 'Écran de thème en mode inversé');
 assert.match(scripts[0], /'wave_bot_step'/, 'Bots du mode inversé');
 
-// Mimes : nouveau jeu, sans minuteur, notes du juge envoyées en une fois.
+// Mimes : nouveau jeu, minuteur indicatif, notes du juge envoyées en une fois.
 assert.match(scripts[0], /mimes:\s*\{ name:'Mimes'/, 'Jeu Mimes présent');
 assert.match(scripts[0], /mime_play:mimePlay/, 'Phase Mimes déclarée');
 assert.match(scripts[0], /act\('mime_rate', \{ p_players: ids, p_notes: ids\.map\(x => mimeNotes\[x\]\) \}\)/, 'Notes du juge');
 assert.match(scripts[0], /'mime_bot_step'/, 'Bots Mimes');
-assert.match(scripts[0], /\|\| isMime\(\)\) return 0;/, 'Mimes n’a pas de minuteur');
+assert.match(scripts[0], /act\('mime_progress', \{ p_action:'next' \}\)/, 'Chrono de Mimes déclenché par le juge');
 assert.ok(fs.existsSync(new URL('../games/mimes.svg', import.meta.url)), 'Vignette Mimes présente');
 const mimeMigration = fs.readFileSync(new URL('../supabase/migrations/20261105120000_barometre_inverse_mimes_white_tour.sql', import.meta.url), 'utf8');
 assert.match(mimeMigration, /when 0 then 3 when 1 then 2 when 2 then 1 else 0/, 'Barème Mimes : 3, 2, 1 points');
