@@ -329,6 +329,11 @@ button.scard:active{transform:translateY(2px)}
 .lobbytop .xbtn{justify-self:end}
 .codeblock{min-width:0;text-align:center}
 .codeblock .eyebrow{font-size:11px}
+/* Partager l'invitation : sous le code, discret mais toujours à portée */
+.share{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 12px;border-radius:var(--r-pill);
+  font-size:13px;letter-spacing:.04em;color:var(--gold-soft);background:rgba(255,194,61,.10);border:1px solid rgba(255,194,61,.32)}
+.share svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.share:active{transform:scale(.95);background:rgba(255,194,61,.18)}
 .bigcode{display:flex;justify-content:center;gap:5px;margin-top:6px}
 .bigcode .ch{display:grid;place-items:center;width:clamp(34px,10vw,44px);height:clamp(42px,12.5vw,54px);border-radius:12px;
   font-size:clamp(20px,6vw,24px);color:var(--gold);
@@ -929,8 +934,41 @@ function disconnect(){
   clearTimeout(reapTimer); clearTimeout(botTimer); clearTimeout(roueTimer); clearTimeout(bacTimer);
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
-function startSession(){ state = null; last = ''; render(); connect(); refresh(true) }
-function leaveLocal(){ disconnect(); save(null); state = null; history.replaceState(null,'',location.pathname); render() }
+function startSession(){ state = null; last = ''; render(); connect(); refresh(true); keepAwake() }
+function leaveLocal(){ disconnect(); save(null); state = null; history.replaceState(null,'',location.pathname); keepAwake(); render() }
+
+// L'écran reste allumé tant qu'on est dans une partie : pendant les attentes
+// (lecteur, mimes, Mr White) le téléphone se verrouillait, et les bots, pilotés
+// par le téléphone de l'hôte, se figeaient avec lui. Le verrou tombe tout seul
+// quand l'appli passe en arrière-plan : on le reprend au retour.
+let wakeLock = null, wakeAsk = null;
+async function keepAwake(){
+  try {
+    if (session && !document.hidden) {
+      if (wakeLock || wakeAsk || !navigator.wakeLock) return;
+      wakeAsk = navigator.wakeLock.request('screen');
+      const l = await wakeAsk;
+      l.addEventListener('release', () => { if (wakeLock === l) wakeLock = null });
+      wakeLock = l;
+      if (!session) { wakeLock = null; l.release() }   // parti pendant la demande
+    } else if (wakeLock) { const l = wakeLock; wakeLock = null; await l.release() }
+  } catch {}
+  finally { wakeAsk = null }
+}
+
+// Le lien d'invitation ouvre directement l'onglet « Rejoindre » avec le code.
+async function shareInvite(){
+  const code = state?.room.code; if (!code) return;
+  const url = location.origin + location.pathname + '?code=' + code;
+  const game = (GAMES[state.room.mode] || GAMES.phrases).name;
+  const text = `Rejoins ma partie de ${game} sur Le Soulièteur, code ${code}`;
+  if (navigator.share) {
+    try { await navigator.share({ title:'Le Soulièteur', text, url }); return }
+    catch (e) { if (e?.name === 'AbortError') return }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Lien copié : envoie-le aux autres joueurs.') }
+  catch { prompt('Copie ce lien et envoie-le :', url) }
+}
 function scheduleAuto(){
   clearTimeout(roueTimer);
   // la roue des lettres finie, la grille prend sa place
@@ -1290,7 +1328,8 @@ function topbar(){
   if (r.status === 'lobby') return `<div class="top lobbytop">
       <img class="gamelogo" src="games/${gameImg(r.mode)}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
       <div class="codeblock"><p class="eyebrow">Code de la partie</p>
-        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div></div>
+        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
+        <button type="button" class="share" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>Inviter</button></div>
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>`;
   return `<div class="top">
@@ -2400,6 +2439,9 @@ document.addEventListener('click', async e => {
   if (!el || el.disabled) return;
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
+  // certains navigateurs n'accordent le verrou d'écran qu'après un geste
+  if (session && !wakeLock) keepAwake();
+  if (el.dataset.act === 'share') return shareInvite();
   if (el.dataset.act === 'game-pick') { gamePick = !gamePick; return render() }
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'pun-toggle') {
@@ -2717,7 +2759,7 @@ document.addEventListener('keydown', e => {
   }
 });
 // En quittant l'appli en pleine saisie, la grille part tout de suite.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true); else if (state?.room.status === 'writing') saveBac() });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(true); keepAwake() } else if (state?.room.status === 'writing') saveBac() });
 
 const urlCode = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'');
 if (session && urlCode && urlCode !== session.code) save(null);
