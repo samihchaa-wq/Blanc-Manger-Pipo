@@ -90,6 +90,40 @@ const ic = (n, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0
 const VOTES = [[2,'up','2 pts'],[1,'equal','Égalité'],[0,'down','0 pt']];
 const voteIcon = v => { const x = VOTES.find(([p]) => p === v); return x ? ic(x[1], 'v' + v) : '' };
 
+/* ---------- Mise à jour ---------- */
+// Après une mise en ligne, un téléphone resté ouvert garde l'ancien code en
+// mémoire (il affichait une partie du Dico sous le nom « Phrases à trou »).
+// On compare la version publiée et on recharge dès que c'est sans risque.
+const APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || 'dev';
+let majEnAttente = false;
+async function verifierVersion(){
+  if (APP_VERSION === 'dev' || majEnAttente) return;
+  try {
+    const v = (await (await fetch('version.json', { cache: 'no-store' })).json()).v;
+    if (v && v !== APP_VERSION) { majEnAttente = true; rechargerSiPossible() }
+  } catch {}
+}
+// Jamais en pleine saisie : seulement à l'accueil, au salon, aux résultats, en fin
+// de partie, ou tout de suite si ce code ne connaît pas le jeu de la partie.
+function rechargerSiPossible(){
+  if (!majEnAttente || adminOpen) return;
+  const st = state?.room?.status, saisie = document.activeElement?.matches?.('input, textarea');
+  const calme = !session || !state || (['lobby', 'reveal', 'finished'].includes(st) && !pun?.phase);
+  if (state && !GAMES[state.room.mode]) return recharger();
+  if (calme && !saisie) recharger();
+}
+// Garde-fou : jamais deux rechargements en moins de 2 minutes (le temps que la
+// mise en ligne se propage partout).
+function recharger(){
+  try {
+    if (Date.now() - (+sessionStorage.getItem('pdcat-maj') || 0) < 120000) return;
+    sessionStorage.setItem('pdcat-maj', String(Date.now()));
+  } catch {}
+  location.reload();
+}
+setTimeout(verifierVersion, 4000);
+setInterval(verifierVersion, 5 * 60 * 1000);
+
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
 function save(v){ session = v; try { v ? localStorage.setItem('pdcat', JSON.stringify(v)) : localStorage.removeItem('pdcat') } catch {} }
@@ -202,7 +236,10 @@ async function refresh(force = false){
       picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {}; dicoPage = null; dicoSel = null; dicoDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
+    // un jeu que ce code ne connaît pas : une version plus récente est en ligne
+    if (!GAMES[s.room.mode]) verifierVersion();
     render(); scheduleAuto();
+    rechargerSiPossible();
   } catch (e) {
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
   }

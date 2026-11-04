@@ -358,7 +358,7 @@ document.addEventListener('keydown', e => {
   }
 });
 // En quittant l'appli en pleine saisie, la grille part tout de suite.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(true); keepAwake() } else if (state?.room.status === 'writing') saveBac() });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(true); keepAwake(); verifierVersion() } else if (state?.room.status === 'writing') saveBac() });
 
 const urlCode = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'');
 if (session && urlCode && urlCode !== session.code) save(null);

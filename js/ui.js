@@ -142,14 +142,20 @@ addEventListener('resize', fitDock);
 // Accueil : les vignettes prennent toute la largeur tant que la page tient sur
 // un écran, et rétrécissent seulement de ce qui dépasse. On mesure au lieu de
 // deviner : encoche, barre de Safari, appli installée et police réglée par le
-// système changent la hauteur disponible. La grille fait environ 2/3 de sa
-// largeur en hauteur : réduire la largeur de 1,5 px rend 1 px de hauteur.
+// système changent la hauteur disponible. Sur 3 colonnes, la grille gagne en
+// hauteur « rangées / 3 » px par px de largeur : on réduit d'autant, en
+// remesurant (avec le Dico, il y a 3 rangées et non plus 2).
 function fitGames(){
   const g = app.querySelector('.home .seg.games');
   if (!g) return;
-  g.style.width = '';
-  const over = document.documentElement.scrollHeight - innerHeight;
-  if (over > 1) g.style.width = Math.max(200, g.offsetWidth - Math.ceil(over * 1.5) - 2) + 'px';
+  g.style.width = ''; g.style.margin = '';
+  const rangees = Math.max(1, Math.ceil(g.children.length / 3));
+  for (let i = 0; i < 4; i++) {
+    const over = document.documentElement.scrollHeight - innerHeight;
+    if (over <= 1) break;
+    g.style.width = Math.max(200, g.offsetWidth - Math.ceil(over * 3 / rangees) - 2) + 'px';
+    g.style.margin = '0 auto';   // réduite, la grille reste centrée
+  }
 }
 addEventListener('resize', fitGames);
 document.fonts?.ready.then(() => fitGames());
