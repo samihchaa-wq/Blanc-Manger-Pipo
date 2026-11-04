@@ -636,6 +636,21 @@ button.scard:active{transform:translateY(2px)}
 .white-result{margin:12px 0 24px;text-align:center}
 .white-result strong{display:block;font-size:27px;color:var(--gold)}
 
+/* ===== Mr White : qui commence ===== */
+.white-turn{font-size:17px;line-height:1.45;color:var(--text-dim);margin:0 0 18px}
+.white-turn b{color:var(--text)}
+/* ===== Baromètre : Normal / Inversé ===== */
+.seg.variant{margin:12px 0 14px}
+/* ===== Mimes ===== */
+.mime-order{padding-left:24px;margin:0 0 18px;display:grid;gap:4px;font-size:17px}
+.mime-rates{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:10px}
+.mime-rates li{padding:12px;border:1px solid var(--hairline);background:var(--surface);border-radius:var(--r-md)}
+.mime-rates .nm{display:block;font-size:17px;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mime-notes{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mime-notes button{height:40px;border-radius:9px;background:var(--surface-2);color:var(--text);font-size:17px;font-variant-numeric:tabular-nums}
+.mime-notes button.on{background:var(--gold);color:var(--gold-ink)}
+.mime-notes button:active{transform:scale(.94)}
+
 /* ===== Fin ===== */
 .bigwin{font-size:clamp(38px,11.5vw,54px);margin:8px 0 20px;letter-spacing:-.045em;
   background:linear-gradient(100deg,var(--gold) 5%,var(--pop) 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -725,7 +740,8 @@ let last = '', channel = null, poll = null, deb = null, dealPending = false, rtO
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
 let qpick = null;   // carte retenue par le lecteur, pas encore envoyée aux autres
-let dialVal = 50, dialDrag = null, clueDraft = '';   // Baromètre : aiguille et indice en cours
+let dialVal = 50, dialDrag = null, clueDraft = '', themeDraft = '';
+let mimeNotes = {};   // Mimes : notes du juge, gardées en local jusqu'à la validation   // Baromètre : aiguille et indice en cours
 // Petit bac : la grille en cours de saisie, ce qui en est déjà enregistré, et
 // l'instant local où la roue des lettres a démarré.
 let bacDraft = [], bacSent = '', bacRound = 0, bacTimer = null, bacChain = Promise.resolve();
@@ -753,17 +769,23 @@ const GAMES = {
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, sans chrono, puis jugez ceux de votre adversaire.' },
   white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
+  mimes:     { name:'Mimes', desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
 };
+// Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
+const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
+const gameImg = k => k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.svg' : (GAMES[k] ? k : 'phrases') + '.webp';
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
 const isBac = () => state?.room.mode === 'bac';
 const isWhite = () => state?.room.mode === 'white';
+const isMime = () => state?.room.mode === 'mimes';
+const isInverse = () => isWave() && state?.room.wave_variant === 'inverse';
 // Priorités, Baromètre et Petit bac se jouent en manches comptées, pas au score cible.
-const isCounted = () => isPrio() || isWave() || isBac() || isWhite();
+const isCounted = () => isPrio() || isWave() || isBac() || isWhite() || isMime();
 // Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
 // moins deux réponses à départager. Le Petit bac se joue à deux exactement.
 // Le serveur applique les mêmes règles.
-const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' ? 2 : 3;
+const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' || mode === 'mimes' ? 2 : 3;
 const maxPlayers = mode => mode === 'bac' ? 2 : 12;
 // Réglages du salon, à − et + (le serveur applique les mêmes bornes) :
 // manches de 1 à 20 (Phrases à trou, Petit bac), tours de 1 à 5 (Priorités, Baromètre).
@@ -851,7 +873,7 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     render(); scheduleAuto();
@@ -909,7 +931,9 @@ function scheduleBots(){
   else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
   else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'ranking')    todo = bots.some(b => !b.ranked);
+  else if (r.status === 'clue' && isInverse()) todo = state.wave?.theme == null ? bots.some(b => b.id === state.wave?.asker_id) : bots.some(b => b.id === r.reader_id);
   else if (r.status === 'clue')       todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'mime_play')  todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'guessing')   todo = bots.some(b => b.id !== r.reader_id && !b.guessed);
   else if (r.status === 'naming')     todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'writing')    todo = bots.some(b => !b.bac_done);
@@ -918,11 +942,14 @@ function scheduleBots(){
   else if (r.status === 'white_clue') todo = !!state.white?.bot_pending;
   else if (r.status === 'white_vote') todo = (state.white?.roles || []).some(x => !x.out && !x.voted && bots.some(b => b.id === x.player_id));
   else if (r.status === 'white_guess') todo = !!state.white?.bot_pending;
-  else if (r.status === 'reveal' && (r.mode === 'bac' || r.mode === 'white')) todo = bots.some(b => b.next_ack !== r.round);
+  else if (r.status === 'reveal' && (r.mode === 'bac' || r.mode === 'white' || r.mode === 'mimes')) todo = bots.some(b => b.next_ack !== r.round);
   else if (r.status === 'finished')   todo = bots.some(b => !b.continue_requested);
   if (!todo) return;
   botTimer = setTimeout(async () => {
-    try { await rpc(r.mode === 'white' && r.status.startsWith('white_') ? 'white_bot_step' : 'bot_step', { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
+    const fn = r.mode === 'white' && r.status.startsWith('white_') ? 'white_bot_step'
+      : r.status === 'mime_play' ? 'mime_bot_step'
+      : r.status === 'clue' && isInverse() ? 'wave_bot_step' : 'bot_step';
+    try { await rpc(fn, { p_code:session.code, p_token:session.token }); ping(); refresh(true) }
     catch {}
   }, 900);
 }
@@ -934,7 +961,7 @@ const phaseLength = () => state.room.status === 'reveal' ? (isPrio() ? 120000 : 
 const stamp = t => Date.parse(String(t || '').replace(' ','T')) || 0;
 function phaseDeadline(){
   // Petit bac : aucune notion de temps, ni minuteur ni passage automatique
-  if (!state || isBac() || isWhite() || !TIMED.includes(state.room.status)) return 0;
+  if (!state || isBac() || isWhite() || !TIMED.includes(state.room.status) || isMime()) return 0;
   const t = stamp(state.room.phase_at);
   return t ? t + phaseLength() : 0;
 }
@@ -1054,7 +1081,7 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
     naming: bacNaming, writing: bacWrite, voting: bacVote,
     white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess,
-    white_elimination:whiteElimination, reveal, finished }[state.room.status]();
+    white_elimination:whiteElimination, mime_play:mimePlay, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -1062,7 +1089,7 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const ae = document.activeElement, focId = /^pun-\d$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
+    const ae = document.activeElement, focId = /^(pun-\d|w-clue|w-theme)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
@@ -1118,7 +1145,7 @@ function home(){
         <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field">
           <div class="seg s2 games" role="group" aria-label="Jeu">
-            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white.svg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
+            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.svg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
         </div>
@@ -1250,7 +1277,7 @@ function topbar(){
   const r = state.room;
   // Salon : la vignette du jeu à gauche, le code au milieu, la croix à droite.
   if (r.status === 'lobby') return `<div class="top lobbytop">
-      <img class="gamelogo" src="games/${r.mode === 'white' ? 'white.svg' : (GAMES[r.mode] ? r.mode : 'phrases') + '.webp'}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
+      <img class="gamelogo" src="games/${gameImg(r.mode)}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
       <div class="codeblock"><p class="eyebrow">Code de la partie</p>
         <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div></div>
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -1286,7 +1313,7 @@ function lobby(){
 
 // Réglages du salon : − et + changent la valeur à l'écran tout de suite,
 // l'envoi au serveur part quand l'hôte arrête de taper.
-const optKey = () => state.room.mode === 'priorites' || state.room.mode === 'ondes' ? 'turns' : 'target';
+const optKey = () => ['priorites','ondes','mimes'].includes(state.room.mode) ? 'turns' : 'target';
 const OPT_BORNES = { ...BORNES, pun:[0, 5] };
 let optDraft = {}, optTimer = null;
 function optValue(k){
@@ -1341,9 +1368,18 @@ function gameBox(host){
   return `<section class="panel gamebox">
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
-      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>` : ''}
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
+      ${r.mode === 'ondes' ? waveVariant(host) : ''}
       ${host ? `<div class="opts${pun ? ' pun' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
     </section>`;
+}
+
+// Baromètre : Normal ou Inversé, au choix de l'hôte.
+function waveVariant(host){
+  const v = state.room.wave_variant === 'inverse' ? 'inverse' : 'normal';
+  if (!host) return `<p class="gdesc">Mode : <b>${v === 'inverse' ? 'Inversé' : 'Normal'}</b></p>`;
+  return `<div class="seg s2 variant" role="group" aria-label="Mode du Baromètre">${[['normal','Normal'],['inverse','Inversé']].map(([k, l]) =>
+    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="wave-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
 }
 
 // Écran d'après « Lancer la partie » : chacun propose ses punitions, secrètes
@@ -1596,7 +1632,8 @@ function needle(v, color, me = false){
 }
 // opts : target (bandes visibles), needles [{v,color}], mine (aiguille déplaçable)
 function dial({ target = null, needles = [], mine = null } = {}){
-  const w = state.wave || {};
+  // en mode inversé, l'échelle est celle du thème écrit par un joueur
+  const w = isInverse() ? { left:'Le moins', right:'Le plus' } : (state.wave || {});
   return `<div class="dialbox">
     <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${esc(w.left)} et ${esc(w.right)}">
       <path class="face" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
@@ -1611,8 +1648,34 @@ function dial({ target = null, needles = [], mine = null } = {}){
 }
 const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
 
+// Mode inversé, phase « clue » : d'abord le thème, puis la réponse du médium.
+function themeCard(){ return qcard('Thème', esc(state.wave?.theme || ''), 'clue') }
+function inverseClue(){
+  const r = state.room, w = state.wave || {};
+  const asker = P(w.asker_id), canWrite = !isMe(r.reader_id) && (isMe(w.asker_id) || !asker);
+  if (w.theme == null) {
+    if (canWrite) return `
+    <p class="role"><b>Écris un thème.</b> ${nameOf(r.reader_id)} y répondra selon la cible qu’il voit.</p>
+    <label><span>Ton thème</span><input id="w-theme" maxlength="80" autocomplete="off" autocapitalize="sentences" placeholder="Ex. : un salaire que j’aimerais toucher" value="${esc(themeDraft)}"></label>
+    <div class="dock"><button class="btn" data-act="theme" ${dis()}>Envoyer le thème</button></div>`;
+    return `
+    <p class="role">${isMe(r.reader_id) ? '<b>Tu es le médium.</b> ' : `<b>${nameOf(r.reader_id)}</b> est le médium. `}${asker ? `<b>${nameOf(w.asker_id)}</b> écrit le thème…` : 'On attend le thème…'}</p>
+    ${dial(isMe(r.reader_id) ? { target: w.target } : {})}`;
+  }
+  if (!isMe(r.reader_id)) return `
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
+    ${themeCard()}${dial()}
+    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche sa réponse…</p>`;
+  return `
+    <p class="role"><b>Tu es le médium.</b> Réponds au thème selon la position de la cible.</p>
+    ${themeCard()}${dial({ target: w.target })}
+    <label style="margin-top:22px"><span>Ta réponse</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Ex. : 100 000 €" value="${esc(clueDraft)}"></label>
+    <div class="dock"><button class="btn" data-act="clue" ${dis()}>Envoyer ma réponse</button></div>`;
+}
+
 function clue(){
   const r = state.room, w = state.wave || {};
+  if (isInverse()) return inverseClue();
   if (!isMe(r.reader_id)) return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${dial()}
@@ -1631,7 +1694,9 @@ function guessing(){
   const progress = `<p class="meta" style="margin-top:18px">${done}/${others.length} ont visé</p>
     <div class="bar"><i style="width:${others.length ? Math.round(done / others.length * 100) : 0}%"></i></div>
     ${waiting(left, 'Tout le monde a visé.')}`;
-  const card = qcard(isMe(r.reader_id) ? 'Ton indice' : `Indice de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue');
+  const card = isInverse()
+    ? themeCard() + qcard(isMe(r.reader_id) ? 'Ta réponse' : `Réponse de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue')
+    : qcard(isMe(r.reader_id) ? 'Ton indice' : `Indice de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue');
 
   if (isMe(r.reader_id)) return `
     <p class="role"><b>Les autres cherchent ta cible.</b></p>${card}${dial({ target: w.target })}${progress}`;
@@ -1651,7 +1716,7 @@ function waveReveal(){
   const pts = [...gs].sort((a,b) => b.points - a.points);
   return `
     <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
-    ${qcard('Indice', esc(w.clue), 'clue')}
+    ${isInverse() ? themeCard() + qcard('Réponse', esc(w.clue), 'clue') : qcard('Indice', esc(w.clue), 'clue')}
     ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })) })}
     <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
     <h3 class="sec">Points de la manche</h3>
@@ -1719,9 +1784,15 @@ function whitePeople(){
 function whiteNote(){
   return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
 }
+// Qui commence : tiré au sort à la première manche, puis chacun son tour (serveur).
+function whiteTurn(){
+  const id=state.white?.starter_id;
+  const qui=!id?'':isMe(id)?' <b>Tu commences.</b>':` <b>${nameOf(id)}</b> commence.`;
+  return `<p class="white-turn">Chacun son tour, vous devez donner un indice.${qui} Vous avez droit à 3 indices chacun au maximum.</p>`;
+}
 function whiteClue(){
   const host=isMe(state.room.host_id);
-  return `${whiteSecret()}${host
+  return `${whiteSecret()}${whiteTurn()}${host
     ? `<div class="dock"><button class="btn" data-act="white-open-vote" ${dis()}>Passer au vote</button></div>`
     : ''}`;
 }
@@ -1807,6 +1878,51 @@ function whiteReveal(){
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
       ${state.me.next_ack===state.room.round?'En attente des autres…':
         state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>`;
+}
+
+/* ---------- Mimes ---------- */
+// Le juge voit l'action ; chaque mime voit en plus son intensité secrète.
+// Ordre de passage : les sièges à partir du juge (le serveur les range ainsi).
+const mimeIds = () => (state.mime?.parts || []).map(x => x.player_id).filter(id => id !== state.room.reader_id && P(id));
+function mimeCard(){
+  const m = state.mime || {};
+  return qcard('Action', esc(m.action || ''), '', `<span class="by">1 : ${esc(m.low || '')} · 10 : ${esc(m.high || '')}</span>`);
+}
+function mimeOrder(){
+  return `<h3 class="sec">Ordre de passage</h3><ol class="mime-order">${mimeIds().map(id =>
+    `<li>${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
+}
+function mimePlay(){
+  const r = state.room, m = state.mime || {}, judge = isMe(r.reader_id);
+  if (!judge) return `
+    <p class="role"><b>${nameOf(r.reader_id)}</b> est le juge.</p>
+    ${mimeCard()}
+    <section class="white-secret"><p class="eyebrow">Ton intensité :</p><strong>${m.mine ?? '?'} / 10</strong></section>
+    ${mimeOrder()}
+    <p class="muted" style="text-align:center"><span class="pulse"></span>Mimez chacun votre tour, ${nameOf(r.reader_id)} note ensuite.</p>`;
+  const ids = mimeIds(), done = ids.every(id => mimeNotes[id]);
+  return `
+    <p class="role"><b>Tu es le juge.</b> Lis l’action à voix haute. Chacun la mime à son tour, devine son intensité.</p>
+    ${mimeCard()}
+    <h3 class="sec">Tes notes</h3>
+    <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${nameOf(id)}</span>
+      <div class="mime-notes" role="group" aria-label="Note de ${nameOf(id)}">${Array.from({ length:10 }, (_, i) => i + 1).map(v =>
+        `<button type="button" class="${mimeNotes[id] === v ? 'on' : ''}" data-act="mime-note" data-id="${id}" data-v="${v}" aria-pressed="${mimeNotes[id] === v}">${v}</button>`).join('')}</div></li>`).join('')}</ul>
+    <div class="dock"><button class="btn" data-act="mime-rate" ${dis(!done)}>${done ? 'Valider les notes' : 'Note chaque joueur'}</button></div>`;
+}
+function mimeReveal(){
+  const r = state.room, parts = state.mime?.parts || [];
+  const judge = parts.find(x => x.player_id === r.reader_id);
+  return `
+    <p class="role">${isMe(r.reader_id) ? '<b>Tes notes</b>' : `Les notes de <b>${nameOf(r.reader_id)}</b>`}</p>
+    ${mimeCard()}
+    <h3 class="sec">Points de la manche</h3>
+    <ol class="rank">${parts.filter(x => x.player_id !== r.reader_id && P(x.player_id)).map(x => `<li>
+      <span class="nm"><span class="who">${nameOf(x.player_id)}</span><span class="tag">joué ${x.intensity ?? '?'} · noté ${x.guess ?? '?'}</span></span>
+      <b class="plus">+${x.points ?? 0}</b></li>`).join('')}
+      ${judge ? `<li><span class="nm"><span class="who">${nameOf(judge.player_id)}</span><span class="tag host">juge</span></span><b class="plus">+${judge.points ?? 0}</b></li>` : ''}</ol>
+    <h3 class="sec">Classement</h3>${rank()}
+    <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === r.round)}>${state.me.next_ack === r.round ? 'En attente des autres…' : roundsLeft() ? 'Manche suivante' : 'Voir le résultat'}</button></div>`;
 }
 
 /* ---------- Petit bac ---------- */
@@ -1961,6 +2077,7 @@ function reveal(){
   if (isWave()) return waveReveal();
   if (isBac()) return bacReveal();
   if (isWhite()) return whiteReveal();
+  if (isMime()) return mimeReveal();
   const r = state.room;
   return `
     <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
@@ -2411,10 +2528,23 @@ document.addEventListener('click', async e => {
   if (a === 'confirm' && picked) return act('pick_winner',{ p_submission_id:picked });
   if (a === 'clue') {
     const t = (document.getElementById('w-clue')?.value || '').trim();
-    if (!t) return toast('Écris un indice.');
+    if (!t) return toast(isInverse() ? 'Écris ta réponse.' : 'Écris un indice.');
     return act('submit_clue', { p_clue: t });
   }
   if (a === 'guess') return act('submit_guess', { p_value: dialVal });
+  if (a === 'wave-variant') return act('set_wave_variant', { p_variant: el.dataset.v });
+  if (a === 'theme') {
+    const t = (document.getElementById('w-theme')?.value || '').trim();
+    if (!t) return toast('Écris un thème.');
+    if (await act('submit_theme', { p_theme: t })) themeDraft = '';
+    return;
+  }
+  if (a === 'mime-note') { mimeNotes[id] = +el.dataset.v; return render() }
+  if (a === 'mime-rate') {
+    const ids = mimeIds();
+    if (ids.some(x => !mimeNotes[x])) return toast('Note chaque joueur.');
+    return act('mime_rate', { p_players: ids, p_notes: ids.map(x => mimeNotes[x]) });
+  }
   if (a === 'bac-cat') {
     const t = (document.getElementById('bac-cat')?.value || '').trim();
     if (!t) return toast('Écris une catégorie.');
@@ -2445,6 +2575,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
+  if (e.target.id === 'w-theme') themeDraft = e.target.value;
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
   if (e.target.matches('.bacfield input')) {
@@ -2463,6 +2594,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#w-theme')) document.querySelector('[data-act=theme]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
   // Punitions : Entrée passe au champ suivant, puis ferme le clavier
   if (e.key === 'Enter' && e.target.matches('.punfield input')) {
