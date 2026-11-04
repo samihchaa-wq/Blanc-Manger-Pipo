@@ -346,9 +346,7 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
       ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        ${avatar(p.id, p.ready ? 'ok' : '')}<span class="nm">${esc(p.name)}</span>${
-        p.id === r.host_id ? '<span class="tag host">hôte</span>' : p.is_bot ? '<span class="tag">bot</span>' : ''}${
-        isMe(p.id) ? '<span class="tag">toi</span>' : ''}<span class="sr">${p.ready ? ', prêt' : ', pas encore prêt'}</span>${
+        <span class="nm">${esc(p.name)}</span><span class="sr">${p.ready ? ', prêt' : ', pas encore prêt'}</span>${
         host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">${ic('x')}</button>` : ''}
       </li>`).join('')}
     </ul>

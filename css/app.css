@@ -332,9 +332,9 @@ button.scard:active{transform:translateY(2px)}
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
+/* Salon : seulement le nom ; prêt = contour et fond menthe */
 .plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .nm{flex:1}
-.plist .tag{padding:2px 6px;font-size:10px}
 /* lu par les lecteurs d'écran, invisible à l'écran */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .dockhint{margin:0 auto 10px;text-align:center;font-size:14px;color:var(--text-dim)}
@@ -767,12 +767,7 @@ button.scard:active{transform:translateY(2px)}
 .av.lg{width:64px;height:64px;font-size:30px;font-weight:800;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 3px rgba(15,12,20,.7)}
 .chip .av.sm{margin-right:1px}
 .chip:has(.av){padding-left:3px}
-.plist li{gap:9px;padding-left:8px}
-/* prêt : une coche menthe posée sur la pastille, sans voler de place au nom */
 .av{position:relative}
-.av.ok::after{content:"";position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:50%;
-  background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='%2304281B' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;
-  box-shadow:0 0 0 2px var(--surface)}
 .plist .kick{width:24px;height:24px;font-size:12px}
 .rank .av{margin-right:-2px}
 .role .av{vertical-align:-6px;margin-right:6px}
