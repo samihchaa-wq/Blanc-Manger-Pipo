@@ -9,7 +9,7 @@ function result(){
 }
 function rank(){
   return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
-    <span class="pos">${i + 1}</span>
+    <span class="pos">${i + 1}</span>${avatar(p.id, 'sm')}
     <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
     <b>${p.score}</b></li>`).join('')}</ol>`;
 }

@@ -43,7 +43,6 @@ function dial({ target = null, needles = [], mine = null } = {}){
     <div class="wlabs"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
   </div>`;
 }
-const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
 
 // Mode inversé, phase « clue » : d'abord le thème, puis la réponse du médium.
 function themeCard(){ return qcard('Thème', esc(state.wave?.theme || ''), 'clue') }
@@ -115,11 +114,11 @@ function waveReveal(){
     <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
     ${isInverse() ? themeCard() + qcard('Réponse', esc(w.clue), 'clue') : qcard('Indice', esc(w.clue), 'clue')}
     ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })) })}
-    <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
+    <div class="legend">${guessers.map(g => `<span class="chip">${avatar(g.player_id, 'sm')}${nameOf(g.player_id)}</span>`).join('')}</div>
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(g => `<li>
-      <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
-      <b class="plus">+${g.points ?? 0}</b></li>`).join('')}</ol>
+      ${avatar(g.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
+      <b class="plus" data-n="${g.points ?? 0}">+${g.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
 

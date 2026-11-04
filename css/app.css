@@ -33,10 +33,9 @@
   font-optical-sizing:auto
 }
 *{box-sizing:border-box}
-/* Graisse normale partout, y compris les titres et les <b> que le navigateur
-   met en gras par défaut. Seuls les boutons, onglets et petits chiffres
-   passent en 600 : cette graisse est chargée avec la police, sinon le
-   navigateur fabriquait un faux gras empâté. Pas de 700 : il n'est pas chargé. */
+/* Le texte courant est en graisse normale, y compris les <b> que le navigateur
+   met en gras par défaut. La police est chargée en variable (400 à 800, un
+   seul fichier) : boutons et noms en 600, titres en 700-800 (voir « Titres »). */
 html,body,h1,h2,h3,h4,h5,h6,b,strong,th,button,input,select,textarea{font-weight:400}
 html{min-height:100%;background:var(--bg-0)}
 body{margin:0;min-height:100%;background:transparent;color:var(--text);font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
@@ -319,16 +318,15 @@ button.scard:active{transform:translateY(2px)}
   font-size:clamp(20px,6vw,24px);color:var(--gold);
   background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
-.sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
+/* Intertitres en casse normale : les capitales espacées étaient partout
+   (cartes, sections, étiquettes) et ne hiérarchisaient plus rien. */
+.sec{font-size:18px;font-weight:700;letter-spacing:-.015em;color:var(--text);margin:28px 0 12px}
 /* deux joueurs par ligne, l'hôte en premier ; contour vert = prêt */
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
 .plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .nm{flex:1}
-/* « prêt » ne passe plus que par la couleur : une coche ronde l'accompagne */
-.plist .ok{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
-  font-size:12px;line-height:1;background:var(--mint);color:var(--mint-ink)}
 .plist .tag{padding:2px 6px;font-size:10px}
 /* lu par les lecteurs d'écran, invisible à l'écran */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -738,3 +736,36 @@ button.scard:active{transform:translateY(2px)}
 .timefield .gdesc{font-size:13px;margin-top:9px}
 .mime-stage{margin:15px 0;padding:14px;border:1px solid var(--hairline-2);border-radius:15px;text-align:center}
 .mime-stage .btn{margin-top:12px}
+
+/* ===== Titres ===== */
+/* Bricolage Grotesque prend tout son caractère en grand corps et en graisse
+   forte : c'est là que l'appli retrouve le ton du logo. */
+.bigwin{font-weight:800;letter-spacing:-.05em}
+.bigstate{font-weight:800;letter-spacing:-.035em}
+.gamebox .gname{font-weight:700;letter-spacing:-.03em}
+.white-secret strong{font-weight:800}
+.bacl,.roueBox .rouel{font-weight:800}
+.role b,.white-turn b,.waiting b{font-weight:600}
+.qcard .qtext{font-weight:500}
+.rank b,.step b,.bigcode .ch{font-weight:600}
+.rank .nm span.who,.plist .nm{font-weight:500}
+
+/* ===== Pastilles des joueurs ===== */
+/* Une couleur de siège et une initiale par joueur, les mêmes partout : salon,
+   attentes, classements, votes, notes, aiguilles du Baromètre. */
+.av{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--c,var(--gold));color:var(--ink);font-size:14px;font-weight:700;line-height:1;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),0 0 0 2px rgba(15,12,20,.6)}
+.av.sm{width:22px;height:22px;font-size:11px;box-shadow:inset 0 -1.5px 0 rgba(0,0,0,.2)}
+.av.lg{width:64px;height:64px;font-size:30px;font-weight:800;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 3px rgba(15,12,20,.7)}
+.chip .av.sm{margin-right:1px}
+.chip:has(.av){padding-left:3px}
+.plist li{gap:9px;padding-left:8px}
+/* prêt : une coche menthe posée sur la pastille, sans voler de place au nom */
+.av{position:relative}
+.av.ok::after{content:"";position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:50%;
+  background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='%2304281B' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;
+  box-shadow:0 0 0 2px var(--surface)}
+.plist .kick{width:24px;height:24px;font-size:12px}
+.rank .av{margin-right:-2px}
+.role .av{vertical-align:-6px;margin-right:6px}

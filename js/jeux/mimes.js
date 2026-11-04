@@ -48,9 +48,9 @@ function mimeReveal(){
     ${mimeCard()}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${parts.filter(x => x.player_id !== r.reader_id && P(x.player_id)).map(x => `<li>
-      <span class="nm"><span class="who">${nameOf(x.player_id)}</span><span class="tag">joué ${x.intensity ?? '?'} · noté ${x.guess ?? '?'}</span></span>
-      <b class="plus">+${x.points ?? 0}</b></li>`).join('')}
-      ${judge ? `<li><span class="nm"><span class="who">${nameOf(judge.player_id)}</span><span class="tag host">juge</span></span><b class="plus">+${judge.points ?? 0}</b></li>` : ''}</ol>
+      ${avatar(x.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(x.player_id)}</span><span class="tag">joué ${x.intensity ?? '?'} · noté ${x.guess ?? '?'}</span></span>
+      <b class="plus" data-n="${x.points ?? 0}">+${x.points ?? 0}</b></li>`).join('')}
+      ${judge ? `<li>${avatar(judge.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(judge.player_id)}</span><span class="tag host">juge</span></span><b class="plus" data-n="${judge.points ?? 0}">+${judge.points ?? 0}</b></li>` : ''}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     ${ackWaiting()}
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === r.round)}>${state.me.next_ack === r.round ? 'En attente des autres…' : roundsLeft() ? 'Manche suivante' : 'Voir le résultat'}</button></div>`;
