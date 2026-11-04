@@ -79,6 +79,8 @@ const ICONS = {
   equal:'<path d="M5 9.5h14M5 14.5h14"/>',
   star:'<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
   eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  prev:'<path d="M14.5 6l-6 6 6 6"/>',
+  next:'<path d="M9.5 6l6 6-6 6"/>',
   voice:'<path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
 };
 ICONS.down = '<g transform="rotate(180 12 12)">' + ICONS.up + '</g>';

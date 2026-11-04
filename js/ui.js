@@ -383,12 +383,12 @@ function punCheck(){
   const v = optValue('pun') > 0;
   const parts = Array.from({ length: 8 }, (_, i) =>
     `${SEAT_COLORS[i % SEAT_COLORS.length]} ${i * 45}deg ${(i + 1) * 45}deg`).join(',');
-  return `<div class="field"><button type="button" class="punsw${v ? ' on' : ''}" data-act="pun-toggle"
+  return `<div class="field punf"><span aria-hidden="true">Punitions</span><button type="button" class="punsw${v ? ' on' : ''}" data-act="pun-toggle"
       role="switch" aria-checked="${v}" aria-label="Punitions"><span class="mini" style="background:conic-gradient(${parts})"></span></button></div>`;
 }
-function stepper(k, label){
+function stepper(k, label, full = label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
-  return `<div class="field"><span>${label}</span><div class="step" role="group" aria-label="${label}">
+  return `<div class="field"><span aria-hidden="true">${label}</span><div class="step" role="group" aria-label="${full}">
       <button type="button" data-act="step" data-k="${k}" data-d="-1" aria-label="Moins" ${v <= lo ? 'disabled' : ''}>−</button>
       <b aria-live="polite">${v}</b>
       <button type="button" data-act="step" data-k="${k}" data-d="1" aria-label="Plus" ${v >= hi ? 'disabled' : ''}>+</button>
@@ -426,19 +426,21 @@ const TIME_MODES = [
   ['medium','Moyen','Un rythme équilibré.'],
   ['fast','Rapide','Des décisions plus instinctives.']
 ];
-function timeField(host){
+const timeMode = () => {
   const cur = state.room.time_mode || (['bac','white','mimes'].includes(state.room.mode) ? 'unlimited' : 'medium');
-  const selected = TIME_MODES.find(x => x[0] === cur) || TIME_MODES[2];
-  const buttons = host
-    ? '<div class="seg time-modes" role="group" aria-label="Temps">'
-      + TIME_MODES.map(([key,label]) => '<button type="button" class="seg-b '
-        + (key === cur ? 'on' : '') + '" data-act="time-mode" data-v="' + key
-        + '" aria-pressed="' + (key === cur) + '" ' + dis() + '>' + label + '</button>').join('')
-      + '</div>'
-    : '<p class="gdesc">Mode choisi : <b>' + selected[1] + '</b></p>';
-  return '<div class="timefield"><div class="timehead">Temps</div>'
-    + buttons + '<p class="gdesc">' + selected[2]
-    + ' La durée s’adapte au mini-jeu.</p></div>';
+  return TIME_MODES.find(x => x[0] === cur) || TIME_MODES[2];
+};
+// Temps : ‹ et › passent au mode voisin (Illimité, Lent, Moyen, Rapide), pour
+// tenir sur la même ligne que les manches et la roue.
+function timeField(host){
+  const [cur, label] = timeMode(), i = TIME_MODES.findIndex(x => x[0] === cur);
+  const prev = TIME_MODES[i - 1], next = TIME_MODES[i + 1];
+  if (!host) return label;
+  return `<div class="field"><span aria-hidden="true">Temps</span><div class="step tstep" role="group" aria-label="Temps : ${label}">
+      <button type="button" data-act="time-mode" data-v="${(prev || TIME_MODES[i])[0]}" aria-label="Plus lent" ${!prev || busy ? 'disabled' : ''}>${ic('prev')}</button>
+      <b aria-live="polite">${label}</b>
+      <button type="button" data-act="time-mode" data-v="${(next || TIME_MODES[i])[0]}" aria-label="Plus rapide" ${!next || busy ? 'disabled' : ''}>${ic('next')}</button>
+    </div></div>`;
 }
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
@@ -446,12 +448,12 @@ function gameBox(host){
   // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
   const k = optKey(), label = (r.mode === 'bac' || r.mode === 'white') ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
-  const opts = host ? stepper(k, label) : '';
+  const opts = host ? stepper(k, k === 'turns' ? 'Tours' : 'Manches', label) : '';
   // Punitions : une roue à activer, toujours 2 par joueur quand elles sont activées
   const on = !!pun?.on, nb = +(pun?.count || PUN_NB);
   const punOpt = !pun ? ''
     : host ? punCheck()
-    : on ? `<p class="gdesc">Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
+    : on ? ` · Punitions : <b>${nb} par joueur</b>` : '';
   return `<section class="panel gamebox">
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
@@ -459,8 +461,10 @@ function gameBox(host){
       ${host && gamePick ? gamePicker() : ''}
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
       ${r.mode === 'ondes' ? waveVariant(host) : ''}
-      ${host ? `<div class="opts${pun ? ' pun' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
-      ${timeField(host)}
+      ${host
+        ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>
+           <p class="gdesc tdesc">${timeMode()[2]} La durée s’adapte au mini-jeu.</p>`
+        : `<p class="gdesc">${label} : <b>${optValue(k)}</b> · Temps : <b>${timeField(false)}</b>${punOpt}</p>`}
     </section>`;
 }
 
