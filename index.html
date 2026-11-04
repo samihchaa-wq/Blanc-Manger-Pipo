@@ -1785,11 +1785,14 @@ function whiteWinnerSentence(){
 }
 function whiteElimination(){
   const w=state.white||{}, host=isMe(state.room.host_id);
+  const remaining=Math.max(0,Number(w.impostors_remaining)||0);
+  const remainingText=remaining===0?'Il ne reste plus d’Imposteur':
+    `Il reste <b>${remaining} Imposteur${remaining>1?'s':''}</b>`;
   return `
-    <p class="eyebrow">Fin de la manche ${state.room.round}</p>
+    <p class="eyebrow">Résultat du vote</p>
     ${whiteEliminationSentence()||`<p class="role">${esc(w.note||'Personne n’est éliminé.')}</p>`}
-    ${host?`<div class="dock"><button class="btn" data-act="white-resume" ${dis()}>Tour suivant</button></div>`:
-      '<p class="waiting">L’hôte lance le prochain tour.</p>'}`;
+    <p class="role">${remainingText}, la partie continue.</p>
+    ${host?`<div class="dock"><button class="btn" data-act="white-resume" ${dis()}>Tour suivant</button></div>`:''}`;
 }
 function whiteReveal(){
   const w=state.white||{}, hasMrWhite=(w.roles||[]).some(p=>p.role==='white');
