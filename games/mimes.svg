@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" role="img" aria-labelledby="t">
+<title id="t">Mimes — masque de mime et échelle de 1 à 10</title>
+<defs>
+ <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#3a2150"/><stop offset=".6" stop-color="#25163a"/><stop offset="1" stop-color="#120d1f"/></linearGradient>
+ <linearGradient id="face" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#FFF6E6"/><stop offset="1" stop-color="#E8DCC6"/></linearGradient>
+ <linearGradient id="bar" x1="0" x2="1"><stop stop-color="#3FDC9C"/><stop offset=".5" stop-color="#FFC23D"/><stop offset="1" stop-color="#FF5C8D"/></linearGradient>
+</defs>
+<rect width="720" height="720" rx="130" fill="url(#bg)"/>
+<g stroke="#ffffff" stroke-opacity=".06" stroke-width="36">
+ <path d="M-40 140 760 60M-40 300 760 220M-40 460 760 380M-40 620 760 540"/>
+</g>
+<path d="M188 150h344c0 0 34 160-18 270-36 76-98 118-154 118s-118-42-154-118c-52-110-18-270-18-270z" fill="url(#face)"/>
+<path d="M188 150h344v40H188z" fill="#16101f"/>
+<g fill="#16101f">
+ <path d="M246 290c18-26 62-26 80 0-22 12-58 12-80 0z"/>
+ <path d="M394 290c18-26 62-26 80 0-22 12-58 12-80 0z"/>
+ <path d="M300 410c36 34 84 34 120 0-12 46-108 46-120 0z" fill="#E0245E"/>
+</g>
+<g stroke="#16101f" stroke-width="10" stroke-linecap="round">
+ <path d="M286 236v34M434 236v34"/>
+</g>
+<path d="M286 300l-6 40M434 300l6 40" stroke="#16101f" stroke-width="7" stroke-linecap="round"/>
+<rect x="140" y="580" width="440" height="34" rx="17" fill="url(#bar)"/>
+<circle cx="476" cy="597" r="30" fill="#FFF6E6" stroke="#16101f" stroke-width="8"/>
+<text x="140" y="664" fill="#FFF6E6" font-family="Arial, sans-serif" font-size="40" font-weight="700">1</text>
+<text x="580" y="664" fill="#FFF6E6" font-family="Arial, sans-serif" font-size="40" font-weight="700" text-anchor="end">10</text>
+</svg>

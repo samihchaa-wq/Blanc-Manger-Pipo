@@ -48,6 +48,7 @@ Current production migration tail:
 - `20260920150000_bot_step_advance_after_ack` (les bots relancent la manche / la partie quand ils sont les derniers à valider)
 - `20261018153154_tour_de_role_et_jeu_auto` (lecteur à tour de rôle via `_next_reader`, l'hôte d'abord, et `_random_reader` qui y délègue pour ses appelants existants ; `reap_idle` joue à la place des absents après 2 min via les RPC de jeu au lieu de les exclure ; résultat de manche limité à 5 s ; migration additive : `next_round` reste pour les clients pas encore mis à jour)
 - `20261026140000_petit_bac` (quatrième jeu, à deux : `bac_category` pour proposer les six catégories de la partie à tour de rôle — gardées dans `rooms.bac_categories`, aucun catalogue —, `bac_save` pour la grille enregistrée au fil de la frappe, `bac_vote` pour juger catégorie par catégorie ; table `bac_answers` ; `_max_players` borne la salle à 2 joueurs ; migration additive)
+- `20261105120000_barometre_inverse_mimes_white_tour` (Mr White : premier joueur tiré au sort puis rotation, `starter_id` dans `white_state` ; Baromètre `wave_variant` normal/inversé avec `set_wave_variant`, `submit_theme`, `wave_bot_step` ; nouveau jeu Mimes : tables `mime_cards`/`mime_parts`, `mime_rate`, `mime_bot_step`, statut `mime_play` ; `get_state`, `white_state`, `white_resume`, `create_room`, `set_room_options`, `_remove_player`, `_begin_wave_round`, `_begin_white_round` enveloppent leur ancienne version renommée en `*_base`)
 
 ## Change workflow
 

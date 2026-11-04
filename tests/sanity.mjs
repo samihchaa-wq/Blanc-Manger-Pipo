@@ -151,7 +151,7 @@ assert.match(scripts[0], /white_elimination:whiteElimination/,
 assert.match(scripts[0], /a === 'white-resume'\) return act\('white_resume'\)/,
   'L’hôte doit pouvoir relancer les indices depuis le verdict');
 const whiteElimView = scripts[0].split('function whiteElimination(){')[1]?.split('function whiteReveal(){')[0];
-const whiteFinalView = scripts[0].split('function whiteReveal(){')[1]?.split('/* ---------- Petit bac ---------- */')[0];
+const whiteFinalView = scripts[0].split('function whiteReveal(){')[1]?.split('/* ---------- Mimes ---------- */')[0];
 assert.ok(whiteElimView && whiteFinalView, 'Les résultats intermédiaire et final existent');
 assert.match(whiteElimView, /Résultat du vote/, 'Un vote non décisif ne doit pas annoncer la fin de la manche');
 assert.match(whiteElimView, /impostors_remaining/, 'Le décompte affiché provient de la base de données');
@@ -194,5 +194,29 @@ assert.match(whiteCountMigration, /'impostors_remaining'/, 'Décompte serveur di
 assert.match(whiteCountMigration, /r.status='white_elimination'/, 'Décompte limité au verdict intermédiaire');
 assert.match(whiteCountMigration, /wr.role='undercover' and not wr.eliminated/, 'Seuls les imposteurs vivants sont comptés');
 assert.doesNotMatch(whiteCountMigration, /wr.role in \('undercover','white'\)/, 'Mr White ne compte pas comme Imposteur');
+
+// Mr White : la consigne de tour de parole est affichée sur l'écran des indices.
+assert.match(whiteClueView, /whiteTurn\(\)/, 'La consigne de tour est affichée sous la carte');
+assert.match(scripts[0], /Chacun son tour, vous devez donner un indice\./, 'Consigne de tour Mr White');
+assert.match(scripts[0], /Vous avez droit à 3 indices chacun au maximum\./, 'Limite de 3 indices annoncée');
+assert.match(scripts[0], /state\.white\?\.starter_id/, 'Le premier joueur vient du serveur');
+
+// Baromètre : mode Normal ou Inversé, choisi par l'hôte dans le salon.
+assert.match(scripts[0], /act\('set_wave_variant', \{ p_variant: el\.dataset\.v \}\)/, 'Choix du mode Inversé');
+assert.match(scripts[0], /act\('submit_theme', \{ p_theme: t \}\)/, 'Le thème est envoyé au serveur');
+assert.match(scripts[0], /if \(isInverse\(\)\) return inverseClue\(\);/, 'Écran de thème en mode inversé');
+assert.match(scripts[0], /'wave_bot_step'/, 'Bots du mode inversé');
+
+// Mimes : nouveau jeu, sans minuteur, notes du juge envoyées en une fois.
+assert.match(scripts[0], /mimes:\s*\{ name:'Mimes'/, 'Jeu Mimes présent');
+assert.match(scripts[0], /mime_play:mimePlay/, 'Phase Mimes déclarée');
+assert.match(scripts[0], /act\('mime_rate', \{ p_players: ids, p_notes: ids\.map\(x => mimeNotes\[x\]\) \}\)/, 'Notes du juge');
+assert.match(scripts[0], /'mime_bot_step'/, 'Bots Mimes');
+assert.match(scripts[0], /\|\| isMime\(\)\) return 0;/, 'Mimes n’a pas de minuteur');
+assert.ok(fs.existsSync(new URL('../games/mimes.svg', import.meta.url)), 'Vignette Mimes présente');
+const mimeMigration = fs.readFileSync(new URL('../supabase/migrations/20261105120000_barometre_inverse_mimes_white_tour.sql', import.meta.url), 'utf8');
+assert.match(mimeMigration, /when 0 then 3 when 1 then 2 when 2 then 1 else 0/, 'Barème Mimes : 3, 2, 1 points');
+assert.match(mimeMigration, /'intensity', case when r\.status in \('reveal','finished'\)/, 'Les intensités restent secrètes jusqu’au résultat');
+assert.match(mimeMigration, /if r\.reader_id <> me\.id then raise exception 'Seul le juge note les mimes\.'/, 'Seul le juge note');
 
 console.log('Frontend sanity checks passed.');
