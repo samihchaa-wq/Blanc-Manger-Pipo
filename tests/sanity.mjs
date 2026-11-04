@@ -165,15 +165,19 @@ assert.match(whiteVerdictMigration, /white_elimination/, 'Le serveur connaît la
 assert.match(whiteVerdictMigration, /create or replace function public.white_resume/, 'La reprise est contrôlée côté serveur');
 assert.match(whiteVerdictMigration, /r.host_id<>me.id/, 'Seul l’hôte peut relancer le tour');
 assert.match(whiteVerdictMigration, /when p_winner='civils' then civil_survivors/,
-  'Tous les Civils touchent les mêmes points de survie si leur équipe gagne');
-assert.match(whiteVerdictMigration, /count\(\*\) filter \(where wr.eliminated\)/,
-  'Les éliminations de Civils sont comptées globalement pour la manche');
-assert.match(whiteVerdictMigration, /when 'undercover' then civil_eliminated/,
-  'Chaque imposteur gagne le total des Civils éliminés, même s’il a été éliminé');
-assert.match(whiteVerdictMigration, /when 'white' then civil_eliminated\*2/,
-  'Mr White gagne le double des points collectifs des imposteurs');
-assert.doesNotMatch(whiteVerdictMigration, /civil\.eliminated_cycle<wr\.eliminated_cycle/,
-  'Les scores ne dépendent jamais du moment où un imposteur est éliminé');
+  'Tous les Civils marquent le nombre de Civils survivants en cas de victoire');
+assert.match(whiteVerdictMigration, /when 'undercover' then opposing_eliminated/,
+  'Tous les imposteurs gagnent le même point par adversaire éliminé');
+assert.match(whiteVerdictMigration, /wr\.role in \('civil','white'\) and wr\.eliminated_cycle is not null/,
+  'Un Civil ou Mr White éliminé rapporte un point aux imposteurs');
+assert.match(whiteVerdictMigration, /other\.player_id<>wr\.player_id/,
+  'Mr White ne peut jamais gagner de points pour sa propre élimination');
+assert.match(whiteVerdictMigration, /other\.eliminated_cycle<wr\.eliminated_cycle/,
+  'Mr White ne gagne aucun point sur les éliminations postérieures à sa sortie');
+assert.match(whiteVerdictMigration, /\)\*2/,
+  'Mr White gagne deux points par autre joueur éliminé tant qu’il est en vie');
+assert.doesNotMatch(whiteVerdictMigration, /when 'undercover' then civil_eliminated/,
+  'Le score de l’imposteur n’est plus limité aux seuls Civils');
 assert.doesNotMatch(whiteVerdictMigration, /p_winner='white' and wr\.role='white' then 3/,
   'Le bonus forfaitaire de victoire de Mr White est supprimé');
 
