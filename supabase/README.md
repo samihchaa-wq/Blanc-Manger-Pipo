@@ -52,6 +52,8 @@ Current production migration tail:
 
 - `20261104175320_etat_complet` et `20261104175401_etat_complet_phase_false` (`get_full_state` : une seule RPC par relecture, qui enchaîne `get_state`, `white_state` et `punish_state` côté serveur et relit l'état si `punish_state` vient de lancer la partie ; migration additive, le client retombe sur les trois RPC si elle est absente ; la seconde migration relit aussi l'état quand `punish_state` renvoie `phase: false`, sa valeur réelle hors saisie)
 
+- `20261104230000_le_dico` (septième jeu, Le Dico : phases `dico_pick` → `dico_write` → `dico_vote` → `reveal`, tables `dico_defs` / `dico_votes` / `dico_points`, RPC `dico_pick`, `dico_write`, `dico_vote`, `dico_bot_step` ; branches ajoutées à `_begin_round`, `get_state`, `reap_idle`, `_time_phase_seconds`, `_remove_player`, `create_room`, `set_room_options`. Appliquée à la main dans l'éditeur SQL, en une transaction qui s'inscrit elle-même dans l'historique ; testée sur une copie de la production puis en production dans une transaction annulée — `supabase/tests/le_dico_scenario.sql`)
+
 ## Change workflow
 
 For future database changes:
