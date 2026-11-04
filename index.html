@@ -752,7 +752,7 @@ const GAMES = {
   priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
   ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, sans chrono, puis jugez ceux de votre adversaire.' },
-  white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient MrWhitz et ne reçoit aucun mot.' },
+  white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
 };
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -1701,8 +1701,8 @@ function whiteSecret(){
   const w=state.white||{};
   if (w.role==='white') return `<section class="white-secret">
     <p class="eyebrow">Ta Carte :</p>
-    <img class="white-mark" src="games/white.svg" alt="Emblème de MrWhitz">
-    <strong>Tu es MrWhitz</strong>
+    <img class="white-mark" src="games/white.svg" alt="Emblème de Mr White">
+    <strong>Tu es Mr White</strong>
   </section>`;
   return `<section class="white-secret">
     <p class="eyebrow">Ta Carte :</p>
@@ -1713,7 +1713,7 @@ function whitePeople(){
   const w=state.white||{};
   return `<ul class="white-list">${(w.roles||[]).map(p=>
     `<li class="${p.out?'out':''}"><span class="nm">${nameOf(p.player_id)}${isMe(p.player_id)?' · toi':''}</span>
-      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'MrWhitz':'Imposteur'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
+      <span class="meta">${p.out?esc(p.role==='civil'?'Civil':p.role==='white'?'Mr White':'Imposteur'):'En jeu'}${p.voted&&state.room.status==='white_vote'?' · a voté':''}</span></li>`).join('')}</ul>`;
 }
 function whiteNote(){
   return state.white?.note?`<div class="white-note">${esc(state.white.note)}</div>`:'';
@@ -1738,19 +1738,19 @@ function whiteVote(){
 function whiteGuess(){
   const w=state.white||{}, mine=w.role==='white'&&w.last_eliminated===state.me.id;
   return `
-    <h1 class="bigstate">MrWhitz démasqué !</h1>
+    <h1 class="bigstate">Mr White démasqué !</h1>
     ${whiteNote()}
-    <p class="role">MrWhitz peut encore gagner : il annonce le mot des Civils à voix haute. Un Civil vérifie la proposition.</p>
+    <p class="role">Mr White peut encore gagner : il annonce le mot des Civils à voix haute. Un Civil vérifie la proposition.</p>
     ${mine?'<p class="waiting">Dis à voix haute le mot que tu proposes. Un Civil confirmera la réponse.</p>':
       w.can_validate?`<section class="white-secret"><p class="eyebrow">Mot des Civils à vérifier</p>
         <strong>${esc(w.civil_word||'?')}</strong>
-        <small>Écoute la proposition prononcée par MrWhitz, sans lui montrer ton écran.</small></section>
+        <small>Écoute la proposition prononcée par Mr White, sans lui montrer ton écran.</small></section>
         <div class="dock"><button class="btn alt" data-act="white-oral-verdict" data-correct="0" ${dis()}>Mauvaise réponse</button>
           <button class="btn" data-act="white-oral-verdict" data-correct="1" ${dis()}>Bonne réponse</button></div>`:
-      '<p class="waiting">Un Civil vérifie la réponse de MrWhitz…</p>'}`;
+      '<p class="waiting">Un Civil vérifie la réponse de Mr White…</p>'}`;
 }
 function whiteReveal(){
-  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'MrWhitz'};
+  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'Mr White'};
   return `
     <div class="white-result"><p class="eyebrow">Fin de la manche ${state.room.round}</p>
       <strong>${esc(noms[w.winner]||'Résultat')}</strong></div>
