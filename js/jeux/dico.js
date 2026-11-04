@@ -6,7 +6,7 @@
 // Le livre est un ensemble de fichiers statiques (dico/index.json, dico/p000.json…)
 // générés depuis le Wiktionnaire : des pages de 8 mots dans l'ordre alphabétique.
 // Chaque entrée est [mot, nature abrégée, définition].
-let dicoIdx = null, dicoPage = null, dicoSel = null, dicoAnim = '';
+let dicoIdx = null, dicoPage = null, dicoSel = null, dicoAnim = '', dicoDraft = '';
 const dicoVues = new Set();   // pages déjà ouvertes sur ce téléphone
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
@@ -68,4 +68,81 @@ function dicoPick(){
       <button class="btn" data-act="dico-choose" ${dis(!sel || dicoAnim)}>${sel ? `Choisir « ${esc(sel[0])} »` : 'Touche un mot'}</button>
       <button class="btn ghost" data-act="dico-flip" ${dicoAnim ? 'disabled' : ''}>Ouvrir à une autre page</button>
     </div>`;
+}
+
+// Le mot du tour, sa nature en italique.
+function dicoMot(cls = ''){
+  const d = state.dico || {};
+  return qcard(cls.includes('aloud') ? ic('voice') + 'Le mot à lire' : 'Le mot du Dico',
+    `<span class="dmot">${esc(d.word || '')}</span> <i class="dnat">${esc(d.nature || '')}</i>`, cls);
+}
+// Qui a fini d'écrire ou de voter, comme dans les autres jeux.
+function dicoSuivi(faits, mot){
+  const r = state.room, autres = state.players.filter(p => p.id !== r.reader_id && p.active !== false);
+  const reste = autres.filter(p => !faits.includes(p.id)), n = autres.length - reste.length;
+  return `<p class="meta" style="margin-top:18px">${n}/${autres.length} ${mot}</p>
+    <div class="bar"><i style="width:${autres.length ? Math.round(n / autres.length * 100) : 0}%"></i></div>
+    ${waiting(reste, 'Tout le monde a fini.')}`;
+}
+
+// Rédaction : le meneur lit le mot (il voit la vraie définition), les autres en inventent une.
+function dicoWrite(){
+  const r = state.room, d = state.dico || {}, suivi = dicoSuivi(d.written || [], 'ont écrit');
+  if (isMe(r.reader_id)) return `
+    <p class="role"><b>Lis le mot à voix haute</b>, avec sa nature. Les autres en écrivent une définition.</p>
+    ${dicoMot('aloud short')}
+    <section class="dbox dtrue"><p class="eyebrow">La vraie définition, toi seul la vois</p><p>${esc(d.definition || '')}</p></section>
+    ${suivi}`;
+  if (d.mine) return `
+    <p class="role"><b>Définition envoyée.</b> Elle sera mélangée avec la vraie.</p>
+    ${dicoMot('short')}
+    <section class="dbox"><p class="eyebrow">Ta définition</p><p>${esc(d.mine)}</p></section>
+    ${suivi}`;
+  return `
+    <p class="role"><b>${nameOf(r.reader_id)}</b> a choisi un mot. Invente sa définition, façon dictionnaire.</p>
+    ${dicoMot('short')}
+    <label class="dwrite"><span>Ta définition</span><textarea id="dico-def" rows="3" maxlength="300" autocapitalize="sentences"
+      placeholder="Ex. : Petit outil de cordonnier servant à…">${esc(dicoDraft)}</textarea></label>
+    <div class="dock"><button class="btn" data-act="dico-send" ${dis()}>Envoyer ma définition</button></div>`;
+}
+
+// Vote : toutes les définitions, mélangées. Le meneur les lit à voix haute ;
+// les autres touchent celle qu'ils croient vraie (pas la leur), et peuvent
+// changer d'avis tant que tout le monde n'a pas voté.
+function dicoVote(){
+  const r = state.room, d = state.dico || {}, moi = isMe(r.reader_id), defs = d.defs || [];
+  const items = defs.map((x, i) => moi
+    ? `<li><div class="ddef big"><span class="dnum">${i + 1}</span><span class="dtx">${esc(x.text)}</span></div></li>`
+    : `<li><button type="button" class="ddef${x.id === d.my_vote ? ' on' : ''}${x.mine ? ' own' : ''}" data-act="dico-vote" data-id="${x.id}"
+        aria-pressed="${x.id === d.my_vote}" ${x.mine ? 'disabled' : dis()}><span class="dnum">${i + 1}</span><span class="dtx">${esc(x.text)}${
+        x.mine ? '<small>Ta définition</small>' : ''}</span></button></li>`).join('');
+  return `
+    <p class="role">${moi ? '<b>Lis toutes les définitions à voix haute</b>, dans cet ordre.'
+      : d.my_vote ? '<b>Vote enregistré.</b> Tu peux encore changer d’avis.' : '<b>Laquelle est la vraie ?</b> Écoute, puis touche ta réponse.'}</p>
+    ${dicoMot('short')}
+    <ol class="ddefs">${items}</ol>
+    ${dicoSuivi(d.voted || [], 'ont voté')}`;
+}
+
+// Révélation : la vraie définition et qui l'a trouvée, puis chaque fausse avec
+// son auteur et les joueurs qu'elle a dupés.
+function dicoReveal(){
+  const r = state.room, d = state.dico || {}, defs = d.defs || [];
+  const vraie = defs.find(x => x.is_true), fausses = defs.filter(x => !x.is_true && P(x.author_id));
+  const qui = ids => `<div class="found">${(ids || []).length
+    ? ids.map(id => `<span class="chip">${avatar(id, 'sm')}${nameOf(id)}</span>`).join('') : 'Personne'}</div>`;
+  const pts = (d.points || []).filter(x => P(x.player_id)).sort((a, b) => b.points - a.points);
+  return `
+    <p class="role">La vraie définition de <b>${esc(d.word || '')}</b></p>
+    ${qcard(`${esc(d.word || '')} · ${esc(d.nature || '')}`, esc(d.definition || vraie?.text || ''), 'win dtruecard',
+      `<span class="by">Trouvée par</span>${qui(vraie?.voters)}`)}
+    ${fausses.length ? `<h3 class="sec">Les fausses définitions</h3>
+    <ol class="dfakes">${fausses.map(x => { const n = (x.voters || []).length; return `<li class="dbox">
+      <p>${esc(x.text)}</p>
+      <p class="dby">${avatar(x.author_id, 'sm')}<span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b> · ${n ? `${n} joueur${n > 1 ? 's' : ''} dupé${n > 1 ? 's' : ''}` : 'personne n’y a cru'}</span></p>
+      ${n ? qui(x.voters) : ''}</li>` }).join('')}</ol>` : ''}
+    <h3 class="sec">Points de la manche</h3>
+    <ol class="rank">${pts.map(x => `<li>${avatar(x.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(x.player_id)}</span>${
+      x.player_id === r.reader_id ? '<span class="tag host">meneur</span>' : ''}</span><b class="plus" data-n="${x.points}">+${x.points}</b></li>`).join('')}</ol>
+    <h3 class="sec">Classement</h3>${rank()}`;
 }
