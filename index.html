@@ -346,6 +346,14 @@ button.scard:active{transform:translateY(2px)}
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
 .plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .nm{flex:1}
+/* « prêt » ne passe plus que par la couleur : une coche ronde l'accompagne */
+.plist .ok{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+  font-size:12px;line-height:1;background:var(--mint);color:var(--mint-ink)}
+.plist .tag{padding:2px 6px;font-size:10px}
+/* lu par les lecteurs d'écran, invisible à l'écran */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dockhint{margin:0 auto 10px;text-align:center;font-size:14px;color:var(--text-dim)}
+.dockhint b{color:var(--text)}
 .plist .kick{flex:none;display:grid;place-items:center;width:28px;height:28px;margin-right:-4px;border-radius:50%;
   font-size:13px;color:var(--text-faint);background:var(--surface-2)}
 .plist .kick:active{transform:scale(.9)}
@@ -1351,14 +1359,28 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
       ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        <span class="nm">${esc(p.name)}</span>${host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
+        ${p.ready ? '<span class="ok" aria-hidden="true">✓</span>' : ''}<span class="nm">${esc(p.name)}</span>${
+        p.id === r.host_id ? '<span class="tag host">hôte</span>' : p.is_bot ? '<span class="tag">bot</span>' : ''}${
+        isMe(p.id) ? '<span class="tag">toi</span>' : ''}<span class="sr">${p.ready ? ', prêt' : ', pas encore prêt'}</span>${
+        host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
       </li>`).join('')}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
+      ${host ? '' : `<p class="dockhint">${lobbyHint()}</p>`}
       <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : 'Lancer la partie'}</button>` : ''}
     </div>`;
+}
+
+// Les invités n'ont pas le bouton de lancement : on leur dit ce qui se passe.
+function lobbyHint(){
+  const r = state.room, n = state.players.length, min = minPlayers(r.mode), hote = nameOf(r.host_id);
+  if (n < min) { const k = min - n; return `Il manque ${k} joueur${k > 1 ? 's' : ''} pour jouer.` }
+  if (!state.me.ready) return `Indique que tu es prêt, <b>${hote}</b> lancera la partie.`;
+  const attente = state.players.filter(p => !p.ready).length;
+  return attente ? `On attend ${attente} joueur${attente > 1 ? 's' : ''}, puis <b>${hote}</b> lancera la partie.`
+    : `Tout le monde est prêt, <b>${hote}</b> va lancer la partie.`;
 }
 
 // Réglages du salon : − et + changent la valeur à l'écran tout de suite,
@@ -1403,7 +1425,16 @@ async function sendOpts(){
 
 // Le jeu est choisi à la création : le salon affiche le jeu, sa règle repliée
 // derrière le « i », et l'hôte n'y règle que la durée de la partie.
-let rulesOpen = false, gamePick = false;
+let rulesOpen = false, gamePick = false, rulesMode = '';
+// La règle s'ouvre d'elle-même la première fois qu'on voit un jeu sur ce téléphone.
+function rulesFirstTime(mode){
+  if (mode === rulesMode) return;
+  rulesMode = mode;
+  let vus = [];
+  try { vus = JSON.parse(localStorage.getItem('pdcat-rules') || '[]') } catch {}
+  rulesOpen = !vus.includes(mode);
+  if (rulesOpen) try { localStorage.setItem('pdcat-rules', JSON.stringify([...vus, mode])) } catch {}
+}
 const TIME_MODES = [
   ['unlimited','Illimité','Aucun compte à rebours.'],
   ['slow','Lent','Pour prendre le temps de réfléchir.'],
@@ -1426,6 +1457,7 @@ function timeField(host){
 }
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
+  rulesFirstTime(r.mode);
   // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
   const k = optKey(), label = (r.mode === 'bac' || r.mode === 'white') ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : 'juge'}` : 'Manches à gagner';
@@ -2659,7 +2691,7 @@ document.addEventListener('click', async e => {
     // le brouillon des réglages visait l'ancien jeu
     clearTimeout(optTimer); optTimer = null; optDraft = {};
     if (!(await act('set_room_options', { p_mode:m, p_target:Math.min(20, Math.max(1, +r.target || 5)), p_turns:Math.min(5, Math.max(1, +r.turns || 2)) }))) return;
-    gamePick = false; rulesOpen = false;
+    gamePick = false;
     // même temps par défaut qu'à la création : sans minuteur pour Petit bac, Mr White et Mimes
     const t = ['bac','white','mimes'].includes(m) ? 'unlimited' : 'medium';
     if (state.room.time_mode !== t) await act('set_time_mode', { p_mode:t });
