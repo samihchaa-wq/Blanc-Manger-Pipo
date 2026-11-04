@@ -98,6 +98,7 @@ function render(){
     // la saisie d'une punition survit au rafraîchissement du salon
     const ae = document.activeElement, focId = /^(pun-\d|w-clue|w-theme)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
+    if (holding) app.querySelectorAll('[data-hold]').forEach(el => el.classList.add('show'));
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
@@ -527,6 +528,14 @@ function qselect(){
   const reader = P(r.reader_id);
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
+  // Phrase choisie : elle passe seule en grand, le lecteur la lit à la table.
+  if (chosen) return `
+    <p class="role"><b>Lis la phrase à voix haute</b>, puis valide.</p>
+    ${qcard(ic('voice') + 'À lire à voix haute', blank(chosen.text), 'aloud')}
+    <div class="dock">
+      <button class="btn" data-act="question-go" ${dis()}>J'ai lu la phrase</button>
+      <button class="btn ghost" data-act="question-back" ${dis()}>Choisir une autre carte</button>
+    </div>`;
   return `
     <p class="role"><b>Tu es le lecteur.</b></p>
     <ul class="qchoices">
@@ -601,7 +610,7 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role"><b>Tu es le lecteur.</b></p>
-    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards))}
+    ${qcard(`${ic('voice')}Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards), 'aloud')}
     <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `

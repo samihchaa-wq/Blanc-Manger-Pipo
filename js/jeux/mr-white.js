@@ -5,16 +5,18 @@
 // Les rôles et les mots sont demandés à un RPC distinct : personne ne peut lire
 // ceux des autres dans le HTML, le salon ou les tables exposées.
 
+// En présentiel, le voisin voit l'écran : la carte reste floue et ne se lit
+// qu'en gardant le doigt dessus (ou Espace / Entrée au clavier).
 function whiteSecret(){
   const w=state.white||{};
-  if (w.role==='white') return `<section class="white-secret">
+  const inner=w.role==='white'
+    ? `<img class="white-mark" src="games/white.svg" alt="Emblème de Mr White">
+    <strong>Tu es Mr White</strong>`
+    : `<strong>${esc(w.word||'—')}</strong>`;
+  return `<section class="white-secret hold" data-hold tabindex="0" role="button" aria-label="Ta carte, maintiens pour la voir">
     <p class="eyebrow">Ta Carte :</p>
-    <img class="white-mark" src="games/white.svg" alt="Emblème de Mr White">
-    <strong>Tu es Mr White</strong>
-  </section>`;
-  return `<section class="white-secret">
-    <p class="eyebrow">Ta Carte :</p>
-    <strong>${esc(w.word||'—')}</strong>
+    <div class="secret">${inner}</div>
+    <span class="holdhint" aria-hidden="true">${ic('eye')}Maintiens pour voir</span>
   </section>`;
 }
 function whitePeople(){

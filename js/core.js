@@ -5,6 +5,7 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0, rankView = null;
 let last = '', channel = null, poll = null, deb = null, dealPending = false, rtOk = false, lastSync = 0;
+let holding = false;   // doigt posé sur la carte secrète de Mr White
 let rtSeen = false;   // le temps réel a déjà répondu au moins une fois
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
@@ -68,8 +69,9 @@ const BAC_LETTRES = 'ABCDEFGHIJLMNOPRSTUV';
 // 3,4 s de rotation, puis la lettre reste affichée un instant avant la grille.
 const ROUE_MS = 4600;
 const roueEnCours = () => Date.now() - roueAt < ROUE_MS;
-// Icônes au trait, à la place des emojis et des caractères (✕ ✓ ★ 🟰) dont le
-// rendu changeait d'un téléphone à l'autre (le 🟰 sortait en barres grises).
+// Icônes au trait, à la place des emojis (pouces, égal, fête, roue) et des
+// caractères croix, coche, étoile, dont le rendu changeait d'un téléphone à
+// l'autre (le signe égal sortait en barres grises).
 const ICONS = {
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   check:'<path d="M5 12.5l4.5 4.5L19 7"/>',

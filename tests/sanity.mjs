@@ -239,4 +239,13 @@ assert.match(fullMigration, /security definer set search_path to ''/, 'get_full_
 assert.match(fullMigration, /public\.white_state\(p_code, p_token\)/, 'Les mots secrets passent toujours par white_state');
 assert.match(fullMigration, /revoke execute on function public\.get_full_state\(text, uuid\) from public;/, 'Pas d’exécution par public');
 
+// Direction artistique : pastilles, icônes SVG, mises en scène jouées une fois,
+// carte secrète de Mr White floue tant qu'on ne la maintient pas.
+assert.match(scripts[0], /function avatar\(id, size = ''\)/, 'Pastille couleur + initiale par joueur');
+assert.doesNotMatch(scripts[0], /[\u{1F44D}\u{1F44E}\u{1F7F0}\u{1F389}\u{1F3A1}]/u, 'Icônes SVG plutôt qu’emojis');
+assert.match(css, /#app\.fresh /, 'Les animations clés ne se jouent qu’à l’arrivée sur l’écran');
+assert.match(scripts[0], /class="white-secret hold" data-hold/, 'Carte secrète Mr White : maintenir pour voir');
+assert.match(css, /\.white-secret\.hold \.secret\{filter:blur/, 'Carte secrète floue au repos');
+assert.doesNotMatch(css, /\.ic\.fill/, '.fill est déjà le trou rempli des phrases');
+
 console.log('Frontend sanity checks passed.');

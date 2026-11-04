@@ -5,9 +5,9 @@
 // Le juge voit l'action ; chaque mime voit en plus son intensité secrète.
 // Ordre de passage : les sièges à partir du juge (le serveur les range ainsi).
 const mimeIds = () => (state.mime?.parts || []).map(x => x.player_id).filter(id => id !== state.room.reader_id && P(id));
-function mimeCard(){
+function mimeCard(cls = ''){
   const m = state.mime || {};
-  return qcard('Action', esc(m.action || ''), '', `<span class="by">1 : ${esc(m.low || '')} · 10 : ${esc(m.high || '')}</span>`);
+  return qcard(cls ? ic('voice') + 'Action à lire à voix haute' : 'Action', esc(m.action || ''), cls, `<span class="by">1 : ${esc(m.low || '')} · 10 : ${esc(m.high || '')}</span>`);
 }
 function mimeOrder(){
   return `<h3 class="sec">Ordre de passage</h3><ol class="mime-order">${mimeIds().map(id =>
@@ -33,7 +33,7 @@ function mimePlay(){
   const ids = mimeIds(), done = ids.every(id => mimeNotes[id]);
   return `
     <p class="role"><b>Tu es le juge.</b> Lis l’action à voix haute. Chacun la mime à son tour, devine son intensité.</p>
-    ${mimeCard()}${stage}
+    ${mimeCard('aloud short')}${stage}
     <h3 class="sec">Tes notes</h3>
     <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${avatar(id, 'sm')}${nameOf(id)}</span>
       <div class="mime-notes" role="group" aria-label="Note de ${nameOf(id)}">${Array.from({ length:10 }, (_, i) => i + 1).map(v =>

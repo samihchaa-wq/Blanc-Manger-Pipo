@@ -870,3 +870,26 @@ button.scard:active{transform:translateY(2px)}
 .strip .chip{padding:3px 11px 3px 3px;gap:7px}
 .strip .chip b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .strip .chip.me{border-color:rgba(255,194,61,.55);background:linear-gradient(90deg,rgba(255,194,61,.12),var(--surface))}
+
+/* ===== Lecture à voix haute ===== */
+/* Le lecteur et le juge lisent la carte à toute la table : elle passe en grand. */
+.qcard.aloud{min-height:min(46vh,380px);justify-content:center;padding:46px 22px 30px;transform:rotate(-.6deg)}
+.qcard.aloud .qtag{position:absolute;top:18px;left:22px;display:flex;align-items:center;gap:6px}
+.qcard.aloud .qtag .ic{width:15px;height:15px;stroke-width:2.4}
+.qcard.aloud .qtext{font-size:clamp(30px,8.6vw,40px);line-height:1.16;font-weight:600;letter-spacing:-.03em}
+.qcard.aloud .blank{border-bottom-width:5px}
+.qcard.aloud .by{font-size:15px}
+/* Mimes : le juge note juste après, la carte garde le grand texte sans la hauteur */
+.qcard.aloud.short{min-height:0;padding-bottom:24px}
+
+/* ===== Carte secrète de Mr White : floue tant qu'on ne la maintient pas ===== */
+.white-secret.hold{position:relative;cursor:pointer;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.white-secret.hold .secret{filter:blur(16px);opacity:.35;transition:filter .16s,opacity .16s}
+.white-secret.hold.show .secret{filter:none;opacity:1}
+.white-secret.hold img{pointer-events:none;-webkit-user-drag:none}
+.holdhint{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:var(--r-pill);background:var(--ink);color:var(--gold-paper);
+  font-size:14px;font-weight:600;white-space:nowrap;pointer-events:none;transition:opacity .15s}
+.holdhint .ic{width:16px;height:16px}
+.white-secret.hold.show .holdhint{opacity:0}
