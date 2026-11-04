@@ -133,7 +133,7 @@ async function act(fn, extra = {}){
 }
 
 // Une seule requête par relecture : get_full_state enchaîne côté serveur
-// get_state, white_state et punish_state (migration 20261107120000). Tant
+// get_state, white_state et punish_state (migrations 20261104175320 et 20261104175401). Tant
 // que la base ne la connaît pas, on retombe sur les trois appels d'avant.
 let fullState = true;
 async function readState(){
