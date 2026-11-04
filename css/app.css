@@ -160,10 +160,10 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
    de l'accueil (marges, onglets, pseudo, bouton ≈ 266 px + logo),
    pour que les quatre vignettes tiennent sans défiler. */
-.seg.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin:0 auto;
-  --logo:calc(min(100vw - 140px,340px,32vh) * .378);
-  width:min(100%,calc(100vh - var(--pad) - 266px - var(--logo)));
-  width:min(100%,calc(100dvh - var(--pad) - 266px - var(--logo)))}
+.seg.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin:0 auto;width:100%}
+/* Accueil : les vignettes débordent un peu des marges pour être plus grandes ;
+   fitGames() ne les réduit que si l'accueil ne tient plus sur l'écran. */
+.home .seg.games{width:calc(100% + 16px);max-width:calc(100vw - 12px);margin:0 -8px;gap:8px;justify-self:center;align-self:center}
 .seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:1;
   transition:opacity var(--dur),transform var(--dur)}
 /* toutes les vignettes restent pleines (à 55 % elles semblaient désactivées) ;
@@ -891,9 +891,8 @@ button.scard:active{transform:translateY(2px)}
 .pitch b{color:var(--text);font-weight:700}
 .pitch span{color:var(--text-faint)}
 /* seulement quand l'écran a la place : l'accueil doit tenir sans défiler */
-@media (min-height:780px){
+@media (min-height:700px){
   .home .pitch{display:block}
-  .seg.games{width:min(100%,calc(100dvh - var(--pad) - 318px - var(--logo)))}
 }
 
 /* ===== Couleur d'accent par jeu ===== */
@@ -941,3 +940,11 @@ body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint
 .setrow .punsw .mini{width:40px;height:40px}
 .gamebox .tdesc{font-size:13px;margin-top:10px}
 .gamebox .gdesc b{color:var(--text);font-weight:600}
+
+/* Accueil : le volet occupe la hauteur restante ; les vignettes se centrent
+   dans l'espace libre et « Créer la partie » se cale en bas, sous le pouce,
+   comme le bouton principal des autres écrans. */
+.home .pane{flex:1;display:flex;flex-direction:column}
+.home .pane[hidden]{display:none}
+.home #pane-create>.field{margin:auto 0;padding:10px 0}
+.home .pane>.btn{margin-top:auto}

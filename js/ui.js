@@ -121,6 +121,7 @@ function render(){
     else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
     else if (session && state && state.room.status === 'writing') fillBac();
     fitDock();
+    if (!session && !adminOpen) fitGames();
   }
   updateCountdown();
   dealPending = false;
@@ -137,6 +138,21 @@ function fitDock(){
 // La rotation et la barre d'URL de Safari changent la hauteur du bouton
 // (retour à la ligne du libellé) : la réserve doit suivre.
 addEventListener('resize', fitDock);
+
+// Accueil : les vignettes prennent toute la largeur tant que la page tient sur
+// un écran, et rétrécissent seulement de ce qui dépasse. On mesure au lieu de
+// deviner : encoche, barre de Safari, appli installée et police réglée par le
+// système changent la hauteur disponible. La grille fait environ 2/3 de sa
+// largeur en hauteur : réduire la largeur de 1,5 px rend 1 px de hauteur.
+function fitGames(){
+  const g = app.querySelector('.home .seg.games');
+  if (!g) return;
+  g.style.width = '';
+  const over = document.documentElement.scrollHeight - innerHeight;
+  if (over > 1) g.style.width = Math.max(200, g.offsetWidth - Math.ceil(over * 1.5) - 2) + 'px';
+}
+addEventListener('resize', fitGames);
+document.fonts?.ready.then(() => fitGames());
 
 // Accueil : une ligne pour le jeu choisi (nom, nombre de joueurs, principe).
 const PITCH = {
