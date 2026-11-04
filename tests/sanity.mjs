@@ -2,12 +2,21 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
-  .map(m => m[1].trim())
-  .filter(Boolean);
-
-assert.equal(scripts.length, 1, 'Expected exactly one inline application script');
+const page = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+// L'appli est découpée en scripts classiques (js/…) chargés dans l'ordre de la
+// page : ils partagent une seule portée globale, on les relit donc bout à bout.
+const inline = [...page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1].trim()).filter(Boolean);
+assert.equal(inline.length, 0, 'Le code de l’appli vit dans js/, pas dans la page');
+const appFiles = [...page.matchAll(/<script src="(js\/[^"]+\.js)"><\/script>/g)].map(m => m[1]);
+assert.ok(appFiles.length >= 2 && appFiles[0] === 'js/core.js' && appFiles.at(-1) === 'js/actions.js',
+  'core.js doit se charger en premier et actions.js (démarrage) en dernier');
+const read = f => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+const scripts = [appFiles.map(read).join('\n')];
+assert.match(page, /<link rel="stylesheet" href="css\/app\.css">/, 'Feuille de style de l’appli');
+const css = read('css/app.css');
+assert.doesNotMatch(css, /url\((?!["']?(?:data:|\.\.\/|%23|#))/, 'Les url() du CSS doivent remonter à la racine (../)');
+// Les vérifications portent sur la page, le style et le code réunis.
+const html = page + '\n' + css + '\n' + scripts[0];
 new Function(scripts[0]);
 
 // `new Function` compiles the script as a FUNCTION BODY, where names like `top`

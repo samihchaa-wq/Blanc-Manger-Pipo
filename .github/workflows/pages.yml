@@ -59,9 +59,17 @@ jobs:
           cp vendor/supabase.js _site/vendor/supabase.js
           cp sw.js manifest.webmanifest logo.svg favicon-32.png icon-180.png icon-192.png icon-512.png _site/
           cp -r games _site/games
+          cp -r css js _site/
           grep -q './vendor/supabase.js' _site/index.html
           for f in sw.js manifest.webmanifest logo.svg favicon-32.png icon-180.png icon-192.png icon-512.png; do
             test -s "_site/$f" || { echo "manquant dans _site : $f"; exit 1; }
+          done
+          # chaque script et feuille de style cité par la page doit être publié
+          for f in $(grep -oE '(src|href)="(js|css)/[^"]+"' index.html | cut -d'"' -f2); do
+            test -s "_site/$f" || { echo "manquant dans _site : $f"; exit 1; }
+          done
+          for g in white-home.jpg mimes.jpg white.svg; do
+            test -s "_site/games/$g" || { echo "manquant dans _site : games/$g"; exit 1; }
           done
           for g in phrases priorites ondes bac; do
             test -s "_site/games/$g.webp" || { echo "manquant dans _site : games/$g.webp"; exit 1; }
