@@ -250,4 +250,12 @@ assert.match(scripts[0], /class="white-secret hold" data-hold/, 'Carte secrète 
 assert.match(css, /\.white-secret\.hold \.secret\{filter:blur/, 'Carte secrète floue au repos');
 assert.doesNotMatch(css, /\.ic\.fill/, '.fill est déjà le trou rempli des phrases');
 
+// Le Dico : le livre statique existe, et chaque fichier de pages cité par l'index aussi.
+const dicoIndex = JSON.parse(fs.readFileSync(new URL('../dico/index.json', import.meta.url), 'utf8'));
+assert.ok(dicoIndex.pages > 1000 && dicoIndex.parFichier > 0, 'Le dictionnaire doit compter des milliers de pages');
+for (let f = 0; f * dicoIndex.parFichier < dicoIndex.pages; f++)
+  assert.ok(fs.existsSync(new URL(`../dico/p${String(f).padStart(3, '0')}.json`, import.meta.url)), `Fichier de pages manquant : p${f}`);
+assert.match(dicoIndex.source, /Wiktionnaire.*CC BY-SA/, 'Attribution du Wiktionnaire');
+assert.ok(fs.existsSync(new URL('../dico/LICENCE.md', import.meta.url)), 'Licence des données du Dico');
+
 console.log('Frontend sanity checks passed.');
