@@ -15,6 +15,13 @@
 -- reprises telles qu'elles tournent en production, avec la seule branche du
 -- Dico en plus.
 
+-- À coller tel quel dans l'éditeur SQL de Supabase : tout passe dans une seule
+-- transaction (une erreur n'applique rien) et la migration s'inscrit dans
+-- l'historique supabase_migrations. Testée sur une copie de la production
+-- (structure et fonctions relues en lecture seule) : partie à 4, départ du
+-- meneur, minuteurs expirés, bots, autres jeux inchangés.
+begin;
+
 -- ---------------------------------------------------------------- Schéma
 alter table public.rooms drop constraint if exists rooms_mode_check;
 alter table public.rooms add constraint rooms_mode_check
@@ -544,7 +551,7 @@ begin
          where d.room_id = r.id and d.round = r.round and (d.player_id is null or p.active)) end,
       'points', case when fin then
         (select coalesce(jsonb_agg(jsonb_build_object('player_id', x.player_id, 'points', x.points)), '[]'::jsonb)
-         from public.dico_points x where x.room_id = r.id and x.round = r.round) end)));
+         from public.dico_points x where x.room_id = r.id and x.round = r.round) end));
   end if;
   return (base || extra)::json;
 end $fn$;
@@ -570,3 +577,17 @@ grant execute on function
   public.dico_vote(text,uuid,uuid),
   public.dico_bot_step(text,uuid,text[],text[],text[])
 to anon, authenticated;
+
+-- Inscription dans l'historique des migrations (absente d'une base locale de test).
+do $hist$
+begin
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    if not exists (select 1 from supabase_migrations.schema_migrations where version = '20261104230000') then
+      insert into supabase_migrations.schema_migrations(version, name) values ('20261104230000', 'le_dico');
+    end if;
+  end if;
+end $hist$;
+
+commit;
+
+select 'Le Dico est installé.' as resultat;
