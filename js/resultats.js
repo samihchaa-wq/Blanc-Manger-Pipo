@@ -9,9 +9,48 @@ function result(){
 }
 function rank(){
   return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
-    <span class="pos">${i + 1}</span>
+    <span class="pos">${i + 1}</span>${avatar(p.id, 'sm')}
     <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
     <b>${p.score}</b></li>`).join('')}</ol>`;
+}
+
+// Mini-classement des écrans d'attente : pastille et score, le nom pour les
+// lecteurs d'écran. Rien avant la première manche jouée.
+function scoreStrip(align = ''){
+  const ps = state.players.filter(p => p.active !== false).sort((a, b) => b.score - a.score);
+  if (!state.room.round || !ps.some(p => p.score)) return '';
+  return `<p class="eyebrow striphead${align ? ' ' + align : ''}">Scores</p><div class="strip${align ? ' ' + align : ''}">${ps.map(p =>
+    `<span class="chip${isMe(p.id) ? ' me' : ''}">${avatar(p.id, 'sm')}<span class="sr">${esc(p.name)} :</span><b>${p.score}</b></span>`).join('')}</div>`;
+}
+
+// Fin de partie : les trois premiers sur un podium (à égalité, même marche).
+function podium(){
+  const top = [...state.players].sort((a, b) => b.score - a.score).slice(0, 3);
+  if (top.length < 2) return '';
+  const place = p => 1 + state.players.filter(q => q.score > p.score).length;
+  const order = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
+  return `<div class="podium" style="grid-template-columns:repeat(${order.length},1fr)">${order.map(p => {
+    const k = Math.min(3, place(p));
+    return `<div class="pod p${k}" style="--c:${seatColor(p.id)}">
+      ${k === 1 ? `<span class="crown">${ic('star', 'solid')}</span>` : ''}${avatar(p.id, 'lg')}
+      <span class="pn">${isMe(p.id) ? 'Toi' : esc(p.name)}</span>
+      <b data-n="${p.score}">${p.score}</b><i class="stepb">${k}</i></div>`;
+  }).join('')}</div>`;
+}
+
+// Les +N (et les scores du podium) défilent jusqu'à leur valeur à l'arrivée.
+function countUp(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const els = [...app.querySelectorAll('[data-n]')];
+  if (!els.length) return;
+  els.forEach(el => { el.dataset.p = el.textContent.trim().startsWith('+') ? '+' : ''; el.textContent = el.dataset.p + '0' });
+  const t0 = performance.now(), D = 900;
+  const step = t => {
+    const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+    els.forEach(el => { if (el.isConnected) el.textContent = el.dataset.p + Math.round(+el.dataset.n * e) });
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 // Une fois qu'on a validé, on voit qui n'a pas encore suivi.
@@ -34,7 +73,7 @@ function reveal(){
   if (isMime()) return mimeReveal();
   const r = state.room;
   return `
-    <p class="role">🎉 Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
+    <p class="role">${avatar(r.winner_id)}Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
     ${result()}
     <h3 class="sec">Classement</h3>${rank()}
     ${sharedRoundNext()}`;
@@ -49,11 +88,12 @@ function finished(){
   return `
     <p class="eyebrow">Partie terminée</p>
     <h1 class="bigwin">${title}</h1>
+    ${podium()}
     ${isCounted()
       ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
       : result()}
     ${punSection()}
-    <h3 class="sec">Classement final</h3>${rank()}
+    ${state.players.length > 3 ? `<h3 class="sec">Classement final</h3>${rank()}` : ''}
     ${state.me.continue_requested ? waiting(state.players.filter(p => p.active !== false && !p.continue_requested), 'C’est reparti…') : ''}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>

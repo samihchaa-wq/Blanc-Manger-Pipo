@@ -27,23 +27,32 @@ function needle(v, color, me = false){
     <line class="ndl" x1="${DC.x}" y1="${DC.y}" x2="${x}" y2="${y}" style="stroke:${color}"/>
     <circle class="tip" cx="${x}" cy="${y}" r="4" style="fill:${color}"/>`;
 }
+// Graduations tous les 5 crans, plus marquées tous les 10 et au milieu : on
+// lit enfin une position, plus seulement « à gauche » ou « à droite ».
+function ticks(){
+  return Array.from({ length:21 }, (_, i) => i * 5).map(v => {
+    const k = v % 50 === 0 ? 'M' : v % 10 === 0 ? 'm' : '';
+    const [x1, y1] = dpt(v, DC.r - 1.5), [x2, y2] = dpt(v, DC.r - (k === 'M' ? 9 : k ? 6 : 3.5));
+    return `<line class="tk ${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }).join('');
+}
 // opts : target (bandes visibles), needles [{v,color}], mine (aiguille déplaçable)
-function dial({ target = null, needles = [], mine = null } = {}){
+function dial({ target = null, needles = [], mine = null, sweep = false } = {}){
   // en mode inversé, l'échelle est celle du thème écrit par un joueur
   const w = isInverse() ? { left:'Le moins', right:'Le plus' } : (state.wave || {});
   return `<div class="dialbox">
     <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${esc(w.left)} et ${esc(w.right)}">
       <path class="face" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
-      ${target != null ? bands(target) : ''}
+      ${ticks()}
+      ${target == null ? '' : sweep ? `<g class="sweep" style="--t:${(-1.8 * target).toFixed(1)}deg">${bands(target)}</g>` : bands(target)}
       <path class="rim" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
-      ${needles.map(n => needle(n.v, n.color)).join('')}
+      ${needles.map(n => `<g class="gn">${needle(n.v, n.color)}</g>`).join('')}
       ${mine != null ? needle(mine, null, true) : ''}
       <circle class="hub" cx="${DC.x}" cy="${DC.y}" r="7"/>
     </svg>
     <div class="wlabs"><span class="wlab">${esc(w.left)}</span><span class="wlab r">${esc(w.right)}</span></div>
   </div>`;
 }
-const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
 
 // Mode inversé, phase « clue » : d'abord le thème, puis la réponse du médium.
 function themeCard(){ return qcard('Thème', esc(state.wave?.theme || ''), 'clue') }
@@ -62,7 +71,7 @@ function inverseClue(){
   if (!isMe(r.reader_id)) return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${themeCard()}${dial()}
-    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche sa réponse…</p>`;
+    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche sa réponse…</p>${scoreStrip()}`;
   return `
     <p class="role"><b>Tu es le médium.</b> Réponds au thème selon la position de la cible.</p>
     ${themeCard()}${dial({ target: w.target })}
@@ -76,7 +85,7 @@ function clue(){
   if (!isMe(r.reader_id)) return `
     <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${dial()}
-    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche un indice…</p>`;
+    <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche un indice…</p>${scoreStrip()}`;
   return `
     <p class="role"><b>Tu es le médium.</b></p>
     ${dial({ target: w.target })}
@@ -90,7 +99,7 @@ function guessing(){
   const left = others.filter(p => !p.guessed), done = others.length - left.length;
   const progress = `<p class="meta" style="margin-top:18px">${done}/${others.length} ont visé</p>
     <div class="bar"><i style="width:${others.length ? Math.round(done / others.length * 100) : 0}%"></i></div>
-    ${waiting(left, 'Tout le monde a visé.')}`;
+    ${waiting(left, 'Tout le monde a visé.')}${scoreStrip('l')}`;
   const card = isInverse()
     ? themeCard() + qcard(isMe(r.reader_id) ? 'Ta réponse' : `Réponse de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue')
     : qcard(isMe(r.reader_id) ? 'Ton indice' : `Indice de ${nameOf(r.reader_id)}`, esc(w.clue), 'clue');
@@ -114,12 +123,12 @@ function waveReveal(){
   return `
     <p class="role">${isMe(r.reader_id) ? '<b>Ta cible</b>' : `La cible de <b>${nameOf(r.reader_id)}</b>`}</p>
     ${isInverse() ? themeCard() + qcard('Réponse', esc(w.clue), 'clue') : qcard('Indice', esc(w.clue), 'clue')}
-    ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })) })}
-    <div class="legend">${guessers.map(g => `<span class="chip"><i style="background:${seatColor(g.player_id)}"></i>${nameOf(g.player_id)}</span>`).join('')}</div>
+    ${dial({ target: w.target, needles: guessers.map(g => ({ v: g.value, color: seatColor(g.player_id) })), sweep: true })}
+    <div class="legend">${guessers.map(g => `<span class="chip">${avatar(g.player_id, 'sm')}${nameOf(g.player_id)}</span>`).join('')}</div>
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(g => `<li>
-      <span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
-      <b class="plus">+${g.points ?? 0}</b></li>`).join('')}</ol>
+      ${avatar(g.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(g.player_id)}</span>${g.player_id === r.reader_id ? '<span class="tag host">médium</span>' : g.points === 4 ? '<span class="tag">dans le mille</span>' : ''}</span>
+      <b class="plus" data-n="${g.points ?? 0}">+${g.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
 

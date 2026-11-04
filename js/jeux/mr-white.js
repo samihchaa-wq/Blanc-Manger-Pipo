@@ -5,16 +5,18 @@
 // Les rôles et les mots sont demandés à un RPC distinct : personne ne peut lire
 // ceux des autres dans le HTML, le salon ou les tables exposées.
 
+// En présentiel, le voisin voit l'écran : la carte reste floue et ne se lit
+// qu'en gardant le doigt dessus (ou Espace / Entrée au clavier).
 function whiteSecret(){
   const w=state.white||{};
-  if (w.role==='white') return `<section class="white-secret">
+  const inner=w.role==='white'
+    ? `<img class="white-mark" src="games/white.svg" alt="Emblème de Mr White">
+    <strong>Tu es Mr White</strong>`
+    : `<strong>${esc(w.word||'—')}</strong>`;
+  return `<section class="white-secret hold" data-hold tabindex="0" role="button" aria-label="Ta carte, maintiens pour la voir">
     <p class="eyebrow">Ta Carte :</p>
-    <img class="white-mark" src="games/white.svg" alt="Emblème de Mr White">
-    <strong>Tu es Mr White</strong>
-  </section>`;
-  return `<section class="white-secret">
-    <p class="eyebrow">Ta Carte :</p>
-    <strong>${esc(w.word||'—')}</strong>
+    <div class="secret">${inner}</div>
+    <span class="holdhint" aria-hidden="true">${ic('eye')}Maintiens pour voir</span>
   </section>`;
 }
 function whitePeople(){
@@ -48,8 +50,8 @@ function whiteVote(){
     ${whiteSecret()}
     <h1 class="bigstate">Qui est l’imposteur ?</h1>
     ${w.voted||w.eliminated?'':
-       `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
-        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
+       `<h3 class="sec">Ton vote</h3><ul class="white-list ballot">${available.map(p=>
+        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${avatar(p.player_id)}<span>${nameOf(p.player_id)}</span></button></li>`).join('')}</ul>`}
     ${waiting(pending,'Tout le monde a voté.')}`;
 }
 function whiteGuess(){
@@ -96,6 +98,18 @@ function whiteWinnerSentence(){
   }
   return '';
 }
+// La carte de l'éliminé se retourne sur son rôle. Décorative : la phrase
+// d'élimination juste en dessous dit la même chose aux lecteurs d'écran.
+function whiteFlip(){
+  const w=state.white||{}, person=(w.roles||[]).find(p=>p.player_id===w.last_eliminated);
+  const role=person&&{civil:'Civil',undercover:'Imposteur',white:'Mr White'}[person.role];
+  if (!role) return '';
+  return `<div class="flip" aria-hidden="true"><div class="in">
+    <div class="face front">${avatar(person.player_id,'lg')}<span class="fn">${nameOf(person.player_id)}</span><span class="eyebrow">Éliminé</span></div>
+    <div class="face back r-${person.role}">${person.role==='white'?'<img src="games/white.svg" alt="">':avatar(person.player_id,'lg')}
+      <span class="eyebrow">${nameOf(person.player_id)} était</span><strong>${role}</strong></div>
+  </div></div>`;
+}
 function whiteElimination(){
   const w=state.white||{}, host=isMe(state.room.host_id);
   const remaining=Math.max(0,Number(w.impostors_remaining)||0);
@@ -103,6 +117,7 @@ function whiteElimination(){
     `Il reste <b>${remaining} Imposteur${remaining>1?'s':''}</b>`;
   return `
     <p class="eyebrow">Résultat du vote</p>
+    ${whiteFlip()}
     ${whiteEliminationSentence()||`<p class="role">${esc(w.note||'Personne n’est éliminé.')}</p>`}
     <p class="role">${remainingText}, la partie continue.</p>
     ${host?`<div class="dock"><button class="btn" data-act="white-resume" ${dis()}>Tour suivant</button></div>`:''}`;
@@ -111,6 +126,7 @@ function whiteReveal(){
   const w=state.white||{}, hasMrWhite=(w.roles||[]).some(p=>p.role==='white');
   return `
     <p class="eyebrow">Fin de la manche ${state.room.round}</p>
+    ${whiteFlip()}
     ${whiteEliminationSentence()}
     ${whiteWinnerSentence()}
     <div class="white-secret">

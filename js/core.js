@@ -5,6 +5,7 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0, rankView = null;
 let last = '', channel = null, poll = null, deb = null, dealPending = false, rtOk = false, lastSync = 0;
+let holding = false;   // doigt posé sur la carte secrète de Mr White
 let rtSeen = false;   // le temps réel a déjà répondu au moins une fois
 let reapTimer = null, tickTimer = null, renderedKey = '', botTimer = null;
 let swipe = null, dragging = false, flying = false, pendingRender = false, lastSwipeEnd = 0;
@@ -68,8 +69,22 @@ const BAC_LETTRES = 'ABCDEFGHIJLMNOPRSTUV';
 // 3,4 s de rotation, puis la lettre reste affichée un instant avant la grille.
 const ROUE_MS = 4600;
 const roueEnCours = () => Date.now() - roueAt < ROUE_MS;
-const VOTES = [[2,'👍','2 pts'],[1,'🟰','Égalité'],[0,'👎','0 pt']];
-const emoji = v => (VOTES.find(([p]) => p === v) || [])[1] || '';
+// Icônes au trait, à la place des emojis (pouces, égal, fête, roue) et des
+// caractères croix, coche, étoile, dont le rendu changeait d'un téléphone à
+// l'autre (le signe égal sortait en barres grises).
+const ICONS = {
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7"/>',
+  up:'<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7.5c1.6 0 2.6 1.3 2.3 2.9L12.7 10h5.8a2 2 0 0 1 2 2.3l-1.1 6a2 2 0 0 1-2 1.7H7"/>',
+  equal:'<path d="M5 9.5h14M5 14.5h14"/>',
+  star:'<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  voice:'<path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+};
+ICONS.down = '<g transform="rotate(180 12 12)">' + ICONS.up + '</g>';
+const ic = (n, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+const VOTES = [[2,'up','2 pts'],[1,'equal','Égalité'],[0,'down','0 pt']];
+const voteIcon = v => { const x = VOTES.find(([p]) => p === v); return x ? ic(x[1], 'v' + v) : '' };
 
 /* ---------- Outils ---------- */
 function load(){ try { return JSON.parse(localStorage.getItem('pdcat')) } catch { return null } }
@@ -79,7 +94,19 @@ const val = id => (document.getElementById(id)?.value || '').trim();
 const P = id => state?.players.find(p => p.id === id), isMe = id => id === state?.me.id, nameOf = id => esc(P(id)?.name || '?');
 const dis = cond => (cond || busy) ? 'disabled' : '';
 
-const chips = list => list.map(p => `<span class="chip">${esc(p.name)}</span>`).join('');
+// 12 teintes distinctes, une par siège : au-delà de 6 joueurs, deux aiguilles
+// reprenaient la même couleur et la légende devenait ambiguë.
+const SEAT_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
+                     '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
+const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
+// Pastille d'un joueur : sa couleur de siège et son initiale (décorative, le
+// nom est toujours écrit à côté).
+function avatar(id, size = ''){
+  const n = String(P(id)?.name || '?').trim();
+  const ini = esc((Array.from(n)[0] || '?').toLocaleUpperCase('fr'));
+  return `<span class="av${size ? ' ' + size : ''}" style="--c:${seatColor(id)}" aria-hidden="true">${ini}</span>`;
+}
+const chips = list => list.map(p => `<span class="chip">${avatar(p.id, 'sm')}${esc(p.name)}</span>`).join('');
 function waiting(list, done = 'Tout le monde a joué.'){
   return list.length
     ? `<div class="waiting">On attend ${chips(list)}</div>`
@@ -317,6 +344,7 @@ function updateCountdown(){
   el.querySelector('.arc').style.strokeDashoffset = (100 * (1 - Math.min(ms, len) / len)).toFixed(2);
   el.classList.toggle('low', ms > 0 && ms <= 15000);
   const sec = Math.ceil(ms / 1000);
+  el.classList.toggle('long', sec >= 60);
   el.querySelector('.cdn').textContent = sec >= 60
     ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2,'0')
     : String(sec);

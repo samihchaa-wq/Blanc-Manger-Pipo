@@ -33,10 +33,9 @@
   font-optical-sizing:auto
 }
 *{box-sizing:border-box}
-/* Graisse normale partout, y compris les titres et les <b> que le navigateur
-   met en gras par défaut. Seuls les boutons, onglets et petits chiffres
-   passent en 600 : cette graisse est chargée avec la police, sinon le
-   navigateur fabriquait un faux gras empâté. Pas de 700 : il n'est pas chargé. */
+/* Le texte courant est en graisse normale, y compris les <b> que le navigateur
+   met en gras par défaut. La police est chargée en variable (400 à 800, un
+   seul fichier) : boutons et noms en 600, titres en 700-800 (voir « Titres »). */
 html,body,h1,h2,h3,h4,h5,h6,b,strong,th,button,input,select,textarea{font-weight:400}
 html{min-height:100%;background:var(--bg-0)}
 body{margin:0;min-height:100%;background:transparent;color:var(--text);font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
@@ -319,16 +318,15 @@ button.scard:active{transform:translateY(2px)}
   font-size:clamp(20px,6vw,24px);color:var(--gold);
   background:linear-gradient(170deg,rgba(255,194,61,.14),rgba(255,194,61,.04)),var(--surface);
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
-.sec{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:26px 0 12px}
+/* Intertitres en casse normale : les capitales espacées étaient partout
+   (cartes, sections, étiquettes) et ne hiérarchisaient plus rien. */
+.sec{font-size:18px;font-weight:700;letter-spacing:-.015em;color:var(--text);margin:28px 0 12px}
 /* deux joueurs par ligne, l'hôte en premier ; contour vert = prêt */
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
 .plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .nm{flex:1}
-/* « prêt » ne passe plus que par la couleur : une coche ronde l'accompagne */
-.plist .ok{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
-  font-size:12px;line-height:1;background:var(--mint);color:var(--mint-ink)}
 .plist .tag{padding:2px 6px;font-size:10px}
 /* lu par les lecteurs d'écran, invisible à l'écran */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -738,3 +736,160 @@ button.scard:active{transform:translateY(2px)}
 .timefield .gdesc{font-size:13px;margin-top:9px}
 .mime-stage{margin:15px 0;padding:14px;border:1px solid var(--hairline-2);border-radius:15px;text-align:center}
 .mime-stage .btn{margin-top:12px}
+
+/* ===== Titres ===== */
+/* Bricolage Grotesque prend tout son caractère en grand corps et en graisse
+   forte : c'est là que l'appli retrouve le ton du logo. */
+.bigwin{font-weight:800;letter-spacing:-.05em}
+.bigstate{font-weight:800;letter-spacing:-.035em}
+.gamebox .gname{font-weight:700;letter-spacing:-.03em}
+.white-secret strong{font-weight:800}
+.bacl,.roueBox .rouel{font-weight:800}
+.role b,.white-turn b,.waiting b{font-weight:600}
+.qcard .qtext{font-weight:500}
+.rank b,.step b,.bigcode .ch{font-weight:600}
+.rank .nm span.who,.plist .nm{font-weight:500}
+
+/* ===== Pastilles des joueurs ===== */
+/* Une couleur de siège et une initiale par joueur, les mêmes partout : salon,
+   attentes, classements, votes, notes, aiguilles du Baromètre. */
+.av{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--c,var(--gold));color:var(--ink);font-size:14px;font-weight:700;line-height:1;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),0 0 0 2px rgba(15,12,20,.6)}
+.av.sm{width:22px;height:22px;font-size:11px;box-shadow:inset 0 -1.5px 0 rgba(0,0,0,.2)}
+.av.lg{width:64px;height:64px;font-size:30px;font-weight:800;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 3px rgba(15,12,20,.7)}
+.chip .av.sm{margin-right:1px}
+.chip:has(.av){padding-left:3px}
+.plist li{gap:9px;padding-left:8px}
+/* prêt : une coche menthe posée sur la pastille, sans voler de place au nom */
+.av{position:relative}
+.av.ok::after{content:"";position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:50%;
+  background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='%2304281B' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat;
+  box-shadow:0 0 0 2px var(--surface)}
+.plist .kick{width:24px;height:24px;font-size:12px}
+.rank .av{margin-right:-2px}
+.role .av{vertical-align:-6px;margin-right:6px}
+
+/* ===== Icônes ===== */
+.ic{display:inline-block;width:1.05em;height:1.05em;flex:none;vertical-align:-.16em;
+  fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ic.solid{fill:currentColor;stroke:none}
+.ic.v2{color:var(--mint)} .ic.v1{color:var(--gold)} .ic.v0{color:var(--pop)}
+.vote .ic{width:30px;height:30px;stroke-width:2}
+.bactab .ans .pt .ic{width:18px;height:18px}
+.plist .kick .ic,.catlist .del .ic{width:13px;height:13px;stroke-width:2.6}
+.btn .ic{width:20px;height:20px;stroke-width:2.6}
+.roue .lab i .ic{width:1.15em;height:1.15em;color:var(--gold-deep)}
+
+/* ===== Vote Mr White : une carte par joueur, sans cadre dans le cadre ===== */
+.white-list.ballot{grid-template-columns:1fr 1fr;gap:8px}
+.white-list.ballot li{padding:0;border:0;background:none;min-width:0}
+.white-list.ballot button{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;padding:12px;text-align:left;
+  border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--hairline-2);font-size:17px;font-weight:500}
+.white-list.ballot button span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.white-list.ballot button:active:not(:disabled){border-color:var(--gold);background:var(--surface-2)}
+
+/* ===== Notes des Mimes : une seule rangée de 1 à 10 ===== */
+.mime-rates .nm{display:flex;align-items:center;gap:8px}
+.mime-notes{grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.mime-notes button{height:40px;padding:0;border-radius:8px;font-size:15px;font-weight:600}
+.mime-order li{display:list-item}
+.mime-order .av{vertical-align:-5px;margin-right:7px}
+
+/* ===== Cadran du Baromètre ===== */
+.dial .tk{stroke:var(--paper-edge);stroke-width:1;stroke-linecap:round}
+.dial .tk.m{stroke-width:1.4}
+.dial .tk.M{stroke:var(--ink-soft);stroke-width:1.8}
+/* étiquettes dans la palette (elles étaient les seuls aplats blanc pur) */
+.wlab{background:var(--surface-2);color:var(--text);border:1px solid var(--hairline-2);font-weight:500}
+
+/* ===== Roues : les repères restent droits une fois la roue arrêtée ===== */
+.roue .lab i{transform:translateX(-50%) rotate(calc(-1 * (var(--a) + var(--spin, 0deg))))}
+
+/* ===== Minuteur plus lisible ===== */
+.cdring .cdn{font-size:13.5px}
+.cdring.long .cdn{font-size:11px}
+.cdring.low .cdn{color:var(--pop-soft)}
+
+/* ===== Moments clés ===== */
+/* #app.fresh n'est posé que pendant les premières secondes d'un nouvel écran :
+   les animations ne se rejouent pas à chaque rafraîchissement. */
+@keyframes rise-up{from{transform:scaleY(0)}}
+@keyframes pop-in{from{transform:scale(.4);opacity:0}}
+@keyframes fade-in{from{opacity:0}}
+
+/* Podium de fin */
+.podium{display:grid;align-items:end;gap:8px;margin:4px 0 24px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.pod .pn{max-width:100%;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod b{font-size:22px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
+.pod .crown .ic{width:26px;height:26px;color:var(--gold);filter:drop-shadow(0 2px 8px rgba(255,194,61,.5))}
+.pod .stepb{display:grid;place-items:center;width:100%;height:50px;margin-top:4px;border-radius:14px 14px 6px 6px;
+  font-style:normal;font-size:24px;font-weight:800;color:var(--ink);transform-origin:bottom;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.18)),var(--c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.pod.p1 .stepb{height:98px} .pod.p2 .stepb{height:70px}
+.pod.p1 .av.lg{width:76px;height:76px;font-size:36px}
+#app.fresh .pod .stepb{animation:rise-up .6s var(--ease) both}
+#app.fresh .pod.p2 .stepb{animation-delay:.15s} #app.fresh .pod.p1 .stepb{animation-delay:.3s}
+#app.fresh .pod>:not(.stepb){animation:pop-in .4s var(--ease) both;animation-delay:.75s}
+#app.fresh .pod.p1>:not(.stepb){animation-delay:1s}
+
+/* Baromètre : la cible balaie le cadran avant de s'arrêter, puis les aiguilles */
+.dial .sweep{transform-box:view-box;transform-origin:100px 100px}
+#app.fresh .dial .sweep{animation:sweep 1.2s cubic-bezier(.2,.9,.25,1) both}
+@keyframes sweep{from{transform:rotate(var(--t))}}
+#app.fresh .dial .gn{animation:fade-in .35s 1.1s both}
+
+/* Mr White : la carte de l'éliminé se retourne sur son rôle */
+.flip{perspective:900px;width:min(210px,58vw);aspect-ratio:4/5;margin:12px auto 18px}
+.flip .in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(180deg)}
+#app.fresh .flip .in{animation:flip 1.1s .7s cubic-bezier(.55,0,.2,1) both}
+@keyframes flip{from{transform:rotateY(0)}}
+.flip .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:16px;border-radius:22px;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .front{background:linear-gradient(170deg,var(--surface-2),var(--surface));border:1.5px solid var(--hairline-2)}
+.flip .front .fn{font-size:20px;font-weight:700}
+.flip .back{transform:rotateY(180deg);color:var(--gold-ink);
+  background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));box-shadow:0 5px 0 var(--gold-deep),var(--shadow-card)}
+.flip .back.r-civil{color:var(--mint-ink);background:linear-gradient(168deg,#8DF2C8,var(--mint-2));box-shadow:0 5px 0 var(--mint-deep),var(--shadow-card)}
+.flip .back.r-undercover{color:#fff;background:linear-gradient(168deg,var(--pop),var(--pop-3));box-shadow:0 5px 0 var(--pop-deep),var(--shadow-card)}
+.flip .back.r-white{color:var(--ink);background:linear-gradient(168deg,#fff,#E7E0F0);box-shadow:0 5px 0 #8E83A0,var(--shadow-card)}
+.flip .back .eyebrow{color:inherit;opacity:.8}
+.flip .back strong{font-size:30px;font-weight:800;letter-spacing:-.035em;line-height:1}
+.flip .back img{width:70px;height:70px}
+
+/* ===== Écrans d'attente ===== */
+/* Dos de carte à la marque : le logo sur la prune du fond, double filet doré et rose. */
+.cardback{background:url(../logo.svg) center/82% auto no-repeat,
+  radial-gradient(120% 90% at 50% 20%,#3D2255,#1B1325 72%)}
+.cardback::after{box-shadow:inset 0 0 0 1.5px rgba(255,194,61,.6),inset 0 0 0 6px rgba(15,12,20,.35),inset 0 0 0 7.5px rgba(255,92,141,.45)}
+.striphead{margin-top:30px;text-align:center}
+.striphead.l{text-align:left;margin-top:26px}
+.strip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
+.strip.l{justify-content:flex-start}
+.strip .chip{padding:3px 11px 3px 3px;gap:7px}
+.strip .chip b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.strip .chip.me{border-color:rgba(255,194,61,.55);background:linear-gradient(90deg,rgba(255,194,61,.12),var(--surface))}
+
+/* ===== Lecture à voix haute ===== */
+/* Le lecteur et le juge lisent la carte à toute la table : elle passe en grand. */
+.qcard.aloud{min-height:min(46vh,380px);justify-content:center;padding:46px 22px 30px;transform:rotate(-.6deg)}
+.qcard.aloud .qtag{position:absolute;top:18px;left:22px;display:flex;align-items:center;gap:6px}
+.qcard.aloud .qtag .ic{width:15px;height:15px;stroke-width:2.4}
+.qcard.aloud .qtext{font-size:clamp(30px,8.6vw,40px);line-height:1.16;font-weight:600;letter-spacing:-.03em}
+.qcard.aloud .blank{border-bottom-width:5px}
+.qcard.aloud .by{font-size:15px}
+/* Mimes : le juge note juste après, la carte garde le grand texte sans la hauteur */
+.qcard.aloud.short{min-height:0;padding-bottom:24px}
+
+/* ===== Carte secrète de Mr White : floue tant qu'on ne la maintient pas ===== */
+.white-secret.hold{position:relative;cursor:pointer;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.white-secret.hold .secret{filter:blur(16px);opacity:.35;transition:filter .16s,opacity .16s}
+.white-secret.hold.show .secret{filter:none;opacity:1}
+.white-secret.hold img{pointer-events:none;-webkit-user-drag:none}
+.holdhint{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:var(--r-pill);background:var(--ink);color:var(--gold-paper);
+  font-size:14px;font-weight:600;white-space:nowrap;pointer-events:none;transition:opacity .15s}
+.holdhint .ic{width:16px;height:16px}
+.white-secret.hold.show .holdhint{opacity:0}

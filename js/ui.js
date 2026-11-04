@@ -98,6 +98,7 @@ function render(){
     // la saisie d'une punition survit au rafraîchissement du salon
     const ae = document.activeElement, focId = /^(pun-\d|w-clue|w-theme)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
+    if (holding) app.querySelectorAll('[data-hold]').forEach(el => el.classList.add('show'));
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
@@ -106,7 +107,12 @@ function render(){
     if (newScreen) {
       renderedKey = key;
       app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
-    }
+      // Les mises en scène (podium, cible, carte retournée, +N) ne se jouent
+      // qu'à l'arrivée sur l'écran ; un rafraîchissement ensuite les montre finies.
+      app.classList.add('fresh'); clearTimeout(render.fresh);
+      render.fresh = setTimeout(() => app.classList.remove('fresh'), 2800);
+      countUp();
+    } else app.classList.remove('fresh');
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     // les confettis à l'arrivée sur l'écran de fin, pas à chaque mise à jour
     else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
@@ -251,7 +257,7 @@ function paintCatalog(){
         <span class="ct">${catalog.kind === 'w' || catalog.kind === 'm'
           ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
           : esc(c.text)}</span>
-        <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
+        <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">${ic('x')}</button>
       </li>`).join('')
     : `<li class="empty">Aucune ${mot}.</li>`;
   const more = document.getElementById('cat-more');
@@ -318,16 +324,16 @@ function lobby(){
     <h2 class="sec">Joueurs · ${n}/${max}</h2>
     <ul class="plist">
       ${[...state.players].sort((a, b) => (b.id === r.host_id) - (a.id === r.host_id)).map(p => `<li class="${p.ready ? 'is-ready' : ''}">
-        ${p.ready ? '<span class="ok" aria-hidden="true">✓</span>' : ''}<span class="nm">${esc(p.name)}</span>${
+        ${avatar(p.id, p.ready ? 'ok' : '')}<span class="nm">${esc(p.name)}</span>${
         p.id === r.host_id ? '<span class="tag host">hôte</span>' : p.is_bot ? '<span class="tag">bot</span>' : ''}${
         isMe(p.id) ? '<span class="tag">toi</span>' : ''}<span class="sr">${p.ready ? ', prêt' : ', pas encore prêt'}</span>${
-        host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
+        host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">${ic('x')}</button>` : ''}
       </li>`).join('')}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       ${host ? '' : `<p class="dockhint">${lobbyHint()}</p>`}
-      <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
+      <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ' + ic('check') : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : 'Lancer la partie'}</button>` : ''}
     </div>`;
 }
@@ -425,7 +431,7 @@ function gameBox(host){
   const on = !!pun?.on, nb = +(pun?.count || PUN_NB);
   const punOpt = !pun ? ''
     : host ? punCheck()
-    : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
+    : on ? `<p class="gdesc">Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
@@ -492,7 +498,7 @@ function punSection(){
   const spin = pick ? 1440 + 360 - (k + .5) * a : 0;
   // re-rendue en pleine rotation, la roue reprend là où elle en était
   const disque = `<div class="roue pun ${anim ? '' : 'still'}" style="--spin:${spin.toFixed(1)}deg;${anim ? `animation-delay:-${ecoule}ms;` : ''}background:conic-gradient(${parts})" aria-hidden="true">${
-    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? '★' : '?'}</i></span>`).join('')}</div>`;
+    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? ic('star', 'solid') : '?'}</i></span>`).join('')}</div>`;
   const qui = loser ? (isMe(loser.id) ? 'Toi' : esc(loser.name)) : '?';
   const autres = pick ? items.filter(x => x.id !== pick.id) : [];
   return `<section class="punbox">
@@ -513,19 +519,23 @@ function waitScreen(title, sub, stack = 1){
     : '<span class="cardback"></span>';
   return `<div class="waitScreen">${backs}
     <h2 class="bigstate">${title}</h2>
-    <p class="muted"><span class="pulse"></span>${sub}</p></div>`;
+    <p class="muted"><span class="pulse"></span>${sub}</p>${scoreStrip()}</div>`;
 }
 
-// 12 teintes distinctes, une par siège : au-delà de 6 joueurs, deux aiguilles
-// reprenaient la même couleur et la légende devenait ambiguë.
-const SEAT_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
-                     '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
 
 function qselect(){
   const r = state.room;
   const reader = P(r.reader_id);
   if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
   const chosen = state.question_choices.find(q => q.id === qpick);
+  // Phrase choisie : elle passe seule en grand, le lecteur la lit à la table.
+  if (chosen) return `
+    <p class="role"><b>Lis la phrase à voix haute</b>, puis valide.</p>
+    ${qcard(ic('voice') + 'À lire à voix haute', blank(chosen.text), 'aloud')}
+    <div class="dock">
+      <button class="btn" data-act="question-go" ${dis()}>J'ai lu la phrase</button>
+      <button class="btn ghost" data-act="question-back" ${dis()}>Choisir une autre carte</button>
+    </div>`;
   return `
     <p class="role"><b>Tu es le lecteur.</b></p>
     <ul class="qchoices">
@@ -550,14 +560,14 @@ function answering(){
     <p class="role"><b>Tu es le lecteur.</b></p>
     ${qcard('Question', blank(q))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
-    ${waiting(left)}`;
+    ${waiting(left)}${scoreStrip('l')}`;
 
   const cartes = state.my_cards || [];
   if (cartes.length) return `
     <p class="role"><b>${cartes.length > 1 ? 'Cartes envoyées.' : 'Carte envoyée.'}</b></p>
     ${qcard(cartes.length > 1 ? 'Tes réponses' : 'Ta réponse', fill(q, cartes))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
-    ${waiting(left)}`;
+    ${waiting(left)}${scoreStrip('l')}`;
 
   const n = state.blanks || 1;
   const choisies = picks.map(id => state.hand.find(c => c.id === id)).filter(Boolean);
@@ -600,7 +610,7 @@ function judging(){
     `${nameOf(r.reader_id)} les lit une par une…`, subs.length);
   if (readIndex < subs.length) return `
     <p class="role"><b>Tu es le lecteur.</b></p>
-    ${qcard(`Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards))}
+    ${qcard(`${ic('voice')}Réponse ${readIndex + 1} / ${subs.length}`, fill(q, subs[readIndex].cards), 'aloud')}
     <div class="steps" aria-hidden="true">${subs.map((s,i) => `<i class="${i <= readIndex ? 'on' : ''}"></i>`).join('')}</div>
     <div class="dock"><button class="btn" data-act="readnext">${readIndex + 1 === subs.length ? 'Voir toutes les réponses' : 'Réponse suivante'}</button></div>`;
   return `

@@ -192,3 +192,21 @@ document.addEventListener('pointerup', endRankDrag);
 document.addEventListener('pointercancel', endRankDrag);
 document.addEventListener('contextmenu', e => { if (rdrag) e.preventDefault() });
 
+
+/* ---------- Carte secrète : maintenir pour voir ---------- */
+function holdOn(on){
+  holding = on;
+  app.querySelectorAll('[data-hold]').forEach(el => el.classList.toggle('show', on));
+}
+document.addEventListener('pointerdown', e => { if (e.target.closest?.('[data-hold]')) holdOn(true) });
+document.addEventListener('pointerup', () => { if (holding) holdOn(false) });
+document.addEventListener('pointercancel', () => { if (holding) holdOn(false) });
+addEventListener('blur', () => { if (holding) holdOn(false) });
+document.addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && e.target.matches?.('[data-hold]')) { e.preventDefault(); holdOn(true) }
+});
+document.addEventListener('keyup', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && e.target.matches?.('[data-hold]')) holdOn(false);
+});
+// un appui long ne doit ouvrir ni menu ni sélection sur la carte
+document.addEventListener('contextmenu', e => { if (e.target.closest?.('[data-hold]')) e.preventDefault() });

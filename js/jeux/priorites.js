@@ -33,7 +33,7 @@ function ranking(){
     <p class="role"><b>Classement envoyé.</b> ${judge ? 'Les autres essaient de le deviner…' : `Verdict quand tout le monde aura classé.`}</p>
     ${ladder(state.my_ranking, false)}
     <p class="meta" style="margin-top:18px">${done}/${state.players.length} ont classé</p>${bar}
-    ${waiting(left, 'Tout le monde a classé.')}`;
+    ${waiting(left, 'Tout le monde a classé.')}${scoreStrip('l')}`;
 
   const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.filter(Boolean).length;
   return `
@@ -72,8 +72,8 @@ function rankReveal(){
     : view ? `<ol class="truth">${view.cards.map((id, i) => `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div></li>`).join('')}</ol>` : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
-      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
-      <b class="plus">+${k.points ?? 0}</b></li>`).join('')}</ol>
+      ${avatar(k.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
+      <b class="plus" data-n="${k.points ?? 0}">+${k.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
 

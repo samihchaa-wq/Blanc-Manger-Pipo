@@ -5,13 +5,13 @@
 // Le juge voit l'action ; chaque mime voit en plus son intensité secrète.
 // Ordre de passage : les sièges à partir du juge (le serveur les range ainsi).
 const mimeIds = () => (state.mime?.parts || []).map(x => x.player_id).filter(id => id !== state.room.reader_id && P(id));
-function mimeCard(){
+function mimeCard(cls = ''){
   const m = state.mime || {};
-  return qcard('Action', esc(m.action || ''), '', `<span class="by">1 : ${esc(m.low || '')} · 10 : ${esc(m.high || '')}</span>`);
+  return qcard(cls ? ic('voice') + 'Action à lire à voix haute' : 'Action', esc(m.action || ''), cls, `<span class="by">1 : ${esc(m.low || '')} · 10 : ${esc(m.high || '')}</span>`);
 }
 function mimeOrder(){
   return `<h3 class="sec">Ordre de passage</h3><ol class="mime-order">${mimeIds().map(id =>
-    `<li>${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
+    `<li>${avatar(id, 'sm')}${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
 }
 function mimePlay(){
   const r = state.room, m = state.mime || {}, judge = isMe(r.reader_id);
@@ -33,9 +33,9 @@ function mimePlay(){
   const ids = mimeIds(), done = ids.every(id => mimeNotes[id]);
   return `
     <p class="role"><b>Tu es le juge.</b> Lis l’action à voix haute. Chacun la mime à son tour, devine son intensité.</p>
-    ${mimeCard()}${stage}
+    ${mimeCard('aloud short')}${stage}
     <h3 class="sec">Tes notes</h3>
-    <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${nameOf(id)}</span>
+    <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${avatar(id, 'sm')}${nameOf(id)}</span>
       <div class="mime-notes" role="group" aria-label="Note de ${nameOf(id)}">${Array.from({ length:10 }, (_, i) => i + 1).map(v =>
         `<button type="button" class="${mimeNotes[id] === v ? 'on' : ''}" data-act="mime-note" data-id="${id}" data-v="${v}" aria-pressed="${mimeNotes[id] === v}">${v}</button>`).join('')}</div></li>`).join('')}</ul>
     <div class="dock"><button class="btn" data-act="mime-rate" ${dis(!done)}>${done ? 'Valider les notes' : 'Note chaque joueur'}</button></div>`;
@@ -48,9 +48,9 @@ function mimeReveal(){
     ${mimeCard()}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${parts.filter(x => x.player_id !== r.reader_id && P(x.player_id)).map(x => `<li>
-      <span class="nm"><span class="who">${nameOf(x.player_id)}</span><span class="tag">joué ${x.intensity ?? '?'} · noté ${x.guess ?? '?'}</span></span>
-      <b class="plus">+${x.points ?? 0}</b></li>`).join('')}
-      ${judge ? `<li><span class="nm"><span class="who">${nameOf(judge.player_id)}</span><span class="tag host">juge</span></span><b class="plus">+${judge.points ?? 0}</b></li>` : ''}</ol>
+      ${avatar(x.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(x.player_id)}</span><span class="tag">joué ${x.intensity ?? '?'} · noté ${x.guess ?? '?'}</span></span>
+      <b class="plus" data-n="${x.points ?? 0}">+${x.points ?? 0}</b></li>`).join('')}
+      ${judge ? `<li>${avatar(judge.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(judge.player_id)}</span><span class="tag host">juge</span></span><b class="plus" data-n="${judge.points ?? 0}">+${judge.points ?? 0}</b></li>` : ''}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     ${ackWaiting()}
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === r.round)}>${state.me.next_ack === r.round ? 'En attente des autres…' : roundsLeft() ? 'Manche suivante' : 'Voir le résultat'}</button></div>`;
