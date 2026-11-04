@@ -918,7 +918,9 @@ body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint
 .setrow.pun{grid-template-columns:minmax(0,.9fr) 58px minmax(0,1.2fr)}
 .gamebox .setrow .field{display:flex;flex-direction:column;min-width:0;margin:0}
 /* libellés en casse normale : en capitales, « Punitions » débordait sur « Temps » */
-.gamebox .setrow .field>span{margin-bottom:6px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-dim);
+/* chaque libellé est centré sur son réglage : à gauche pour deux d'entre eux et
+   centré pour la roue, la ligne paraissait décalée */
+.gamebox .setrow .field>span{margin-bottom:7px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-dim);text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .setrow .punf{align-items:center}
 .setrow .punf>span{overflow:visible}
@@ -938,7 +940,6 @@ body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint
 }
 .setrow .punsw{width:52px;height:48px;margin:0}
 .setrow .punsw .mini{width:40px;height:40px}
-.gamebox .tdesc{font-size:13px;margin-top:10px}
 .gamebox .gdesc b{color:var(--text);font-weight:600}
 
 /* Accueil : le volet occupe la hauteur restante ; les vignettes se centrent
