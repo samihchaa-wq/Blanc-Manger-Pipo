@@ -157,12 +157,22 @@ assert.match(whiteFinalView, /whiteEliminationSentence\(\)/, 'La finale annonce 
 assert.match(whiteFinalView, /whiteWinnerSentence\(\)/, 'La finale annonce les gagnants nommément');
 assert.match(whiteFinalView, /Mot des Civils :/, 'Le mot des civils est affiché à la fin');
 assert.match(whiteFinalView, /Mot de l’Imposteur :/, 'Le mot imposteur est affiché à la fin si présent');
-assert.match(whiteFinalView, /hasImposteur\?/, 'Mr White seul ne doit pas révéler un mot imposteur');
+assert.match(whiteFinalView, /!hasMrWhite\?/, 'Ne jamais révéler le mot imposteur si Mr White était présent');
 assert.doesNotMatch(whiteFinalView, /whitePeople\(\)|<h3 class="sec">Classement<\/h3>|whiteNote\(\)/,
   'Pas de liste superflue ni de classement sur le verdict');
 const whiteVerdictMigration=fs.readFileSync(new URL('../supabase/migrations/20261104190000_mr_white_elimination_results.sql',import.meta.url),'utf8');
 assert.match(whiteVerdictMigration, /white_elimination/, 'Le serveur connaît la nouvelle phase');
 assert.match(whiteVerdictMigration, /create or replace function public.white_resume/, 'La reprise est contrôlée côté serveur');
 assert.match(whiteVerdictMigration, /r.host_id<>me.id/, 'Seul l’hôte peut relancer le tour');
+assert.match(whiteVerdictMigration, /p_winner='civils' then civil_survivors/,
+  'Les Civils marquent le nombre de Civils encore en jeu, seulement en cas de victoire');
+assert.match(whiteVerdictMigration, /civil\.eliminated_cycle is not null/,
+  'Les imposteurs ne gagnent des points que sur des Civils éliminés par vote');
+assert.match(whiteVerdictMigration, /civil\.eliminated_cycle<wr\.eliminated_cycle/,
+  'Un imposteur ne marque plus après son élimination');
+assert.match(whiteVerdictMigration, /wr\.role='white' then 2 else 1/,
+  'Mr White gagne deux fois les points des imposteurs');
+assert.doesNotMatch(whiteVerdictMigration, /p_winner='white' and wr\.role='white' then 3/,
+  'Le bonus forfaitaire de victoire de Mr White est supprimé');
 
 console.log('Frontend sanity checks passed.');
