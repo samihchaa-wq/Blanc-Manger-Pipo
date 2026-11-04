@@ -10,31 +10,30 @@ alter table public.rooms add constraint rooms_status_check check(status in (
 ));
 
 
--- Barème d'équipe : Civils = Civils encore en jeu si victoire ;
--- chaque imposteur = Civils éliminés tant qu'il était en jeu ;
--- Mr White = le double. Aucun bonus de victoire pour les imposteurs.
 -- Barème collectif : tous les joueurs d'un même rôle gagnent le même total,
 -- qu'ils soient encore en jeu ou déjà éliminés.
 -- Civils : survivants de départ si les Civils gagnent, sinon 0.
--- Imposteurs : nombre total de Civils éliminés jusqu'à la fin de la manche.
+-- Imposteurs : 1 point par membre d'une AUTRE équipe éliminé (Civil ou Mr White),
+-- indépendamment de leur propre élimination.
 -- Mr White : 2 points par autre joueur éliminé avant lui (Civil ou Imposteur).
 create or replace function public._white_finish(p_room uuid,p_winner text)
 returns void language plpgsql security definer set search_path to '' as $fn$
-declare r public.rooms; civil_survivors integer; civil_eliminated integer;
+declare r public.rooms; civil_survivors integer; opposing_eliminated integer;
 begin
   select * into r from public.rooms where id=p_room for update;
   if r.mode<>'white' or r.status not in ('white_clue','white_vote','white_guess','white_elimination') then return; end if;
   if p_winner not in ('civils','imposteurs','white') then raise exception 'Équipe inconnue.'; end if;
-  select count(*) filter (where not wr.eliminated),
-         count(*) filter (where wr.eliminated)
-    into civil_survivors,civil_eliminated
-    from public.white_roles wr
-    where wr.room_id=p_room and wr.round=r.round and wr.role='civil';
+  select count(*) into civil_survivors from public.white_roles wr
+    where wr.room_id=p_room and wr.round=r.round
+      and wr.role='civil' and not wr.eliminated;
+  select count(*) into opposing_eliminated from public.white_roles wr
+    where wr.room_id=p_room and wr.round=r.round
+      and wr.role in ('civil','white') and wr.eliminated_cycle is not null;
   update public.white_rounds set winner=p_winner where room_id=p_room and round=r.round;
   update public.players p set score=p.score+
     case wr.role
       when 'civil' then case when p_winner='civils' then civil_survivors else 0 end
-      when 'undercover' then civil_eliminated
+      when 'undercover' then opposing_eliminated
       when 'white' then (
         select count(*) from public.white_roles other
         where other.room_id=p_room and other.round=r.round
