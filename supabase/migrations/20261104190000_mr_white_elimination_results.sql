@@ -63,7 +63,13 @@ begin
   if ni=0 then
     perform public._white_finish(p_room,'civils');
   elsif nc<=ni then
-    perform public._white_finish(p_room,'imposteurs');
+    -- Mr White n'appartient pas à l'équipe des imposteurs.
+    if exists (select 1 from public.white_roles wr join public.players p on p.id=wr.player_id and p.active
+        where wr.room_id=p_room and wr.round=r.round and not wr.eliminated and wr.role='undercover') then
+      perform public._white_finish(p_room,'imposteurs');
+    else
+      perform public._white_finish(p_room,'white');
+    end if;
   else
     update public.rooms set status='white_elimination',phase_at=now(),updated_at=now() where id=p_room;
   end if;
