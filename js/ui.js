@@ -478,8 +478,7 @@ function gameBox(host){
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
       ${r.mode === 'ondes' ? waveVariant(host) : ''}
       ${host
-        ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>
-           <p class="gdesc tdesc">${timeMode()[2]} La durée s’adapte au mini-jeu.</p>`
+        ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>`
         : `<p class="gdesc">${label} : <b>${optValue(k)}</b> · Temps : <b>${timeField(false)}</b>${punOpt}</p>`}
     </section>`;
 }
