@@ -258,4 +258,12 @@ for (let f = 0; f * dicoIndex.parFichier < dicoIndex.pages; f++)
 assert.match(dicoIndex.source, /Wiktionnaire.*CC BY-SA/, 'Attribution du Wiktionnaire');
 assert.ok(fs.existsSync(new URL('../dico/LICENCE.md', import.meta.url)), 'Licence des données du Dico');
 
+// Le Dico côté serveur : pas de vote pour sa propre définition, ni pour le meneur ;
+// la vraie définition et les auteurs restent cachés jusqu'à la révélation.
+const dicoMigration = fs.readFileSync(new URL('../supabase/migrations/20261104230000_le_dico.sql', import.meta.url), 'utf8');
+assert.match(dicoMigration, /d\.player_id is not distinct from me\.id then raise exception 'Tu ne peux pas voter pour ta propre définition\.'/, 'Vote pour soi refusé');
+assert.match(dicoMigration, /'definition', case when fin or r\.reader_id = me\.id then r\.dico_def end/, 'Vraie définition cachée aux joueurs');
+assert.match(dicoMigration, /'author_id', case when fin then d\.player_id end/, 'Auteurs cachés jusqu’à la révélation');
+assert.match(dicoMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
+
 console.log('Frontend sanity checks passed.');

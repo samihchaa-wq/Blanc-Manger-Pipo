@@ -71,6 +71,7 @@ function reveal(){
   if (isBac()) return bacReveal();
   if (isWhite()) return whiteReveal();
   if (isMime()) return mimeReveal();
+  if (isDico()) return dicoReveal() + sharedRoundNext();
   const r = state.room;
   return `
     <p class="role">${avatar(r.winner_id)}Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
