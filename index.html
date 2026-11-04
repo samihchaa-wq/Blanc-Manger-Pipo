@@ -352,6 +352,17 @@ button.scard:active{transform:translateY(2px)}
 /* choix du jeu, dans le salon */
 .gamebox{margin-top:0;padding:18px}
 .gamebox .field{margin:14px 0 0}
+/* Changer de jeu sans recréer la salle : bouton à droite du titre, puis les vignettes */
+.gtitle .chg{margin-left:auto;font-size:13px;letter-spacing:.04em;color:var(--gold-soft);
+  padding:6px 12px;border-radius:var(--r-pill);background:rgba(255,194,61,.10);border:1px solid rgba(255,194,61,.32)}
+.gtitle .chg:active{transform:scale(.95)}
+.seg.games.pick{width:100%;margin:14px 0 4px;gap:8px}
+.seg.games.pick .seg-b{opacity:1}
+.seg.games.pick .seg-b.on{box-shadow:0 0 0 3px var(--gold);transform:none}
+.seg.games.pick .seg-b{position:relative}
+.seg.games.pick .seg-b:disabled img{opacity:.5;filter:saturate(.35)}
+.seg.games.pick .max{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);white-space:nowrap;
+  font-size:11px;letter-spacing:.04em;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-0);color:var(--text-dim);border:1px solid var(--hairline-2)}
 /* manches et punitions par joueur sur une seule ligne, cases alignées en bas */
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
 .opts.solo{grid-template-columns:1fr}
@@ -781,6 +792,8 @@ const GAMES = {
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
+// Vignettes du choix du jeu (accueil et salon) : Mr White a la sienne.
+const tileImg = k => k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp';
 const gameImg = k => k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.jpg' : (GAMES[k] ? k : 'phrases') + '.webp';
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
@@ -1351,7 +1364,7 @@ async function sendOpts(){
 
 // Le jeu est choisi à la création : le salon affiche le jeu, sa règle repliée
 // derrière le « i », et l'hôte n'y règle que la durée de la partie.
-let rulesOpen = false;
+let rulesOpen = false, gamePick = false;
 const TIME_MODES = [
   ['unlimited','Illimité','Aucun compte à rebours.'],
   ['slow','Lent','Pour prendre le temps de réfléchir.'],
@@ -1385,12 +1398,26 @@ function gameBox(host){
     : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
-        aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button></div>
+        aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
+        aria-expanded="${gamePick}">${gamePick ? 'Fermer' : 'Changer de jeu'}</button>` : ''}</div>
+      ${host && gamePick ? gamePicker() : ''}
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
       ${r.mode === 'ondes' ? waveVariant(host) : ''}
       ${host ? `<div class="opts${pun ? ' pun' : ' solo'}">${opts}${punOpt}</div>` : opts + punOpt}
       ${timeField(host)}
     </section>`;
+}
+
+// L'hôte change de jeu depuis le salon : le groupe reste dans la même salle.
+// Un jeu trop petit pour le salon (Petit bac : 2 joueurs) est grisé.
+function gamePicker(){
+  const n = state.players.filter(p => p.active !== false).length, cur = state.room.mode;
+  return `<div class="seg games pick" role="group" aria-label="Choisir le jeu">${Object.entries(GAMES).map(([k, g]) => {
+    const trop = n > maxPlayers(k);
+    return `<button type="button" class="seg-b ${k === cur ? 'on' : ''}" data-act="set-game" data-v="${k}" aria-pressed="${k === cur}"
+      ${trop || busy ? 'disabled' : ''} title="${trop ? `${g.name} : ${maxPlayers(k)} joueurs maximum` : g.name}">
+      <img src="games/${tileImg(k)}" width="720" height="720" alt="${g.name}${trop ? ` (${maxPlayers(k)} joueurs maximum)` : ''}" decoding="async">${trop ? `<small class="max" aria-hidden="true">${maxPlayers(k)} joueurs max</small>` : ''}</button>`;
+  }).join('')}</div>`;
 }
 
 // Baromètre : Normal ou Inversé, au choix de l'hôte.
@@ -2373,6 +2400,7 @@ document.addEventListener('click', async e => {
   if (!el || el.disabled) return;
   // un balayage se termine par un clic fantôme : on l'ignore
   if (el.classList.contains('acard') && Date.now() - lastSwipeEnd < 400) return;
+  if (el.dataset.act === 'game-pick') { gamePick = !gamePick; return render() }
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'pun-toggle') {
     optDraft = { ...optDraft, pun: optValue('pun') > 0 ? 0 : PUN_NB };
@@ -2583,6 +2611,19 @@ document.addEventListener('click', async e => {
   }
   if (a === 'guess') return act('submit_guess', { p_value: dialVal });
   if (a === 'wave-variant') return act('set_wave_variant', { p_variant: el.dataset.v });
+  if (a === 'set-game') {
+    const m = el.dataset.v, r = state.room;
+    if (!GAMES[m] || m === r.mode) { gamePick = false; return render() }
+    // le brouillon des réglages visait l'ancien jeu
+    clearTimeout(optTimer); optTimer = null; optDraft = {};
+    if (!(await act('set_room_options', { p_mode:m, p_target:Math.min(20, Math.max(1, +r.target || 5)), p_turns:Math.min(5, Math.max(1, +r.turns || 2)) }))) return;
+    gamePick = false; rulesOpen = false;
+    // même temps par défaut qu'à la création : sans minuteur pour Petit bac, Mr White et Mimes
+    const t = ['bac','white','mimes'].includes(m) ? 'unlimited' : 'medium';
+    if (state.room.time_mode !== t) await act('set_time_mode', { p_mode:t });
+    toast(`Jeu changé : ${GAMES[m].name}.`);
+    return render();
+  }
   if (a === 'time-mode') return act('set_time_mode', { p_mode: el.dataset.v });
   if (a === 'theme') {
     const t = (document.getElementById('w-theme')?.value || '').trim();
