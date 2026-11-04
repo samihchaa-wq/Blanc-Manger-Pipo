@@ -164,14 +164,16 @@ const whiteVerdictMigration=fs.readFileSync(new URL('../supabase/migrations/2026
 assert.match(whiteVerdictMigration, /white_elimination/, 'Le serveur connaît la nouvelle phase');
 assert.match(whiteVerdictMigration, /create or replace function public.white_resume/, 'La reprise est contrôlée côté serveur');
 assert.match(whiteVerdictMigration, /r.host_id<>me.id/, 'Seul l’hôte peut relancer le tour');
-assert.match(whiteVerdictMigration, /p_winner='civils' then civil_survivors/,
-  'Les Civils marquent le nombre de Civils encore en jeu, seulement en cas de victoire');
-assert.match(whiteVerdictMigration, /civil\.eliminated_cycle is not null/,
-  'Les imposteurs ne gagnent des points que sur des Civils éliminés par vote');
-assert.match(whiteVerdictMigration, /civil\.eliminated_cycle<wr\.eliminated_cycle/,
-  'Un imposteur ne marque plus après son élimination');
-assert.match(whiteVerdictMigration, /wr\.role='white' then 2 else 1/,
-  'Mr White gagne deux fois les points des imposteurs');
+assert.match(whiteVerdictMigration, /when p_winner='civils' then civil_survivors/,
+  'Tous les Civils touchent les mêmes points de survie si leur équipe gagne');
+assert.match(whiteVerdictMigration, /count\(\*\) filter \(where wr.eliminated\)/,
+  'Les éliminations de Civils sont comptées globalement pour la manche');
+assert.match(whiteVerdictMigration, /when 'undercover' then civil_eliminated/,
+  'Chaque imposteur gagne le total des Civils éliminés, même s’il a été éliminé');
+assert.match(whiteVerdictMigration, /when 'white' then civil_eliminated\*2/,
+  'Mr White gagne le double des points collectifs des imposteurs');
+assert.doesNotMatch(whiteVerdictMigration, /civil\.eliminated_cycle<wr\.eliminated_cycle/,
+  'Les scores ne dépendent jamais du moment où un imposteur est éliminé');
 assert.doesNotMatch(whiteVerdictMigration, /p_winner='white' and wr\.role='white' then 3/,
   'Le bonus forfaitaire de victoire de Mr White est supprimé');
 
