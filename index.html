@@ -1118,7 +1118,7 @@ function home(){
         <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field">
           <div class="seg s2 games" role="group" aria-label="Jeu">
-            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white.svg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
+            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white-home.jpg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
         </div>
