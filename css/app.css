@@ -769,3 +769,44 @@ button.scard:active{transform:translateY(2px)}
 .plist .kick{width:24px;height:24px;font-size:12px}
 .rank .av{margin-right:-2px}
 .role .av{vertical-align:-6px;margin-right:6px}
+
+/* ===== Icônes ===== */
+.ic{display:inline-block;width:1.05em;height:1.05em;flex:none;vertical-align:-.16em;
+  fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ic.fill{fill:currentColor;stroke:none}
+.ic.v2{color:var(--mint)} .ic.v1{color:var(--gold)} .ic.v0{color:var(--pop)}
+.vote .ic{width:30px;height:30px;stroke-width:2}
+.bactab .ans .pt .ic{width:18px;height:18px}
+.plist .kick .ic,.catlist .del .ic{width:13px;height:13px;stroke-width:2.6}
+.btn .ic{width:20px;height:20px;stroke-width:2.6}
+.roue .lab i .ic{width:1.15em;height:1.15em;color:var(--gold-deep)}
+
+/* ===== Vote Mr White : une carte par joueur, sans cadre dans le cadre ===== */
+.white-list.ballot{grid-template-columns:1fr 1fr;gap:8px}
+.white-list.ballot li{padding:0;border:0;background:none;min-width:0}
+.white-list.ballot button{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;padding:12px;text-align:left;
+  border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--hairline-2);font-size:17px;font-weight:500}
+.white-list.ballot button span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.white-list.ballot button:active:not(:disabled){border-color:var(--gold);background:var(--surface-2)}
+
+/* ===== Notes des Mimes : une seule rangée de 1 à 10 ===== */
+.mime-rates .nm{display:flex;align-items:center;gap:8px}
+.mime-notes{grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.mime-notes button{height:40px;padding:0;border-radius:8px;font-size:15px;font-weight:600}
+.mime-order li{display:list-item}
+.mime-order .av{vertical-align:-5px;margin-right:7px}
+
+/* ===== Cadran du Baromètre ===== */
+.dial .tk{stroke:var(--paper-edge);stroke-width:1;stroke-linecap:round}
+.dial .tk.m{stroke-width:1.4}
+.dial .tk.M{stroke:var(--ink-soft);stroke-width:1.8}
+/* étiquettes dans la palette (elles étaient les seuls aplats blanc pur) */
+.wlab{background:var(--surface-2);color:var(--text);border:1px solid var(--hairline-2);font-weight:500}
+
+/* ===== Roues : les repères restent droits une fois la roue arrêtée ===== */
+.roue .lab i{transform:translateX(-50%) rotate(calc(-1 * (var(--a) + var(--spin, 0deg))))}
+
+/* ===== Minuteur plus lisible ===== */
+.cdring .cdn{font-size:13.5px}
+.cdring.long .cdn{font-size:11px}
+.cdring.low .cdn{color:var(--pop-soft)}

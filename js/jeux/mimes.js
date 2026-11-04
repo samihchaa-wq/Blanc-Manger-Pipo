@@ -11,7 +11,7 @@ function mimeCard(){
 }
 function mimeOrder(){
   return `<h3 class="sec">Ordre de passage</h3><ol class="mime-order">${mimeIds().map(id =>
-    `<li>${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
+    `<li>${avatar(id, 'sm')}${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
 }
 function mimePlay(){
   const r = state.room, m = state.mime || {}, judge = isMe(r.reader_id);
@@ -35,7 +35,7 @@ function mimePlay(){
     <p class="role"><b>Tu es le juge.</b> Lis l’action à voix haute. Chacun la mime à son tour, devine son intensité.</p>
     ${mimeCard()}${stage}
     <h3 class="sec">Tes notes</h3>
-    <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${nameOf(id)}</span>
+    <ul class="mime-rates">${ids.map(id => `<li><span class="nm">${avatar(id, 'sm')}${nameOf(id)}</span>
       <div class="mime-notes" role="group" aria-label="Note de ${nameOf(id)}">${Array.from({ length:10 }, (_, i) => i + 1).map(v =>
         `<button type="button" class="${mimeNotes[id] === v ? 'on' : ''}" data-act="mime-note" data-id="${id}" data-v="${v}" aria-pressed="${mimeNotes[id] === v}">${v}</button>`).join('')}</div></li>`).join('')}</ul>
     <div class="dock"><button class="btn" data-act="mime-rate" ${dis(!done)}>${done ? 'Valider les notes' : 'Note chaque joueur'}</button></div>`;

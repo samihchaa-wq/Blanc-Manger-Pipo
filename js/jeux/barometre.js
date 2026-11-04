@@ -27,6 +27,15 @@ function needle(v, color, me = false){
     <line class="ndl" x1="${DC.x}" y1="${DC.y}" x2="${x}" y2="${y}" style="stroke:${color}"/>
     <circle class="tip" cx="${x}" cy="${y}" r="4" style="fill:${color}"/>`;
 }
+// Graduations tous les 5 crans, plus marquées tous les 10 et au milieu : on
+// lit enfin une position, plus seulement « à gauche » ou « à droite ».
+function ticks(){
+  return Array.from({ length:21 }, (_, i) => i * 5).map(v => {
+    const k = v % 50 === 0 ? 'M' : v % 10 === 0 ? 'm' : '';
+    const [x1, y1] = dpt(v, DC.r - 1.5), [x2, y2] = dpt(v, DC.r - (k === 'M' ? 9 : k ? 6 : 3.5));
+    return `<line class="tk ${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }).join('');
+}
 // opts : target (bandes visibles), needles [{v,color}], mine (aiguille déplaçable)
 function dial({ target = null, needles = [], mine = null } = {}){
   // en mode inversé, l'échelle est celle du thème écrit par un joueur
@@ -34,6 +43,7 @@ function dial({ target = null, needles = [], mine = null } = {}){
   return `<div class="dialbox">
     <svg class="dial${mine != null ? ' drag' : ''}" id="dial" viewBox="0 -4 200 112" role="img" aria-label="Cadran entre ${esc(w.left)} et ${esc(w.right)}">
       <path class="face" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
+      ${ticks()}
       ${target != null ? bands(target) : ''}
       <path class="rim" d="M${DC.x - DC.r},${DC.y} A${DC.r},${DC.r} 0 0 1 ${DC.x + DC.r},${DC.y} Z"/>
       ${needles.map(n => needle(n.v, n.color)).join('')}

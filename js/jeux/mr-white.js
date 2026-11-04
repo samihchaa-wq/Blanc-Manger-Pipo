@@ -48,8 +48,8 @@ function whiteVote(){
     ${whiteSecret()}
     <h1 class="bigstate">Qui est l’imposteur ?</h1>
     ${w.voted||w.eliminated?'':
-       `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
-        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
+       `<h3 class="sec">Ton vote</h3><ul class="white-list ballot">${available.map(p=>
+        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${avatar(p.player_id)}<span>${nameOf(p.player_id)}</span></button></li>`).join('')}</ul>`}
     ${waiting(pending,'Tout le monde a voté.')}`;
 }
 function whiteGuess(){

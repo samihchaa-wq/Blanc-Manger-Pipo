@@ -251,7 +251,7 @@ function paintCatalog(){
         <span class="ct">${catalog.kind === 'w' || catalog.kind === 'm'
           ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
           : esc(c.text)}</span>
-        <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">✕</button>
+        <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">${ic('x')}</button>
       </li>`).join('')
     : `<li class="empty">Aucune ${mot}.</li>`;
   const more = document.getElementById('cat-more');
@@ -321,13 +321,13 @@ function lobby(){
         ${avatar(p.id, p.ready ? 'ok' : '')}<span class="nm">${esc(p.name)}</span>${
         p.id === r.host_id ? '<span class="tag host">hôte</span>' : p.is_bot ? '<span class="tag">bot</span>' : ''}${
         isMe(p.id) ? '<span class="tag">toi</span>' : ''}<span class="sr">${p.ready ? ', prêt' : ', pas encore prêt'}</span>${
-        host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>` : ''}
+        host && !isMe(p.id) ? `<button class="kick" data-act="kick" data-id="${p.id}" aria-label="Retirer ${esc(p.name)}">${ic('x')}</button>` : ''}
       </li>`).join('')}
     </ul>
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       ${host ? '' : `<p class="dockhint">${lobbyHint()}</p>`}
-      <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ✓' : 'Je suis prêt'}</button>
+      <button class="btn ${state.me.ready ? 'on' : 'alt'}" data-act="ready">${state.me.ready ? 'Je suis prêt ' + ic('check') : 'Je suis prêt'}</button>
       ${host ? `<button class="btn" data-act="start" ${dis(n < min || !all)}>${n < min ? `Il manque ${missing} joueur${missing > 1 ? 's' : ''}` : !all ? 'En attente des joueurs' : 'Lancer la partie'}</button>` : ''}
     </div>`;
 }
@@ -425,7 +425,7 @@ function gameBox(host){
   const on = !!pun?.on, nb = +(pun?.count || PUN_NB);
   const punOpt = !pun ? ''
     : host ? punCheck()
-    : on ? `<p class="gdesc">🎡 Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
+    : on ? `<p class="gdesc">Punitions : ${nb} par joueur, à proposer au lancement. Le dernier en tire une à la roue.</p>` : '';
   return `<section class="panel gamebox">
       <div class="gtitle"><h3 class="gname">${g.name}</h3><button type="button" class="info${rulesOpen ? ' on' : ''}" data-act="rules"
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
@@ -492,7 +492,7 @@ function punSection(){
   const spin = pick ? 1440 + 360 - (k + .5) * a : 0;
   // re-rendue en pleine rotation, la roue reprend là où elle en était
   const disque = `<div class="roue pun ${anim ? '' : 'still'}" style="--spin:${spin.toFixed(1)}deg;${anim ? `animation-delay:-${ecoule}ms;` : ''}background:conic-gradient(${parts})" aria-hidden="true">${
-    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? '★' : '?'}</i></span>`).join('')}</div>`;
+    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? ic('star', 'fill') : '?'}</i></span>`).join('')}</div>`;
   const qui = loser ? (isMe(loser.id) ? 'Toi' : esc(loser.name)) : '?';
   const autres = pick ? items.filter(x => x.id !== pick.id) : [];
   return `<section class="punbox">

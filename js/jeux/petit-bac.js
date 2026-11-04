@@ -93,7 +93,7 @@ function bacWrite(){
 function bacTable(cats, rows, upto){
   return `<ol class="bactab">${cats.slice(0, upto).map((c, i) => `<li><span class="cat">${esc(c)}</span>${rows.map(x => `
       <span class="ans"><span class="qui">${isMe(x.player_id) ? 'Toi' : nameOf(x.player_id)}</span>
-        <span class="mot">${x.answers?.[i] ? esc(x.answers[i]) : '—'}</span><span class="pt">${emoji(x.points?.[i])}</span></span>`).join('')}</li>`).join('')}</ol>`;
+        <span class="mot">${x.answers?.[i] ? esc(x.answers[i]) : '—'}</span><span class="pt">${voteIcon(x.points?.[i])}</span></span>`).join('')}</li>`).join('')}</ol>`;
 }
 // toi d'abord, l'adversaire ensuite
 const bacRows = () => [...(state.bac?.rows || [])].sort((x, y) => isMe(y.player_id) - isMe(x.player_id));
@@ -109,7 +109,7 @@ function bacVote(){
   const aMoi = !!leur && theirs.pending && choix == null;
   const mot = t => t ? esc(t) : '<span class="vide">Rien écrit</span>';
   const boutons = actif => `<div class="votes" role="group" aria-label="Ta note pour ${nom}">${VOTES.map(([v, e, t]) =>
-    `<button class="vote ${choix === v ? 'on' : ''}" data-act="bac-vote" data-v="${v}" aria-pressed="${choix === v}" ${actif ? dis() : 'disabled'}>${e}<small>${t}</small></button>`).join('')}</div>`;
+    `<button class="vote ${choix === v ? 'on' : ''}" data-act="bac-vote" data-v="${v}" aria-pressed="${choix === v}" ${actif ? dis() : 'disabled'}>${ic(e, 'v' + v)}<small>${t}</small></button>`).join('')}</div>`;
   return `
     <p class="role">${aMoi ? '<b>À toi de juger.</b>' : mine?.pending && moi ? `<b>${nom}</b> juge ta réponse.` : ''}</p>
     ${qcard(`Catégorie ${i + 1} / ${cats.length} · lettre ${esc(b.letter)}`, esc(cats[i]), 'clue')}
