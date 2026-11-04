@@ -1792,14 +1792,14 @@ function whiteElimination(){
       '<p class="waiting">L’hôte lance le prochain tour.</p>'}`;
 }
 function whiteReveal(){
-  const w=state.white||{}, hasImposteur=(w.roles||[]).some(p=>p.role==='undercover');
+  const w=state.white||{}, hasMrWhite=(w.roles||[]).some(p=>p.role==='white');
   return `
     <p class="eyebrow">Fin de la manche ${state.room.round}</p>
     ${whiteEliminationSentence()}
     ${whiteWinnerSentence()}
     <div class="white-secret">
       <p class="eyebrow">Mot des Civils :</p><strong>${esc(w.civil_word||'—')}</strong>
-      ${hasImposteur?`<p class="eyebrow">Mot de l’Imposteur :</p><strong>${esc(w.undercover_word||'—')}</strong>`:''}
+      ${!hasMrWhite?`<p class="eyebrow">Mot de l’Imposteur :</p><strong>${esc(w.undercover_word||'—')}</strong>`:''}
     </div>
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
       ${state.me.next_ack===state.room.round?'En attente des autres…':
