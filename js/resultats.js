@@ -9,7 +9,7 @@ function result(){
 }
 function rank(){
   return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
-    <span class="pos">${i + 1}</span>${avatar(p.id, 'sm')}
+    <span class="pos">${i + 1}</span>
     <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
     <b>${p.score}</b></li>`).join('')}</ol>`;
 }
@@ -20,7 +20,7 @@ function scoreStrip(align = ''){
   const ps = state.players.filter(p => p.active !== false).sort((a, b) => b.score - a.score);
   if (!state.room.round || !ps.some(p => p.score)) return '';
   return `<p class="eyebrow striphead${align ? ' ' + align : ''}">Scores</p><div class="strip${align ? ' ' + align : ''}">${ps.map(p =>
-    `<span class="chip${isMe(p.id) ? ' me' : ''}">${avatar(p.id, 'sm')}<span class="sr">${esc(p.name)} :</span><b>${p.score}</b></span>`).join('')}</div>`;
+    `<span class="chip${isMe(p.id) ? ' me' : ''}">${esc(p.name)}<b>${p.score}</b></span>`).join('')}</div>`;
 }
 
 // Fin de partie : les trois premiers sur un podium (à égalité, même marche).
@@ -32,7 +32,7 @@ function podium(){
   return `<div class="podium" style="grid-template-columns:repeat(${order.length},1fr)">${order.map(p => {
     const k = Math.min(3, place(p));
     return `<div class="pod p${k}" style="--c:${seatColor(p.id)}">
-      ${k === 1 ? `<span class="crown">${ic('star', 'solid')}</span>` : ''}${avatar(p.id, 'lg')}
+      ${k === 1 ? `<span class="crown">${ic('star', 'solid')}</span>` : ''}
       <span class="pn">${isMe(p.id) ? 'Toi' : esc(p.name)}</span>
       <b data-n="${p.score}">${p.score}</b><i class="stepb">${k}</i></div>`;
   }).join('')}</div>`;
@@ -74,7 +74,7 @@ function reveal(){
   if (isDico()) return dicoReveal() + sharedRoundNext();
   const r = state.room;
   return `
-    <p class="role">${avatar(r.winner_id)}Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
+    <p class="role">Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
     ${result()}
     <h3 class="sec">Classement</h3>${rank()}
     ${sharedRoundNext()}`;

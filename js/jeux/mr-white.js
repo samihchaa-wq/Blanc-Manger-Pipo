@@ -51,7 +51,7 @@ function whiteVote(){
     <h1 class="bigstate">Qui est l’imposteur ?</h1>
     ${w.voted||w.eliminated?'':
        `<h3 class="sec">Ton vote</h3><ul class="white-list ballot">${available.map(p=>
-        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${avatar(p.player_id)}<span>${nameOf(p.player_id)}</span></button></li>`).join('')}</ul>`}
+        `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}><span>${nameOf(p.player_id)}</span></button></li>`).join('')}</ul>`}
     ${waiting(pending,'Tout le monde a voté.')}`;
 }
 function whiteGuess(){
@@ -105,8 +105,8 @@ function whiteFlip(){
   const role=person&&{civil:'Civil',undercover:'Imposteur',white:'Mr White'}[person.role];
   if (!role) return '';
   return `<div class="flip" aria-hidden="true"><div class="in">
-    <div class="face front">${avatar(person.player_id,'lg')}<span class="fn">${nameOf(person.player_id)}</span><span class="eyebrow">Éliminé</span></div>
-    <div class="face back r-${person.role}">${person.role==='white'?'<img src="games/white.svg" alt="">':avatar(person.player_id,'lg')}
+    <div class="face front"><span class="fn">${nameOf(person.player_id)}</span><span class="eyebrow">Éliminé</span></div>
+    <div class="face back r-${person.role}">${person.role==='white'?'<img src="games/white.svg" alt="">':''}
       <span class="eyebrow">${nameOf(person.player_id)} était</span><strong>${role}</strong></div>
   </div></div>`;
 }

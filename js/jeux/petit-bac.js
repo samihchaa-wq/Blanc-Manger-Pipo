@@ -128,7 +128,7 @@ function bacReveal(){
   return `
     <p class="role"><b>Fin de la manche ${state.room.round}.</b></p>
     <ol class="rank">${[...rows].sort((x, y) => tot(y) - tot(x)).map(x => `<li>
-      ${avatar(x.player_id, 'sm')}<span class="nm"><span class="who">${isMe(x.player_id) ? 'Toi' : nameOf(x.player_id)}</span></span>
+      <span class="nm"><span class="who">${isMe(x.player_id) ? 'Toi' : nameOf(x.player_id)}</span></span>
       <b class="plus" data-n="${tot(x)}">+${tot(x)}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}
     <h3 class="sec">Lettre ${esc(b.letter)}</h3>${bacTable(b.categories || [], rows, 6)}

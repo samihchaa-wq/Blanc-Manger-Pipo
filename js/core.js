@@ -103,14 +103,7 @@ const dis = cond => (cond || busy) ? 'disabled' : '';
 const SEAT_COLORS = ['#FFC23D','#FF6B98','#3FDC9C','#A88CFF','#FF9440','#4CC3F5',
                      '#C5DD45','#E784DA','#7FD858','#8AA2FF','#FF7C64','#2FD0C0'];
 const seatColor = id => SEAT_COLORS[Math.max(0, state.players.findIndex(p => p.id === id)) % SEAT_COLORS.length];
-// Pastille d'un joueur : sa couleur de siège et son initiale (décorative, le
-// nom est toujours écrit à côté).
-function avatar(id, size = ''){
-  const n = String(P(id)?.name || '?').trim();
-  const ini = esc((Array.from(n)[0] || '?').toLocaleUpperCase('fr'));
-  return `<span class="av${size ? ' ' + size : ''}" style="--c:${seatColor(id)}" aria-hidden="true">${ini}</span>`;
-}
-const chips = list => list.map(p => `<span class="chip">${avatar(p.id, 'sm')}${esc(p.name)}</span>`).join('');
+const chips = list => list.map(p => `<span class="chip">${esc(p.name)}</span>`).join('');
 function waiting(list, done = 'Tout le monde a joué.'){
   return list.length
     ? `<div class="waiting">On attend ${chips(list)}</div>`

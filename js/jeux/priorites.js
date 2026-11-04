@@ -72,7 +72,7 @@ function rankReveal(){
     : view ? `<ol class="truth">${view.cards.map((id, i) => `<li><span class="num">${i + 1}</span><div class="scard">${esc(rankCard(id)?.text)}</div></li>`).join('')}</ol>` : ''}
     <h3 class="sec">Points de la manche</h3>
     <ol class="rank">${pts.map(k => `<li>
-      ${avatar(k.player_id, 'sm')}<span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
+      <span class="nm"><span class="who">${nameOf(k.player_id)}</span>${k.player_id === r.reader_id ? '<span class="tag host">juge</span>' : ''}${k.points >= 12 && k.player_id !== r.reader_id ? '<span class="tag">sans-faute</span>' : ''}</span>
       <b class="plus" data-n="${k.points ?? 0}">+${k.points ?? 0}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
