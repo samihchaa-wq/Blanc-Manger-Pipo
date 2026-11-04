@@ -1725,15 +1725,18 @@ function whiteClue(){
     : ''}`;
 }
 function whiteVote(){
-  const w=state.white||{}, available=(w.roles||[]).filter(p=>!p.out&&!isMe(p.player_id));
+  const w=state.white||{}, roles=w.roles||[];
+  const available=roles.filter(p=>!p.out&&!isMe(p.player_id));
+  // Même attente que dans les autres mini-jeux : seuls les joueurs encore
+  // en jeu et n'ayant pas voté apparaissent dans les pastilles.
+  const pending=roles.filter(p=>!p.out&&!p.voted&&P(p.player_id)?.active).map(p=>P(p.player_id));
   return `
+    ${whiteSecret()}
     <h1 class="bigstate">Qui est l’imposteur ?</h1>
-    ${whiteSecret()}${whiteNote()}
-    <p class="role">Discutez ensemble, puis votez secrètement sur votre téléphone pour éliminer un joueur.</p>
-    ${w.voted||w.eliminated?`<p class="waiting">${w.eliminated?'Tu es éliminé, tu ne votes plus.':'Vote enregistré. On attend les autres joueurs…'}</p>`:
+    ${w.voted||w.eliminated?'':
        `<h3 class="sec">Ton vote</h3><ul class="white-list">${available.map(p=>
         `<li><button data-act="white-vote" data-id="${p.player_id}" ${dis()}>${nameOf(p.player_id)}</button></li>`).join('')}</ul>`}
-    <h3 class="sec">Joueurs</h3>${whitePeople()}`;
+    ${waiting(pending,'Tout le monde a voté.')}`;
 }
 function whiteGuess(){
   const w=state.white||{}, mine=w.role==='white'&&w.last_eliminated===state.me.id;
