@@ -72,7 +72,7 @@ jobs:
           for g in white-home.jpg mimes.jpg white.svg; do
             test -s "_site/games/$g" || { echo "manquant dans _site : games/$g"; exit 1; }
           done
-          for g in phrases priorites ondes bac; do
+          for g in phrases priorites ondes bac dico; do
             test -s "_site/games/$g.webp" || { echo "manquant dans _site : games/$g.webp"; exit 1; }
           done
       - uses: actions/configure-pages@v5

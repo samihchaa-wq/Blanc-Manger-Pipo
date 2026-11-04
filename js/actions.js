@@ -26,6 +26,18 @@ document.addEventListener('click', async e => {
   if (el.dataset.act === 'dico-open') return dicoOuvrir(false);
   if (el.dataset.act === 'dico-flip') return dicoOuvrir(true);
   if (el.dataset.act === 'dico-entry') { dicoSel = +el.dataset.i; return render() }
+  if (el.dataset.act === 'dico-choose') {
+    const e = dicoPage?.mots?.[dicoSel]; if (!e) return;
+    pressedEl = el;
+    return act('dico_pick', { p_word:e[0], p_nature:e[1], p_def:e[2] });
+  }
+  if (el.dataset.act === 'dico-send') {
+    const t = (document.getElementById('dico-def')?.value || '').trim();
+    if (t.length < 3) return toast('Écris une définition.');
+    pressedEl = el;
+    return act('dico_write', { p_text:t });
+  }
+  if (el.dataset.act === 'dico-vote') { pressedEl = el; return act('dico_vote', { p_def:el.dataset.id }) }
   if (el.dataset.act === 'game-pick') { gamePick = !gamePick; return render() }
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'pun-toggle') {
@@ -301,6 +313,7 @@ document.addEventListener('click', async e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'w-theme') themeDraft = e.target.value;
+  if (e.target.id === 'dico-def') { dicoDraft = e.target.value; autoGrow(e.target) }
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
   if (e.target.matches('.bacfield input')) {
