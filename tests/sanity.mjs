@@ -118,6 +118,19 @@ assert.match(whiteClueView, /host[\s\S]*Passer au vote/, 'Le bouton reste réser
 assert.doesNotMatch(whiteClueView, /<h1|<h3|whiteNote\(\)|white-feed|white-seats|class="role"|class="waiting"/,
   'Pas de titre, ordre de passage, indices des bots ni consignes sur cet écran');
 
+// Vote Mr White : la carte précède le titre, les listes de rôles ne sont pas affichées,
+// et le suivi des votes réutilise les pastilles d'attente communes aux autres jeux.
+const whiteVoteView = scripts[0].split('function whiteVote(){')[1]?.split('function whiteGuess(){')[0];
+assert.ok(whiteVoteView, 'Écran de vote Mr White présent');
+assert.ok(whiteVoteView.indexOf('whiteSecret()') < whiteVoteView.indexOf('Qui est l’imposteur ?'),
+  'La carte doit apparaître avant le titre de vote');
+assert.match(whiteVoteView, /<h3 class="sec">Ton vote<\/h3>/, 'Le titre Ton vote est conservé');
+assert.match(whiteVoteView, /waiting\(pending,'Tout le monde a voté.'\)/,
+  'Utiliser la même attente de joueurs que les autres mini-jeux');
+assert.match(whiteVoteView, /!p\.out&&!p\.voted&&P\(p\.player_id\)\?\.active/,
+  'N’attendre que les joueurs actifs encore en jeu qui n’ont pas voté');
+assert.doesNotMatch(whiteVoteView, /whitePeople\(\)|Discutez ensemble|<h3 class="sec">Joueurs<\/h3>|whiteNote\(\)|Vote enregistré/,
+  'Pas d’explication, de liste des joueurs ni de message redondant');
 assert.match(scripts[0], /Tu es Mr White/, 'Mr White voit son propre rôle et l’emblème du jeu');
 assert.doesNotMatch(scripts[0], /MrWhitz/, 'Le nom Mr White est orthographié correctement dans les vues');
 assert.match(scripts[0], /games\/white\.svg/, 'Mr White voit le logo');
