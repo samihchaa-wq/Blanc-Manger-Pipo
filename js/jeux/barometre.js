@@ -62,7 +62,7 @@ function inverseClue(){
   if (w.theme == null) {
     if (canWrite) return `
     <p class="role"><b>Écris un thème.</b> ${nameOf(r.reader_id)} y répondra selon la cible qu’il voit.</p>
-    <label><span>Ton thème</span><input id="w-theme" maxlength="80" autocomplete="off" autocapitalize="sentences" placeholder="Ex. : un salaire que j’aimerais toucher" value="${esc(themeDraft)}"></label>
+    <label><span>Ton thème</span><input id="w-theme" maxlength="80" autocomplete="off" autocapitalize="sentences" value="${esc(themeDraft)}"></label>
     <div class="dock"><button class="btn" data-act="theme" ${dis()}>Envoyer le thème</button></div>`;
     return `
     <p class="role">${isMe(r.reader_id) ? '<b>Tu es le médium.</b> ' : `<b>${nameOf(r.reader_id)}</b> est le médium. `}${asker ? `<b>${nameOf(w.asker_id)}</b> écrit le thème…` : 'On attend le thème…'}</p>
