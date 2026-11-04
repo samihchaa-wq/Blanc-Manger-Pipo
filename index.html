@@ -773,7 +773,7 @@ const GAMES = {
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
-const gameImg = k => k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.svg' : (GAMES[k] ? k : 'phrases') + '.webp';
+const gameImg = k => k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.jpg' : (GAMES[k] ? k : 'phrases') + '.webp';
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
 const isBac = () => state?.room.mode === 'bac';
@@ -1145,7 +1145,7 @@ function home(){
         <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" value="${esc(nm)}"></label>
         <div class="field">
           <div class="seg s2 games" role="group" aria-label="Jeu">
-            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.svg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
+            ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
           </div>
           <input type="hidden" id="c-mode" value="phrases">
         </div>
