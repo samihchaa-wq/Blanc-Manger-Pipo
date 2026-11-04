@@ -149,7 +149,11 @@ assert.match(scripts[0], /a === 'white-resume'\) return act\('white_resume'\)/,
 const whiteElimView = scripts[0].split('function whiteElimination(){')[1]?.split('function whiteReveal(){')[0];
 const whiteFinalView = scripts[0].split('function whiteReveal(){')[1]?.split('/* ---------- Petit bac ---------- */')[0];
 assert.ok(whiteElimView && whiteFinalView, 'Les résultats intermédiaire et final existent');
-assert.match(whiteElimView, /Fin de la manche/, 'Entête du verdict conservée');
+assert.match(whiteElimView, /Résultat du vote/, 'Un vote non décisif ne doit pas annoncer la fin de la manche');
+assert.match(whiteElimView, /impostors_remaining/, 'Le décompte affiché provient de la base de données');
+assert.match(whiteElimView, /remaining>1\?'s':''/, 'Accord du pluriel selon les imposteurs restants');
+assert.match(whiteElimView, /Il ne reste plus d’Imposteur/, 'Cas particulier où seul Mr White peut rester');
+assert.match(whiteElimView, /la partie continue/, 'La continuité de la partie est explicite');
 assert.match(whiteElimView, /whiteEliminationSentence\(\)/, 'Le joueur éliminé est annoncé');
 assert.doesNotMatch(whiteElimView, /civil_word|undercover_word|whiteWinnerSentence/,
   'Un vote non décisif ne révèle pas les mots ni les gagnants');
@@ -180,5 +184,11 @@ assert.doesNotMatch(whiteVerdictMigration, /when 'undercover' then civil_elimina
   'Le score de l’imposteur n’est plus limité aux seuls Civils');
 assert.doesNotMatch(whiteVerdictMigration, /p_winner='white' and wr\.role='white' then 3/,
   'Le bonus forfaitaire de victoire de Mr White est supprimé');
+
+const whiteCountMigration=fs.readFileSync(new URL('../supabase/migrations/20261104200000_mr_white_imposteurs_restants.sql',import.meta.url),'utf8');
+assert.match(whiteCountMigration, /'impostors_remaining'/, 'Décompte serveur disponible');
+assert.match(whiteCountMigration, /r.status='white_elimination'/, 'Décompte limité au verdict intermédiaire');
+assert.match(whiteCountMigration, /wr.role='undercover' and not wr.eliminated/, 'Seuls les imposteurs vivants sont comptés');
+assert.doesNotMatch(whiteCountMigration, /wr.role in \('undercover','white'\)/, 'Mr White ne compte pas comme Imposteur');
 
 console.log('Frontend sanity checks passed.');
