@@ -1511,7 +1511,7 @@ function answering(){
     ${qcard('Question', fill(q, choisies), 'sticky')}
     <p class="swipehint">${n > 1
       ? `Touche <b>${n}</b> cartes dans l'ordre des trous${canDrop ? ', glisse <b>←</b> pour jeter' : ''}`
-      : `Glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}`}</p>
+      : `Touche ou glisse <b>→</b> pour jouer${canDrop ? ', <b>←</b> pour jeter' : ''}`}</p>
     <ul class="hand${dealPending ? ' deal-in' : ''}">
       ${state.hand.map((c,i) => {
         const rang = picks.indexOf(c.id) + 1;
@@ -1527,6 +1527,13 @@ function answering(){
       <button class="btn" data-act="send" ${dis(reste > 0)}>${reste > 0
         ? `Choisis ${reste} carte${reste > 1 ? 's' : ''}`
         : 'Envoyer mes deux cartes'}</button>
+      ${canDrop && choisies.length === 1 ? `<button class="btn ghost" data-act="drop" ${dis()}>Jeter cette carte</button>` : ''}
+    </div>`
+    // Un seul trou : le balayage reste un raccourci, mais toucher une carte
+    // suffit pour la jouer ou la jeter (clavier, lecteur d'écran, débutants).
+    : choisies.length ? `<div class="dock">
+      <button class="btn" data-act="send" ${dis()}>Jouer cette carte</button>
+      ${canDrop ? `<button class="btn ghost" data-act="drop" ${dis()}>Jeter cette carte</button>` : ''}
     </div>` : ''}`;
 }
 
@@ -2539,7 +2546,15 @@ document.addEventListener('click', async e => {
   }
   if (a === 'send') {
     if (picks.length < (state?.blanks || 1)) return;
-    return act('submit_answer', { p_answer_id: picks[0], p_answer_id2: picks[1] ?? null });
+    const [c1, c2] = picks;
+    if (await act('submit_answer', { p_answer_id: c1, p_answer_id2: c2 ?? null })) picks = [];
+    return;
+  }
+  if (a === 'drop') {
+    if (picks.length !== 1 || !state?.me?.can_discard) return;
+    const c = picks[0];
+    if (await act('discard_card', { p_answer_id: c })) { picks = []; render() }
+    return;
   }
   // Priorités : chaque touche pose la carte sur la première marche libre ;
   // toucher une carte posée la retire et libère sa marche. Le glisser-déposer
@@ -2608,6 +2623,10 @@ document.addEventListener('click', async e => {
   if (a === 'continue') return act('continue_game');
   if (a === 'bac-next') return act('next_round');
   if (a === 'kick') return act('kick_player',{ p_player_id:id });
+  // En pleine partie, un tap par erreur sur la croix sortait le joueur (et
+  // pouvait renvoyer tout le monde au salon) : on demande confirmation.
+  if (a === 'leave' && state && state.room.status !== 'lobby'
+      && !confirm('Quitter la partie en cours ? Tu ne pourras pas la reprendre.')) return;
   if (a === 'leave') { try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {} return leaveLocal() }
 });
 document.addEventListener('input', e => {
