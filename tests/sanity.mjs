@@ -266,4 +266,13 @@ assert.match(dicoMigration, /'definition', case when fin or r\.reader_id = me\.i
 assert.match(dicoMigration, /'author_id', case when fin then d\.player_id end/, 'Auteurs cachés jusqu’à la révélation');
 assert.match(dicoMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 
+// Mise à jour : la page porte sa version, la mise en ligne publie version.json
+// et versionne les fichiers ; un téléphone resté ouvert se recharge.
+assert.match(page, /<meta name="app-version" content="dev">/, 'Version de la page (remplacée à la mise en ligne)');
+const pagesWorkflow = fs.readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
+assert.match(pagesWorkflow, /version\.json/, 'La mise en ligne publie version.json');
+assert.match(pagesWorkflow, /\?v=\$V/, 'Scripts et feuilles de style versionnés à la mise en ligne');
+assert.match(scripts[0], /fetch\('version\.json', \{ cache: 'no-store' \}\)/, 'Le client compare sa version à celle en ligne');
+assert.match(scripts[0], /if \(state && !GAMES\[state\.room\.mode\]\) return recharger\(\)/, 'Jeu inconnu : rechargement immédiat');
+
 console.log('Frontend sanity checks passed.');
