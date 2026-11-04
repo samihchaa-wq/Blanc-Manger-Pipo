@@ -17,7 +17,7 @@ alter table public.rooms add constraint rooms_status_check check(status in (
 -- qu'ils soient encore en jeu ou déjà éliminés.
 -- Civils : survivants de départ si les Civils gagnent, sinon 0.
 -- Imposteurs : nombre total de Civils éliminés jusqu'à la fin de la manche.
--- Mr White : deux fois ce même nombre, sans bonus forfaitaire.
+-- Mr White : 2 points par autre joueur éliminé avant lui (Civil ou Imposteur).
 create or replace function public._white_finish(p_room uuid,p_winner text)
 returns void language plpgsql security definer set search_path to '' as $fn$
 declare r public.rooms; civil_survivors integer; civil_eliminated integer;
@@ -35,7 +35,13 @@ begin
     case wr.role
       when 'civil' then case when p_winner='civils' then civil_survivors else 0 end
       when 'undercover' then civil_eliminated
-      when 'white' then civil_eliminated*2
+      when 'white' then (
+        select count(*) from public.white_roles other
+        where other.room_id=p_room and other.round=r.round
+          and other.player_id<>wr.player_id
+          and other.eliminated_cycle is not null
+          and (wr.eliminated_cycle is null or other.eliminated_cycle<wr.eliminated_cycle)
+      )*2
       else 0
     end
   from public.white_roles wr
