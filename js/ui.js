@@ -395,12 +395,11 @@ function optValue(k){
   return k === 'target' && state.room.mode === 'bac' ? bacRounds() : +state.room[k];
 }
 const PUN_NB = 2;
+// Punitions : une case à cocher, à droite du temps.
 function punCheck(){
   const v = optValue('pun') > 0;
-  const parts = Array.from({ length: 8 }, (_, i) =>
-    `${SEAT_COLORS[i % SEAT_COLORS.length]} ${i * 45}deg ${(i + 1) * 45}deg`).join(',');
-  return `<div class="field punf"><span aria-hidden="true">Punitions</span><button type="button" class="punsw${v ? ' on' : ''}" data-act="pun-toggle"
-      role="switch" aria-checked="${v}" aria-label="Punitions"><span class="mini" style="background:conic-gradient(${parts})"></span></button></div>`;
+  return `<div class="field punf"><span aria-hidden="true">Punitions</span><button type="button" class="chk${v ? ' on' : ''}" data-act="pun-toggle"
+      role="checkbox" aria-checked="${v}" aria-label="Punitions"><i>${ic('check')}</i></button></div>`;
 }
 function stepper(k, label, full = label){
   const [lo, hi] = OPT_BORNES[k], v = optValue(k);
@@ -452,7 +451,7 @@ function timeField(host){
   const [cur, label] = timeMode(), i = TIME_MODES.findIndex(x => x[0] === cur);
   const prev = TIME_MODES[i - 1], next = TIME_MODES[i + 1];
   if (!host) return label;
-  return `<div class="field"><span aria-hidden="true">Temps</span><div class="step tstep" role="group" aria-label="Temps : ${label}">
+  return `<div class="field tfield"><span aria-hidden="true">Temps</span><div class="step tstep" role="group" aria-label="Temps : ${label}">
       <button type="button" data-act="time-mode" data-v="${(prev || TIME_MODES[i])[0]}" aria-label="Plus lent" ${!prev || busy ? 'disabled' : ''}>${ic('prev')}</button>
       <b aria-live="polite">${label}</b>
       <button type="button" data-act="time-mode" data-v="${(next || TIME_MODES[i])[0]}" aria-label="Plus rapide" ${!next || busy ? 'disabled' : ''}>${ic('next')}</button>
@@ -478,7 +477,7 @@ function gameBox(host){
       ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
       ${r.mode === 'ondes' ? waveVariant(host) : ''}
       ${host
-        ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>`
+        ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${timeField(true)}${punOpt}</div>`
         : `<p class="gdesc">${label} : <b>${optValue(k)}</b> · Temps : <b>${timeField(false)}</b>${punOpt}</p>`}
     </section>`;
 }
