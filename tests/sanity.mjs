@@ -139,4 +139,46 @@ assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clu
 assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
 assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Vignette Mr White');
 
+
+// Mr White : une élimination non décisive n'est pas une fin de manche.
+// Son verdict doit s'afficher puis permettre de reprendre le même mot au tour suivant.
+assert.match(scripts[0], /white_elimination:whiteElimination/,
+  'L’état intermédiaire après élimination doit avoir son propre écran');
+assert.match(scripts[0], /a === 'white-resume'\) return act\('white_resume'\)/,
+  'L’hôte doit pouvoir relancer les indices depuis le verdict');
+const whiteElimView = scripts[0].split('function whiteElimination(){')[1]?.split('function whiteReveal(){')[0];
+const whiteFinalView = scripts[0].split('function whiteReveal(){')[1]?.split('/* ---------- Petit bac ---------- */')[0];
+assert.ok(whiteElimView && whiteFinalView, 'Les résultats intermédiaire et final existent');
+assert.match(whiteElimView, /Fin de la manche/, 'Entête du verdict conservée');
+assert.match(whiteElimView, /whiteEliminationSentence\(\)/, 'Le joueur éliminé est annoncé');
+assert.doesNotMatch(whiteElimView, /civil_word|undercover_word|whiteWinnerSentence/,
+  'Un vote non décisif ne révèle pas les mots ni les gagnants');
+assert.match(whiteFinalView, /whiteEliminationSentence\(\)/, 'La finale annonce le dernier joueur éliminé');
+assert.match(whiteFinalView, /whiteWinnerSentence\(\)/, 'La finale annonce les gagnants nommément');
+assert.match(whiteFinalView, /Mot des Civils :/, 'Le mot des civils est affiché à la fin');
+assert.match(whiteFinalView, /Mot de l’Imposteur :/, 'Le mot imposteur est affiché à la fin si présent');
+assert.match(whiteFinalView, /!hasMrWhite\?/, 'Ne jamais révéler le mot imposteur si Mr White était présent');
+assert.doesNotMatch(whiteFinalView, /whitePeople\(\)|<h3 class="sec">Classement<\/h3>|whiteNote\(\)/,
+  'Pas de liste superflue ni de classement sur le verdict');
+const whiteVerdictMigration=fs.readFileSync(new URL('../supabase/migrations/20261104190000_mr_white_elimination_results.sql',import.meta.url),'utf8');
+assert.match(whiteVerdictMigration, /white_elimination/, 'Le serveur connaît la nouvelle phase');
+assert.match(whiteVerdictMigration, /create or replace function public.white_resume/, 'La reprise est contrôlée côté serveur');
+assert.match(whiteVerdictMigration, /r.host_id<>me.id/, 'Seul l’hôte peut relancer le tour');
+assert.match(whiteVerdictMigration, /when p_winner='civils' then civil_survivors/,
+  'Tous les Civils marquent le nombre de Civils survivants en cas de victoire');
+assert.match(whiteVerdictMigration, /when 'undercover' then opposing_eliminated/,
+  'Tous les imposteurs gagnent le même point par adversaire éliminé');
+assert.match(whiteVerdictMigration, /wr\.role in \('civil','white'\) and wr\.eliminated_cycle is not null/,
+  'Un Civil ou Mr White éliminé rapporte un point aux imposteurs');
+assert.match(whiteVerdictMigration, /other\.player_id<>wr\.player_id/,
+  'Mr White ne peut jamais gagner de points pour sa propre élimination');
+assert.match(whiteVerdictMigration, /other\.eliminated_cycle<wr\.eliminated_cycle/,
+  'Mr White ne gagne aucun point sur les éliminations postérieures à sa sortie');
+assert.match(whiteVerdictMigration, /\)\*2/,
+  'Mr White gagne deux points par autre joueur éliminé tant qu’il est en vie');
+assert.doesNotMatch(whiteVerdictMigration, /when 'undercover' then civil_eliminated/,
+  'Le score de l’imposteur n’est plus limité aux seuls Civils');
+assert.doesNotMatch(whiteVerdictMigration, /p_winner='white' and wr\.role='white' then 3/,
+  'Le bonus forfaitaire de victoire de Mr White est supprimé');
+
 console.log('Frontend sanity checks passed.');

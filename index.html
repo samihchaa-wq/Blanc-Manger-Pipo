@@ -1053,7 +1053,8 @@ function render(){
   else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
     naming: bacNaming, writing: bacWrite, voting: bacVote,
-    white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess, reveal, finished }[state.room.status]();
+    white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess,
+    white_elimination:whiteElimination, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -1752,17 +1753,54 @@ function whiteGuess(){
           <button class="btn" data-act="white-oral-verdict" data-correct="1" ${dis()}>Bonne réponse</button></div>`:
       '<p class="waiting">Un Civil vérifie la réponse de Mr White…</p>'}`;
 }
-function whiteReveal(){
-  const w=state.white||{}, noms={civils:'Les Civils',imposteurs:'Les imposteurs',white:'Mr White'};
+
+function whiteEliminationSentence(){
+  const w=state.white||{}, person=(w.roles||[]).find(p=>p.player_id===w.last_eliminated);
+  if (!person) return '';
+  const role=person.role==='civil'?'Civil':person.role==='undercover'?'Imposteur':person.role==='white'?'Mr White':null;
+  return role?`<p class="role"><b>${nameOf(person.player_id)}</b> est éliminé, il était <b>${role}</b>.</p>`:'';
+}
+function whiteTeamNames(group){
+  const names=group.map(p=>nameOf(p.player_id));
+  return names.length>1?names.slice(0,-1).join(', ')+' et '+names.at(-1):(names[0]||'');
+}
+function whiteWinnerSentence(){
+  const w=state.white||{}, roles=w.roles||[];
+  if (w.winner==='civils') {
+    const civils=roles.filter(p=>p.role==='civil'&&P(p.player_id)?.active);
+    return civils.length?`<p class="role"><b>${whiteTeamNames(civils)}</b> ${civils.length>1?'étaient Civils, ils ont gagné':'était Civil, il a gagné'}.</p>`:'';
+  }
+  if (w.winner==='white') {
+    const mr=roles.filter(p=>p.role==='white');
+    return mr.length?`<p class="role"><b>${whiteTeamNames(mr)}</b> était Mr White, il a gagné.</p>`:'';
+  }
+  if (w.winner==='imposteurs') {
+    const imposteurs=roles.filter(p=>p.role==='undercover'&&P(p.player_id)?.active);
+    if (!imposteurs.length) return '';
+    if (imposteurs.length===1)
+      return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> était l’imposteur, il a gagné.</p>`;
+    return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> étaient les imposteurs, ils ont gagné.</p>`;
+  }
+  return '';
+}
+function whiteElimination(){
+  const w=state.white||{}, host=isMe(state.room.host_id);
   return `
-    <div class="white-result"><p class="eyebrow">Fin de la manche ${state.room.round}</p>
-      <strong>${esc(noms[w.winner]||'Résultat')}</strong></div>
-    ${whiteNote()}
-    <div class="white-secret"><p class="eyebrow">Mots de la manche</p>
-      <strong>${esc(w.civil_word||'?')}</strong><small>Mot des Civils</small>
-      <strong>${esc(w.undercover_word||'?')}</strong><small>Mot des imposteurs</small></div>
-    <h3 class="sec">Qui était qui ?</h3>${whitePeople()}
-    <h3 class="sec">Classement</h3>${rank()}
+    <p class="eyebrow">Fin de la manche ${state.room.round}</p>
+    ${whiteEliminationSentence()||`<p class="role">${esc(w.note||'Personne n’est éliminé.')}</p>`}
+    ${host?`<div class="dock"><button class="btn" data-act="white-resume" ${dis()}>Tour suivant</button></div>`:
+      '<p class="waiting">L’hôte lance le prochain tour.</p>'}`;
+}
+function whiteReveal(){
+  const w=state.white||{}, hasMrWhite=(w.roles||[]).some(p=>p.role==='white');
+  return `
+    <p class="eyebrow">Fin de la manche ${state.room.round}</p>
+    ${whiteEliminationSentence()}
+    ${whiteWinnerSentence()}
+    <div class="white-secret">
+      <p class="eyebrow">Mot des Civils :</p><strong>${esc(w.civil_word||'—')}</strong>
+      ${!hasMrWhite?`<p class="eyebrow">Mot de l’Imposteur :</p><strong>${esc(w.undercover_word||'—')}</strong>`:''}
+    </div>
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack===state.room.round)}>
       ${state.me.next_ack===state.room.round?'En attente des autres…':
         state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>`;
@@ -2388,6 +2426,7 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'white-open-vote') return act('white_open_vote');
+  if (a === 'white-resume') return act('white_resume');
   if (a === 'white-vote') return act('white_vote', { p_target:id });
   if (a === 'white-oral-verdict') return act('white_oral_verdict', { p_correct:el.dataset.correct==='1' });
   if (a === 'punish-submit') {
