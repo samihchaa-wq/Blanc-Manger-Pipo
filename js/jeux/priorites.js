@@ -33,7 +33,7 @@ function ranking(){
     <p class="role"><b>Classement envoyé.</b> ${judge ? 'Les autres essaient de le deviner…' : `Verdict quand tout le monde aura classé.`}</p>
     ${ladder(state.my_ranking, false)}
     <p class="meta" style="margin-top:18px">${done}/${state.players.length} ont classé</p>${bar}
-    ${waiting(left, 'Tout le monde a classé.')}`;
+    ${waiting(left, 'Tout le monde a classé.')}${scoreStrip('l')}`;
 
   const pool = cards.filter(c => !picks.includes(c.id)), reste = cards.length - picks.filter(Boolean).length;
   return `

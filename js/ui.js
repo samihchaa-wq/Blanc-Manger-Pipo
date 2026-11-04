@@ -106,7 +106,12 @@ function render(){
     if (newScreen) {
       renderedKey = key;
       app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
-    }
+      // Les mises en scène (podium, cible, carte retournée, +N) ne se jouent
+      // qu'à l'arrivée sur l'écran ; un rafraîchissement ensuite les montre finies.
+      app.classList.add('fresh'); clearTimeout(render.fresh);
+      render.fresh = setTimeout(() => app.classList.remove('fresh'), 2800);
+      countUp();
+    } else app.classList.remove('fresh');
     if (adminOpen) { paintCatalog(); majTrous(); autoGrow(document.getElementById('a-text')) }
     // les confettis à l'arrivée sur l'écran de fin, pas à chaque mise à jour
     else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
@@ -492,7 +497,7 @@ function punSection(){
   const spin = pick ? 1440 + 360 - (k + .5) * a : 0;
   // re-rendue en pleine rotation, la roue reprend là où elle en était
   const disque = `<div class="roue pun ${anim ? '' : 'still'}" style="--spin:${spin.toFixed(1)}deg;${anim ? `animation-delay:-${ecoule}ms;` : ''}background:conic-gradient(${parts})" aria-hidden="true">${
-    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? ic('star', 'fill') : '?'}</i></span>`).join('')}</div>`;
+    items.map((_, i) => `<span class="lab" style="--a:${((i + .5) * a).toFixed(1)}deg"><i>${pick && !anim && i === k ? ic('star', 'solid') : '?'}</i></span>`).join('')}</div>`;
   const qui = loser ? (isMe(loser.id) ? 'Toi' : esc(loser.name)) : '?';
   const autres = pick ? items.filter(x => x.id !== pick.id) : [];
   return `<section class="punbox">
@@ -513,7 +518,7 @@ function waitScreen(title, sub, stack = 1){
     : '<span class="cardback"></span>';
   return `<div class="waitScreen">${backs}
     <h2 class="bigstate">${title}</h2>
-    <p class="muted"><span class="pulse"></span>${sub}</p></div>`;
+    <p class="muted"><span class="pulse"></span>${sub}</p>${scoreStrip()}</div>`;
 }
 
 
@@ -546,14 +551,14 @@ function answering(){
     <p class="role"><b>Tu es le lecteur.</b></p>
     ${qcard('Question', blank(q))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
-    ${waiting(left)}`;
+    ${waiting(left)}${scoreStrip('l')}`;
 
   const cartes = state.my_cards || [];
   if (cartes.length) return `
     <p class="role"><b>${cartes.length > 1 ? 'Cartes envoyées.' : 'Carte envoyée.'}</b></p>
     ${qcard(cartes.length > 1 ? 'Tes réponses' : 'Ta réponse', fill(q, cartes))}
     <p class="meta" style="margin-top:18px">${done}/${others.length} ont joué</p>${bar}
-    ${waiting(left)}`;
+    ${waiting(left)}${scoreStrip('l')}`;
 
   const n = state.blanks || 1;
   const choisies = picks.map(id => state.hand.find(c => c.id === id)).filter(Boolean);

@@ -96,6 +96,18 @@ function whiteWinnerSentence(){
   }
   return '';
 }
+// La carte de l'éliminé se retourne sur son rôle. Décorative : la phrase
+// d'élimination juste en dessous dit la même chose aux lecteurs d'écran.
+function whiteFlip(){
+  const w=state.white||{}, person=(w.roles||[]).find(p=>p.player_id===w.last_eliminated);
+  const role=person&&{civil:'Civil',undercover:'Imposteur',white:'Mr White'}[person.role];
+  if (!role) return '';
+  return `<div class="flip" aria-hidden="true"><div class="in">
+    <div class="face front">${avatar(person.player_id,'lg')}<span class="fn">${nameOf(person.player_id)}</span><span class="eyebrow">Éliminé</span></div>
+    <div class="face back r-${person.role}">${person.role==='white'?'<img src="games/white.svg" alt="">':avatar(person.player_id,'lg')}
+      <span class="eyebrow">${nameOf(person.player_id)} était</span><strong>${role}</strong></div>
+  </div></div>`;
+}
 function whiteElimination(){
   const w=state.white||{}, host=isMe(state.room.host_id);
   const remaining=Math.max(0,Number(w.impostors_remaining)||0);
@@ -103,6 +115,7 @@ function whiteElimination(){
     `Il reste <b>${remaining} Imposteur${remaining>1?'s':''}</b>`;
   return `
     <p class="eyebrow">Résultat du vote</p>
+    ${whiteFlip()}
     ${whiteEliminationSentence()||`<p class="role">${esc(w.note||'Personne n’est éliminé.')}</p>`}
     <p class="role">${remainingText}, la partie continue.</p>
     ${host?`<div class="dock"><button class="btn" data-act="white-resume" ${dis()}>Tour suivant</button></div>`:''}`;
@@ -111,6 +124,7 @@ function whiteReveal(){
   const w=state.white||{}, hasMrWhite=(w.roles||[]).some(p=>p.role==='white');
   return `
     <p class="eyebrow">Fin de la manche ${state.room.round}</p>
+    ${whiteFlip()}
     ${whiteEliminationSentence()}
     ${whiteWinnerSentence()}
     <div class="white-secret">

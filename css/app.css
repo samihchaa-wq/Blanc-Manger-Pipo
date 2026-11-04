@@ -773,7 +773,7 @@ button.scard:active{transform:translateY(2px)}
 /* ===== Icônes ===== */
 .ic{display:inline-block;width:1.05em;height:1.05em;flex:none;vertical-align:-.16em;
   fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.ic.fill{fill:currentColor;stroke:none}
+.ic.solid{fill:currentColor;stroke:none}
 .ic.v2{color:var(--mint)} .ic.v1{color:var(--gold)} .ic.v0{color:var(--pop)}
 .vote .ic{width:30px;height:30px;stroke-width:2}
 .bactab .ans .pt .ic{width:18px;height:18px}
@@ -810,3 +810,63 @@ button.scard:active{transform:translateY(2px)}
 .cdring .cdn{font-size:13.5px}
 .cdring.long .cdn{font-size:11px}
 .cdring.low .cdn{color:var(--pop-soft)}
+
+/* ===== Moments clés ===== */
+/* #app.fresh n'est posé que pendant les premières secondes d'un nouvel écran :
+   les animations ne se rejouent pas à chaque rafraîchissement. */
+@keyframes rise-up{from{transform:scaleY(0)}}
+@keyframes pop-in{from{transform:scale(.4);opacity:0}}
+@keyframes fade-in{from{opacity:0}}
+
+/* Podium de fin */
+.podium{display:grid;align-items:end;gap:8px;margin:4px 0 24px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.pod .pn{max-width:100%;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod b{font-size:22px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
+.pod .crown .ic{width:26px;height:26px;color:var(--gold);filter:drop-shadow(0 2px 8px rgba(255,194,61,.5))}
+.pod .stepb{display:grid;place-items:center;width:100%;height:50px;margin-top:4px;border-radius:14px 14px 6px 6px;
+  font-style:normal;font-size:24px;font-weight:800;color:var(--ink);transform-origin:bottom;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.18)),var(--c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.pod.p1 .stepb{height:98px} .pod.p2 .stepb{height:70px}
+.pod.p1 .av.lg{width:76px;height:76px;font-size:36px}
+#app.fresh .pod .stepb{animation:rise-up .6s var(--ease) both}
+#app.fresh .pod.p2 .stepb{animation-delay:.15s} #app.fresh .pod.p1 .stepb{animation-delay:.3s}
+#app.fresh .pod>:not(.stepb){animation:pop-in .4s var(--ease) both;animation-delay:.75s}
+#app.fresh .pod.p1>:not(.stepb){animation-delay:1s}
+
+/* Baromètre : la cible balaie le cadran avant de s'arrêter, puis les aiguilles */
+.dial .sweep{transform-box:view-box;transform-origin:100px 100px}
+#app.fresh .dial .sweep{animation:sweep 1.2s cubic-bezier(.2,.9,.25,1) both}
+@keyframes sweep{from{transform:rotate(var(--t))}}
+#app.fresh .dial .gn{animation:fade-in .35s 1.1s both}
+
+/* Mr White : la carte de l'éliminé se retourne sur son rôle */
+.flip{perspective:900px;width:min(210px,58vw);aspect-ratio:4/5;margin:12px auto 18px}
+.flip .in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(180deg)}
+#app.fresh .flip .in{animation:flip 1.1s .7s cubic-bezier(.55,0,.2,1) both}
+@keyframes flip{from{transform:rotateY(0)}}
+.flip .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:16px;border-radius:22px;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .front{background:linear-gradient(170deg,var(--surface-2),var(--surface));border:1.5px solid var(--hairline-2)}
+.flip .front .fn{font-size:20px;font-weight:700}
+.flip .back{transform:rotateY(180deg);color:var(--gold-ink);
+  background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));box-shadow:0 5px 0 var(--gold-deep),var(--shadow-card)}
+.flip .back.r-civil{color:var(--mint-ink);background:linear-gradient(168deg,#8DF2C8,var(--mint-2));box-shadow:0 5px 0 var(--mint-deep),var(--shadow-card)}
+.flip .back.r-undercover{color:#fff;background:linear-gradient(168deg,var(--pop),var(--pop-3));box-shadow:0 5px 0 var(--pop-deep),var(--shadow-card)}
+.flip .back.r-white{color:var(--ink);background:linear-gradient(168deg,#fff,#E7E0F0);box-shadow:0 5px 0 #8E83A0,var(--shadow-card)}
+.flip .back .eyebrow{color:inherit;opacity:.8}
+.flip .back strong{font-size:30px;font-weight:800;letter-spacing:-.035em;line-height:1}
+.flip .back img{width:70px;height:70px}
+
+/* ===== Écrans d'attente ===== */
+/* Dos de carte à la marque : le logo sur la prune du fond, double filet doré et rose. */
+.cardback{background:url(../logo.svg) center/82% auto no-repeat,
+  radial-gradient(120% 90% at 50% 20%,#3D2255,#1B1325 72%)}
+.cardback::after{box-shadow:inset 0 0 0 1.5px rgba(255,194,61,.6),inset 0 0 0 6px rgba(15,12,20,.35),inset 0 0 0 7.5px rgba(255,92,141,.45)}
+.striphead{margin-top:30px;text-align:center}
+.striphead.l{text-align:left;margin-top:26px}
+.strip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
+.strip.l{justify-content:flex-start}
+.strip .chip{padding:3px 11px 3px 3px;gap:7px}
+.strip .chip b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.strip .chip.me{border-color:rgba(255,194,61,.55);background:linear-gradient(90deg,rgba(255,194,61,.12),var(--surface))}
