@@ -9,19 +9,33 @@ alter table public.rooms add constraint rooms_status_check check(status in (
   'white_guess','white_elimination'
 ));
 
+
+-- Barème d'équipe : Civils = Civils encore en jeu si victoire ;
+-- chaque imposteur = Civils éliminés tant qu'il était en jeu ;
+-- Mr White = le double. Aucun bonus de victoire pour les imposteurs.
 create or replace function public._white_finish(p_room uuid,p_winner text)
 returns void language plpgsql security definer set search_path to '' as $fn$
-declare r public.rooms;
+declare r public.rooms; civil_survivors integer;
 begin
   select * into r from public.rooms where id=p_room for update;
   if r.mode<>'white' or r.status not in ('white_clue','white_vote','white_guess','white_elimination') then return; end if;
   if p_winner not in ('civils','imposteurs','white') then raise exception 'Équipe inconnue.'; end if;
+  select count(*) into civil_survivors
+    from public.white_roles wr join public.players p on p.id=wr.player_id and p.active
+    where wr.room_id=p_room and wr.round=r.round and wr.role='civil' and not wr.eliminated;
   update public.white_rounds set winner=p_winner where room_id=p_room and round=r.round;
   update public.players p set score=p.score+
-    case when p_winner='civils' and wr.role='civil' then 2
-         when p_winner='white' and wr.role='white' then 3
-         when p_winner='imposteurs' and wr.role in ('white','undercover') and not wr.eliminated then 3
-         else 0 end
+    case
+      when wr.role='civil' and p_winner='civils' then civil_survivors
+      when wr.role in ('undercover','white') then
+        (select count(*) from public.white_roles civil
+         where civil.room_id=p_room and civil.round=r.round
+           and civil.role='civil' and civil.eliminated_cycle is not null
+           -- Un imposteur éliminé ne reçoit pas les points des votes suivants.
+           and (wr.eliminated_cycle is null or civil.eliminated_cycle<wr.eliminated_cycle))
+        * case when wr.role='white' then 2 else 1 end
+      else 0
+    end
   from public.white_roles wr
   where wr.room_id=p_room and wr.round=r.round and wr.player_id=p.id and p.active;
   update public.rooms set status='reveal',white_note=case p_winner
