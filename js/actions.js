@@ -22,6 +22,10 @@ document.addEventListener('click', async e => {
   // certains navigateurs n'accordent le verrou d'écran qu'après un geste
   if (session && !wakeLock) keepAwake();
   if (el.dataset.act === 'share') return shareInvite();
+  // Le Dico : le livre s'ouvre et se feuillette sur le téléphone du meneur
+  if (el.dataset.act === 'dico-open') return dicoOuvrir(false);
+  if (el.dataset.act === 'dico-flip') return dicoOuvrir(true);
+  if (el.dataset.act === 'dico-entry') { dicoSel = +el.dataset.i; return render() }
   if (el.dataset.act === 'game-pick') { gamePick = !gamePick; return render() }
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'pun-toggle') {

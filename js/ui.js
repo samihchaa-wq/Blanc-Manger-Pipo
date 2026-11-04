@@ -91,7 +91,7 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
     naming: bacNaming, writing: bacWrite, voting: bacVote,
     white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess,
-    white_elimination:whiteElimination, mime_play:mimePlay, reveal, finished }[state.room.status]();
+    white_elimination:whiteElimination, mime_play:mimePlay, dico_pick:dicoPick, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
