@@ -362,10 +362,6 @@ button.scard:active{transform:translateY(2px)}
 .seg.games.pick .max{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);white-space:nowrap;
   font-size:11px;letter-spacing:.04em;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-0);color:var(--text-dim);border:1px solid var(--hairline-2)}
 /* manches et punitions par joueur sur une seule ligne, cases alignées en bas */
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
-.opts.solo{grid-template-columns:1fr}
-.opts .field{display:flex;flex-direction:column;min-width:0}
-.opts .field>span{flex:1;font-size:15px;letter-spacing:.06em;line-height:1.3;margin-bottom:6px}
 .step{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:52px;padding:4px;
   background:var(--field);border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
 .step b{text-align:center;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
@@ -374,7 +370,6 @@ button.scard:active{transform:translateY(2px)}
 .step button:disabled{opacity:.3}
 /* Punitions : une petite roue, la même qu'en fin de partie, à droite du
    compteur. Grisée tant qu'elle est éteinte, elle fait un tour en s'allumant. */
-.opts.pun{grid-template-columns:1fr 56px}
 .punsw{position:relative;display:grid;place-items:center;width:56px;height:52px;margin-top:auto}
 .punsw .mini{width:44px;height:44px;border-radius:50%;border:3px solid var(--paper);position:relative;
   box-shadow:0 0 0 1.5px rgba(0,0,0,.35),0 6px 14px -6px rgba(0,0,0,.8);
@@ -736,11 +731,6 @@ button.scard:active{transform:translateY(2px)}
   .roueBox .rouel{animation-delay:0s}
 }
 
-.timefield{margin-top:16px;padding-top:15px;border-top:1px solid var(--hairline-2)}
-.timehead{font-size:15px;font-weight:600;letter-spacing:.04em}
-.timefield .seg{margin-top:10px}
-.timefield .seg-b{font-size:13px;padding:12px 2px}
-.timefield .gdesc{font-size:13px;margin-top:9px}
 .mime-stage{margin:15px 0;padding:14px;border:1px solid var(--hairline-2);border-radius:15px;text-align:center}
 .mime-stage .btn{margin-top:12px}
 
@@ -922,3 +912,32 @@ body[data-game]::before{background:
 body[data-game] .gamelogo{box-shadow:0 0 0 2px var(--accent),0 8px 18px -8px rgba(0,0,0,.7)}
 body[data-game] .steps i.on{background:var(--accent)}
 body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint))}
+
+/* ===== Réglages du salon sur une seule ligne ===== */
+/* Manches, roue des punitions et temps côte à côte, libellé court au-dessus. */
+.setrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:8px;align-items:end;margin-top:16px}
+.setrow.pun{grid-template-columns:minmax(0,.9fr) 58px minmax(0,1.2fr)}
+.gamebox .setrow .field{display:flex;flex-direction:column;min-width:0;margin:0}
+/* libellés en casse normale : en capitales, « Punitions » débordait sur « Temps » */
+.gamebox .setrow .field>span{margin-bottom:6px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setrow .punf{align-items:center}
+.setrow .punf>span{overflow:visible}
+.setrow .step{grid-template-columns:30px minmax(0,1fr) 30px;height:48px;padding:3px}
+.setrow .step b{font-size:19px;min-width:0}
+.setrow .step button{font-size:19px;border-radius:8px}
+.setrow .tstep{grid-template-columns:28px minmax(0,1fr) 28px}
+.setrow .tstep b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setrow .tstep button{display:grid;place-items:center}
+.setrow .tstep .ic{width:18px;height:18px;stroke-width:2.6}
+@media (max-width:370px){.setrow .tstep b{font-size:14px}}
+/* très petits écrans (320 px) : le temps passe sous les manches et la roue */
+@media (max-width:340px){
+  .setrow{grid-template-columns:1fr}
+  .setrow.pun{grid-template-columns:minmax(0,1fr) 58px}
+  .setrow .field:last-child{grid-column:1/-1;margin-top:10px}
+}
+.setrow .punsw{width:52px;height:48px;margin:0}
+.setrow .punsw .mini{width:40px;height:40px}
+.gamebox .tdesc{font-size:13px;margin-top:10px}
+.gamebox .gdesc b{color:var(--text);font-weight:600}
