@@ -230,4 +230,13 @@ assert.match(mimeMigration, /when 0 then 3 when 1 then 2 when 2 then 1 else 0/, 
 assert.match(mimeMigration, /'intensity', case when r\.status in \('reveal','finished'\)/, 'Les intensités restent secrètes jusqu’au résultat');
 assert.match(mimeMigration, /if r\.reader_id <> me\.id then raise exception 'Seul le juge note les mimes\.'/, 'Seul le juge note');
 
+// Une seule lecture d'état par relecture, avec repli sur les trois appels
+// d'avant tant que la migration n'est pas appliquée.
+assert.match(scripts[0], /rpc\('get_full_state', args\)/, 'La relecture passe par get_full_state');
+assert.match(scripts[0], /function readStateLegacy\(args\)/, 'Repli sur get_state, white_state et punish_state');
+const fullMigration = fs.readFileSync(new URL('../supabase/migrations/20261107120000_etat_complet.sql', import.meta.url), 'utf8');
+assert.match(fullMigration, /security definer set search_path to ''/, 'get_full_state : search_path vide');
+assert.match(fullMigration, /public\.white_state\(p_code, p_token\)/, 'Les mots secrets passent toujours par white_state');
+assert.match(fullMigration, /revoke execute on function public\.get_full_state\(text, uuid\) from public;/, 'Pas d’exécution par public');
+
 console.log('Frontend sanity checks passed.');

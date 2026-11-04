@@ -105,26 +105,57 @@ async function act(fn, extra = {}){
   finally { busy = false; render() }
 }
 
+// Une seule requête par relecture : get_full_state enchaîne côté serveur
+// get_state, white_state et punish_state (migration 20261107120000). Tant
+// que la base ne la connaît pas, on retombe sur les trois appels d'avant.
+let fullState = true;
+async function readState(){
+  const args = { p_code: session.code, p_token: session.token };
+  if (fullState) {
+    try {
+      const d = await rpc('get_full_state', args);
+      const s = d.state, pu = d.pun || null;
+      if (d.white) s.white = d.white;
+      // Le serveur a déjà relu l'état après punish_state : la saisie des
+      // punitions vient de se fermer, salon = annulée, sinon la partie démarre.
+      let annulee = false;
+      if (pun?.phase && pu && !pu.phase && s.room.status === 'lobby') annulee = true;
+      else if (pun?.phase && s.room.status !== 'lobby') ping();   // on prévient les autres
+      return { s, pu, annulee };
+    } catch (e) {
+      // fonction absente (PGRST202 / « Could not find the function ») : ancien chemin
+      if (!/get_full_state|PGRST202|Could not find the function/i.test(e.message)) throw e;
+      fullState = false;
+    }
+  }
+  return readStateLegacy(args);
+}
+async function readStateLegacy(args){
+  let s = await rpc('get_state', args);
+  if (s.room.mode === 'white' && s.room.status !== 'lobby')
+    s.white = await rpc('white_state', { p_code:session.code, p_token:session.token });
+  // les punitions ne servent qu'au salon et à l'écran de fin
+  let pu = null;
+  if (s.room.status === 'lobby' || s.room.status === 'finished')
+    try { pu = await rpc('punish_state', args) } catch {}
+  // La saisie des punitions s'est fermée entre les deux lectures (punish_state
+  // lance la partie quand le dernier attendu est parti) : on relit l'état pour
+  // savoir si la partie a démarré ou si elle est annulée.
+  let annulee = false;
+  if (pun?.phase && pu && !pu.phase && s.room.status === 'lobby') {
+    s = await rpc('get_state', args);
+    if (s.room.status === 'lobby') annulee = true;
+    else { pu = null; ping() }   // c'est cette lecture qui a lancé la partie : on prévient les autres
+  }
+  return { s, pu, annulee };
+}
+
 async function refresh(force = false){
   if (!session) return;
   lastSync = Date.now();
   try {
-    let s = await rpc('get_state', { p_code: session.code, p_token: session.token });
-    if (s.room.mode === 'white' && s.room.status !== 'lobby')
-      s.white = await rpc('white_state', { p_code:session.code, p_token:session.token });
-    // les punitions ne servent qu'au salon et à l'écran de fin
-    let pu = null;
-    if (s.room.status === 'lobby' || s.room.status === 'finished')
-      try { pu = await rpc('punish_state', { p_code: session.code, p_token: session.token }) } catch {}
-    // La saisie des punitions s'est fermée entre les deux lectures (punish_state
-    // lance la partie quand le dernier attendu est parti) : on relit l'état pour
-    // savoir si la partie a démarré ou si elle est annulée.
-    let annulee = false;
-    if (pun?.phase && pu && !pu.phase && s.room.status === 'lobby') {
-      s = await rpc('get_state', { p_code: session.code, p_token: session.token });
-      if (s.room.status === 'lobby') annulee = true;
-      else { pu = null; ping() }   // c'est cette lecture qui a lancé la partie : on prévient les autres
-    }
+    const lu = await readState(), annulee = lu.annulee;
+    let s = lu.s, pu = lu.pu;
     const j = JSON.stringify([s, pu]);
     if (!force && j === last) return;
     // la roue vient d'être lancée : on l'anime ici ; arrivé après coup, on voit le résultat
