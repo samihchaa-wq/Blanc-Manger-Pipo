@@ -137,7 +137,11 @@ assert.match(scripts[0], /games\/white\.svg/, 'Mr White voit le logo');
 assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clue-input|white-guess-input/,
   'Un Civil ou un imposteur ne voit pas son rôle et les indices sont donnés à l’oral');
 assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
-assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white\.svg'/, 'Vignette Mr White');
+assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white-home\.jpg'/, 'Nouvelle vignette de Mr White sur l’accueil');
+assert.ok(fs.statSync(new URL('../games/white-home.jpg', import.meta.url)).size > 5000,
+  'La vignette Mr White fournie doit être un vrai fichier image');
+assert.match(scripts[0], /class="white-mark" src="games\/white\.svg"/,
+  'La carte secrète de Mr White reste inchangée');
 
 
 // Mr White : une élimination non décisive n'est pas une fin de manche.
