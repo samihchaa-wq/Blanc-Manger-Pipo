@@ -93,14 +93,48 @@ const voteIcon = v => { const x = VOTES.find(([p]) => p === v); return x ? ic(x[
 /* ---------- Mise à jour ---------- */
 // Après une mise en ligne, un téléphone resté ouvert garde l'ancien code en
 // mémoire (il affichait une partie du Dico sous le nom « Phrases à trou »).
-// On compare la version publiée et on recharge dès que c'est sans risque.
-const APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || 'dev';
-let majEnAttente = false;
+// On compare de temps en temps le code en ligne à celui qui tourne ici, et on
+// recharge dès que c'est sans risque. La comparaison porte sur le contenu des
+// fichiers, pas sur leur date : GitHub Pages publie souvent deux fois le même
+// code à quelques secondes d'écart, et ça ne doit pas recharger deux fois.
+let majEnAttente = false, derniereVerif = 0;
+const codeCharge = new Map();   // adresse -> { etag, texte } du code qui tourne ici
+// La page, ses scripts et ses styles (le client Supabase, fourni tel quel, à part).
+function fichiersDuCode(){
+  const urls = [new URL(location.pathname, location.href).href];
+  document.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
+    const u = new URL(el.getAttribute('src') || el.getAttribute('href'), location.href);
+    if (u.origin === location.origin && !u.pathname.includes('/vendor/')) urls.push(u.href);
+  });
+  return urls;
+}
+// La mise en ligne ajoute ?v=… aux adresses des scripts : on n'en tient pas compte.
+const sansVersion = t => t.replace(/\?v=[\w.-]+/g, '');
+// Un fichier tel qu'il est en ligne, ou null s'il n'a pas changé depuis etag.
+async function lireEnLigne(url, etag){
+  const r = await fetch(url, { cache: 'no-store', headers: etag ? { 'If-None-Match': etag } : {} });
+  if (r.status === 304) return null;
+  if (!r.ok) throw new Error(r.status);
+  return { etag: r.headers.get('etag'), texte: sansVersion(await r.text()) };
+}
+// Le code qui tourne ici : la copie gardée par le service worker au chargement,
+// sinon celle du réseau.
+async function lireCharge(url){
+  const c = await globalThis.caches?.match(url, { ignoreSearch: true }).catch(() => null);
+  return c?.ok ? { etag: c.headers.get('etag'), texte: sansVersion(await c.text()) } : lireEnLigne(url);
+}
 async function verifierVersion(){
-  if (APP_VERSION === 'dev' || majEnAttente) return;
+  if (majEnAttente || Date.now() - derniereVerif < 30000) return;
+  derniereVerif = Date.now();
   try {
-    const v = (await (await fetch('version.json', { cache: 'no-store' })).json()).v;
-    if (v && v !== APP_VERSION) { majEnAttente = true; rechargerSiPossible() }
+    for (const url of fichiersDuCode()) {
+      const connu = codeCharge.get(url);
+      if (!connu) { codeCharge.set(url, await lireCharge(url)); continue }
+      const enLigne = await lireEnLigne(url, connu.etag);
+      if (!enLigne) continue;
+      if (enLigne.texte !== connu.texte) { majEnAttente = true; return rechargerSiPossible() }
+      codeCharge.set(url, enLigne);   // même code republié : seule l'empreinte change
+    }
   } catch {}
 }
 // Jamais en pleine saisie : seulement à l'accueil, au salon, aux résultats, en fin

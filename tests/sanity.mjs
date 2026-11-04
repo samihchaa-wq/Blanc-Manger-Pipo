@@ -266,13 +266,13 @@ assert.match(dicoMigration, /'definition', case when fin or r\.reader_id = me\.i
 assert.match(dicoMigration, /'author_id', case when fin then d\.player_id end/, 'Auteurs cachés jusqu’à la révélation');
 assert.match(dicoMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 
-// Mise à jour : la page porte sa version, la mise en ligne publie version.json
-// et versionne les fichiers ; un téléphone resté ouvert se recharge.
-assert.match(page, /<meta name="app-version" content="dev">/, 'Version de la page (remplacée à la mise en ligne)');
+// Mise à jour : un téléphone resté ouvert compare le contenu du code en ligne
+// (page, scripts, styles) à celui qu'il fait tourner, et se recharge.
 const pagesWorkflow = fs.readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
-assert.match(pagesWorkflow, /version\.json/, 'La mise en ligne publie version.json');
 assert.match(pagesWorkflow, /\?v=\$V/, 'Scripts et feuilles de style versionnés à la mise en ligne');
-assert.match(scripts[0], /fetch\('version\.json', \{ cache: 'no-store' \}\)/, 'Le client compare sa version à celle en ligne');
+assert.match(scripts[0], /headers: etag \? \{ 'If-None-Match': etag \}/, 'Vérification légère tant que rien n’a changé');
+assert.match(scripts[0], /enLigne\.texte !== connu\.texte/, 'Comparaison du contenu, pas de la date de mise en ligne');
+assert.match(scripts[0], /const sansVersion = t => t\.replace\(\/\\\?v=/, 'Les ?v=… de la mise en ligne ne comptent pas');
 assert.match(scripts[0], /if \(state && !GAMES\[state\.room\.mode\]\) return recharger\(\)/, 'Jeu inconnu : rechargement immédiat');
 
 console.log('Frontend sanity checks passed.');

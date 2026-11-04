@@ -75,14 +75,10 @@ jobs:
           for g in phrases priorites ondes bac dico; do
             test -s "_site/games/$g.webp" || { echo "manquant dans _site : games/$g.webp"; exit 1; }
           done
-          # Version de la mise en ligne : un téléphone resté ouvert la compare à
-          # version.json pour se recharger, et chaque script ou feuille de style
-          # change d'adresse (?v=…) pour ne jamais mélanger ancien et nouveau code.
+          # Chaque script et feuille de style change d'adresse (?v=…) à chaque
+          # mise en ligne, pour ne jamais mélanger ancien et nouveau code.
           V="${GITHUB_SHA::12}"
-          sed -i "s#<meta name=\"app-version\" content=\"dev\">#<meta name=\"app-version\" content=\"$V\">#" _site/index.html
           sed -i -E "s#((src|href)=\"(js|css)/[^\"?]+)\"#\1?v=$V\"#g" _site/index.html
-          printf '{"v":"%s"}\n' "$V" > _site/version.json
-          grep -q "name=\"app-version\" content=\"$V\"" _site/index.html
           grep -q "js/core.js?v=$V" _site/index.html
           grep -q "css/app.css?v=$V" _site/index.html
       - uses: actions/configure-pages@v5
