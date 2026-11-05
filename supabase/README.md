@@ -54,6 +54,8 @@ Current production migration tail:
 
 - `20261104230000_le_dico` (septième jeu, Le Dico : phases `dico_pick` → `dico_write` → `dico_vote` → `reveal`, tables `dico_defs` / `dico_votes` / `dico_points`, RPC `dico_pick`, `dico_write`, `dico_vote`, `dico_bot_step` ; branches ajoutées à `_begin_round`, `get_state`, `reap_idle`, `_time_phase_seconds`, `_remove_player`, `create_room`, `set_room_options`. Appliquée à la main dans l'éditeur SQL, en une transaction qui s'inscrit elle-même dans l'historique ; testée sur une copie de la production puis en production dans une transaction annulée — `supabase/tests/le_dico_scenario.sql`)
 
+- `20261107120000_dilemme_parfait` (huitième jeu, Dilemme parfait : phases `dilemme_pick` → `dilemme_write` → `dilemme_vote` → `reveal`, tables `dilemme_buts` / `dilemme_votes` / `dilemme_points`, RPC `dilemme_pick`, `dilemme_write`, `dilemme_vote`, `dilemme_bot_step` ; branches ajoutées à `_begin_round`, `get_state`, `reap_idle`, `_time_phase_seconds`, `_remove_player`, `create_room`, `set_room_options`. Scénario : `supabase/tests/dilemme_scenario.sql`)
+
 ## Change workflow
 
 For future database changes:
