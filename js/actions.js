@@ -38,6 +38,28 @@ document.addEventListener('click', async e => {
     return act('dico_write', { p_text:t });
   }
   if (el.dataset.act === 'dico-vote') { pressedEl = el; return act('dico_vote', { p_def:el.dataset.id }) }
+  // Dilemme parfait : idées de début, suite, Oui/Non gardés sur le téléphone jusqu'à l'envoi
+  if (el.dataset.act === 'dil-idea') { dilStartDraft = dilChoix?.[+el.dataset.i] || ''; return render() }
+  if (el.dataset.act === 'dil-reroll') { dilTirer(); return render() }
+  if (el.dataset.act === 'dil-start') {
+    const t = (document.getElementById('dil-start')?.value || '').trim();
+    if (t.length < 5) return toast('Choisis ou écris le début du dilemme.');
+    pressedEl = el;
+    return act('dilemme_pick', { p_start:t });
+  }
+  if (el.dataset.act === 'dil-send') {
+    const t = (document.getElementById('dil-but')?.value || '').trim();
+    if (t.length < 3) return toast('Écris la suite du dilemme.');
+    pressedEl = el;
+    return act('dilemme_write', { p_text:t });
+  }
+  if (el.dataset.act === 'dil-yn') { dilVotes[el.dataset.id] = el.dataset.v === '1'; return render() }
+  if (el.dataset.act === 'dil-vote') {
+    const ids = (state.dilemme?.buts || []).filter(x => !x.mine).map(x => x.id);
+    if (ids.some(id => dilVotes[id] == null)) return toast('Réponds Oui ou Non à chaque dilemme.');
+    pressedEl = el;
+    return act('dilemme_vote', { p_buts:ids, p_yes:ids.map(id => dilVotes[id]) });
+  }
   if (el.dataset.act === 'game-pick') { gamePick = !gamePick; return render() }
   if (el.dataset.act === 'rules') { rulesOpen = !rulesOpen; return render() }
   if (el.dataset.act === 'pun-toggle') {
@@ -314,6 +336,8 @@ document.addEventListener('input', e => {
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'w-theme') themeDraft = e.target.value;
   if (e.target.id === 'dico-def') { dicoDraft = e.target.value; autoGrow(e.target) }
+  if (e.target.id === 'dil-start') dilStartDraft = e.target.value;
+  if (e.target.id === 'dil-but') { dilButDraft = e.target.value; autoGrow(e.target) }
   if (e.target.id === 'bac-cat') catDraft = e.target.value;
   if (/^pun-\d$/.test(e.target.id)) punDrafts[+e.target.dataset.i] = e.target.value;
   if (e.target.matches('.bacfield input')) {
@@ -333,6 +357,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#j-name, #j-code')) document.querySelector('[data-act=join]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
   if (e.key === 'Enter' && e.target.matches('#w-theme')) document.querySelector('[data-act=theme]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#dil-start')) document.querySelector('[data-act=dil-start]')?.click();
   if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
   // Punitions : Entrée passe au champ suivant, puis ferme le clavier
   if (e.key === 'Enter' && e.target.matches('.punfield input')) {

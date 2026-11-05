@@ -72,6 +72,7 @@ function reveal(){
   if (isWhite()) return whiteReveal();
   if (isMime()) return mimeReveal();
   if (isDico()) return dicoReveal() + sharedRoundNext();
+  if (isDilemme()) return dilemmeReveal() + sharedRoundNext();
   const r = state.room;
   return `
     <p class="role">Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>

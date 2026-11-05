@@ -91,7 +91,8 @@ function render(){
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
     naming: bacNaming, writing: bacWrite, voting: bacVote,
     white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess,
-    white_elimination:whiteElimination, mime_play:mimePlay, dico_pick:dicoPick, dico_write:dicoWrite, dico_vote:dicoVote, reveal, finished }[state.room.status]();
+    white_elimination:whiteElimination, mime_play:mimePlay, dico_pick:dicoPick, dico_write:dicoWrite, dico_vote:dicoVote,
+    dilemme_pick:dilemmePick, dilemme_write:dilemmeWrite, dilemme_vote:dilemmeVote, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -99,7 +100,7 @@ function render(){
   if (html !== lastHtml) {
     lastHtml = html;
     // la saisie d'une punition survit au rafraîchissement du salon
-    const ae = document.activeElement, focId = /^(pun-\d|w-clue|w-theme|dico-def)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
+    const ae = document.activeElement, focId = /^(pun-\d|w-clue|w-theme|dico-def|dil-start|dil-but)$/.test(ae?.id || '') ? ae.id : null, foc = focId ? ae.selectionStart : null;
     app.innerHTML = html;
     if (holding) app.querySelectorAll('[data-hold]').forEach(el => el.classList.add('show'));
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); c.setSelectionRange(foc, foc) } }
@@ -169,6 +170,7 @@ const PITCH = {
   white:'Démasquez l’imposteur, autour de la même table.',
   dico:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
   mimes:'Mime une action à l’intensité tirée au sort.',
+  dilemme:'Complète le dilemme pour que la table se coupe pile en deux.',
 };
 function pitch(k){
   const n = minPlayers(k) === maxPlayers(k) ? `${minPlayers(k)} joueurs` : `${minPlayers(k)} à ${maxPlayers(k)} joueurs`;
@@ -393,7 +395,7 @@ function lobbyHint(){
 
 // Réglages du salon : − et + changent la valeur à l'écran tout de suite,
 // l'envoi au serveur part quand l'hôte arrête de taper.
-const optKey = () => ['priorites','ondes','mimes','dico'].includes(state.room.mode) ? 'turns' : 'target';
+const optKey = () => ['priorites','ondes','mimes','dico','dilemme'].includes(state.room.mode) ? 'turns' : 'target';
 const OPT_BORNES = { ...BORNES, pun:[0, 5] };
 let optDraft = {}, optTimer = null;
 function optValue(k){
@@ -470,7 +472,7 @@ function gameBox(host){
   rulesFirstTime(r.mode);
   // Le nombre se règle avec − et + : manches à gagner, à jouer, ou tours par joueur.
   const k = optKey(), label = (r.mode === 'bac' || r.mode === 'white') ? 'Manches à jouer'
-    : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : r.mode === 'dico' ? 'meneur' : 'juge'}` : 'Manches à gagner';
+    : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : ['dico','dilemme'].includes(r.mode) ? 'meneur' : 'juge'}` : 'Manches à gagner';
   const opts = host ? stepper(k, k === 'turns' ? 'Tours' : 'Manches', label) : '';
   // Punitions : une roue à activer, toujours 2 par joueur quand elles sont activées
   const on = !!pun?.on, nb = +(pun?.count || PUN_NB);

@@ -282,3 +282,15 @@ assert.match(css, /100cqh - \(var\(--rows\) - 1\) \* 8px\) \/ var\(--rows\)/, 'V
 assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
 
 console.log('Frontend sanity checks passed.');
+
+// Dilemme parfait : jeu déclaré, phases branchées, bots pilotés par l'hôte, barème au 50/50.
+assert.match(scripts[0], /dilemme:\s*\{ name:'Dilemme parfait'/, 'Jeu Dilemme parfait présent');
+assert.match(scripts[0], /dilemme_pick:dilemmePick, dilemme_write:dilemmeWrite, dilemme_vote:dilemmeVote/, 'Phases du Dilemme déclarées');
+assert.match(scripts[0], /if \(isDilemme\(\)\) return dilemmeReveal\(\) \+ sharedRoundNext\(\)/, 'Révélation du Dilemme');
+assert.match(scripts[0], /rpc\('dilemme_bot_step'/, 'Bots du Dilemme');
+assert.match(scripts[0], /act\('dilemme_vote', \{ p_buts:ids, p_yes:/, 'Oui/Non envoyés d’un coup');
+const dilemmeMigration = fs.readFileSync(new URL('../supabase/migrations/20261107120000_dilemme_parfait.sql', import.meta.url), 'utf8');
+assert.match(dilemmeMigration, /round\(3 \* \(1 - abs\(2 \* t\.y - t\.n\)::numeric \/ t\.n\)\)/, 'Barème : 3 pts au 50/50, 0 à l’unanimité');
+assert.match(dilemmeMigration, /raise exception 'Tu ne votes pas pour ta propre proposition\.'/, 'Vote pour soi refusé');
+assert.match(dilemmeMigration, /'author_id', case when fin then b\.player_id end/, 'Auteurs cachés jusqu’à la révélation');
+assert.match(dilemmeMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
