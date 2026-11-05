@@ -51,13 +51,15 @@ const dilemmeBotArgs = () => ({ p_starts: melange(DILEMME_DEBUTS).slice(0, 1), p
 const dilPhrase = (start, but) => `<span class="dlm-a">${esc(start)},</span> <span class="dlm-b">mais ${esc(but)}</span>`;
 const dilDebut = (cls = '') => qcard('Le dilemme', `<span class="dlm-a">${esc(state.dilemme?.start || '')},</span> <span class="dlm-b">mais…</span>`, 'dlm-card short ' + cls);
 
-// Sa cible secrète : la part de Oui à viser, sur une jauge.
+// Sa cible secrète : combien de Oui obtenir, une case par votant (vert = Oui visé).
+// La cible s'adapte au nombre de votants : jamais un pourcentage impossible.
+const ouiSur = t => `${t.yes} Oui sur ${t.voters}`;
 function dilCible(t, compact = false){
-  if (t == null) return '';
-  return `<section class="dlm-target${compact ? ' compact' : ''}" aria-label="Ta cible secrète : ${t} % de Oui">
+  if (!t) return '';
+  return `<section class="dlm-target${compact ? ' compact' : ''}" aria-label="Ta cible secrète : ${ouiSur(t)}, ${t.pct} %">
     <p class="eyebrow">Ta cible secrète${compact ? '' : ', toi seul la vois'}</p>
-    <p class="dlm-tnum"><b>${t} %</b> de Oui</p>
-    <div class="dlm-gauge"><i style="width:${t}%"></i></div>
+    <p class="dlm-tnum"><b>${t.yes} Oui</b> sur ${t.voters} votant${t.voters > 1 ? 's' : ''} <span class="muted">(${t.pct} %)</span></p>
+    <div class="dlm-cells" aria-hidden="true">${Array.from({ length: t.voters }, (_, i) => `<i class="${i < t.yes ? 'y' : 'n'}"></i>`).join('')}</div>
   </section>`;
 }
 
@@ -95,7 +97,7 @@ function dilemmeWrite(){
     ${dilCible(d.my_target, true)}
     ${suivi}`;
   return `
-    <p class="role"><b>Complète le dilemme</b> pour que la table réponde Oui dans la proportion de ta cible.</p>
+    <p class="role"><b>Complète le dilemme</b> pour obtenir pile le nombre de Oui de ta cible.</p>
     ${dilCible(d.my_target)}
     ${dilDebut()}
     <label class="dwrite"><span>mais…</span><textarea id="dil-but" rows="2" maxlength="140" autocapitalize="off"
@@ -112,7 +114,7 @@ function dilemmeVote(){
   const change = envoye && autres.some(x => dilVotes[x.id] !== x.my_vote);
   const items = buts.map(x => `<li class="dlm-item${x.mine ? ' own' : ''}">
     <p class="dlm-txt">${dilPhrase(d.start, x.text)}</p>
-    ${x.mine ? `<p class="dlm-own">Ta proposition${d.my_target != null ? ` · cible ${d.my_target} %` : ''}</p>` : `<div class="dlm-yn" role="group" aria-label="Tu acceptes ?">
+    ${x.mine ? `<p class="dlm-own">Ta proposition${d.my_target != null ? ` · cible ${ouiSur(d.my_target)}` : ''}</p>` : `<div class="dlm-yn" role="group" aria-label="Tu acceptes ?">
       <button type="button" class="yes${dilVotes[x.id] === true ? ' on' : ''}" data-act="dil-yn" data-id="${x.id}" data-v="1" aria-pressed="${dilVotes[x.id] === true}">Oui</button>
       <button type="button" class="no${dilVotes[x.id] === false ? ' on' : ''}" data-act="dil-yn" data-id="${x.id}" data-v="0" aria-pressed="${dilVotes[x.id] === false}">Non</button>
     </div>`}</li>`).join('');
@@ -139,10 +141,10 @@ function dilemmeReveal(){
       return `<li class="dlm-item res${mille ? ' perfect' : ''}">
         <p class="dlm-txt">${dilPhrase(d.start, x.text)}</p>
         <p class="dby"><span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b></span>${mille ? '<span class="tag">dans le mille</span>' : ''}<b class="plus" data-n="${x.points ?? 0}">+${x.points ?? 0}</b></p>
-        ${t != null ? `<p class="dlm-goal">Cible <b>${t} %</b> de Oui · obtenu <b>${tot ? py + ' %' : '—'}</b></p>` : ''}
-        <div class="dlm-split" role="img" aria-label="${y} oui, ${n} non${t != null ? `, cible ${t} % de oui` : ''}">
+        ${t ? `<p class="dlm-goal">Cible <b>${ouiSur(t)}</b> · obtenu <b>${y} Oui sur ${tot}</b></p>` : ''}
+        <div class="dlm-split" role="img" aria-label="${y} oui, ${n} non${t ? `, cible ${ouiSur(t)}` : ''}">
           <i class="y" style="width:${tot ? py : 50}%"><span>${tot ? py + ' % oui' : ''}</span></i><i class="n" style="width:${tot ? 100 - py : 50}%"><span>${tot ? 100 - py + ' % non' : ''}</span></i>
-          ${t != null ? `<b class="dlm-mark" style="left:${t}%" aria-hidden="true"></b>` : ''}
+          ${t ? `<b class="dlm-mark" style="left:${t.pct}%" aria-hidden="true"></b>` : ''}
         </div>
         <div class="dlm-who"><div><small>Oui</small>${y ? qui(x.yes) : '<span class="muted">Personne</span>'}</div><div><small>Non</small>${n ? qui(x.no) : '<span class="muted">Personne</span>'}</div></div>
       </li>` }).join('')}</ol>

@@ -296,9 +296,9 @@ assert.match(dilemmeMigration, /'author_id', case when fin then b\.player_id end
 assert.match(dilemmeMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 // Dilemme : cibles secrètes de 10 à 90 %, cachées aux autres jusqu'à la révélation.
 const ciblesMigration = fs.readFileSync(new URL('../supabase/migrations/20261108120000_dilemme_cibles.sql', import.meta.url), 'utf8');
-assert.match(ciblesMigration, /10 \* \(1 \+ floor\(random\(\) \* 9\)\)::integer/, 'Cibles tirées parmi 10, 20… 90 %');
+assert.match(ciblesMigration, /case when n >= 2 then 1 \+ floor\(random\(\) \* \(n - 1\)\)::integer else n end/, 'Cible atteignable : entre 1 et votants − 1 Oui');
 assert.match(ciblesMigration, /'target', case when fin then/, 'Cibles des autres cachées jusqu’à la révélation');
-assert.match(ciblesMigration, /'my_target', \(select t\.target from public\.dilemme_cibles t where t\.room_id = r\.id and t\.round = r\.round and t\.player_id = me\.id\)/, 'Chacun reçoit sa propre cible');
+assert.match(ciblesMigration, /'my_target', \(select jsonb_build_object\('pct', t\.target, 'yes', t\.target_yes, 'voters', t\.voters\)\s+from public\.dilemme_cibles t where t\.room_id = r\.id and t\.round = r\.round and t\.player_id = me\.id\)/, 'Chacun reçoit sa propre cible');
 assert.match(ciblesMigration, /greatest\(0, 3 - ceil\(trop \/ 20\.0\)\)/, 'Barème : 3, 2, 1, 0 selon l’écart à la cible');
 assert.match(ciblesMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 assert.match(scripts[0], /dilCible\(d\.my_target\)/, 'Cible secrète affichée pendant la rédaction');

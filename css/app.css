@@ -1074,10 +1074,11 @@ body[data-game="dilemme"]{--accent:#FF7C64}
   background:linear-gradient(170deg,rgba(255,124,100,.16),var(--surface) 65%)}
 .dlm-target.compact{padding:11px 14px}
 .dlm-tnum{margin-top:4px;font-size:17px}
-.dlm-tnum b{font-size:30px;font-weight:800;letter-spacing:-.02em;color:#FF9C88}
+.dlm-tnum b{font-size:28px;font-weight:800;letter-spacing:-.02em;color:#FF9C88}
 .dlm-target.compact .dlm-tnum b{font-size:22px}
-.dlm-gauge{height:10px;margin-top:8px;border-radius:6px;overflow:hidden;background:var(--pop)}
-.dlm-gauge i{display:block;height:100%;background:var(--mint)}
+.dlm-cells{display:flex;gap:5px;margin-top:9px}
+.dlm-cells i{flex:1;height:12px;border-radius:4px;background:var(--pop)}
+.dlm-cells i.y{background:var(--mint)}
 .dlm-goal{margin-top:6px;font-size:14px;color:var(--text-dim)}
 .dlm-goal b{color:var(--text)}
 .dlm-split{position:relative}

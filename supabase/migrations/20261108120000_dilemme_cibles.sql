@@ -1,12 +1,15 @@
 -- Dilemme parfait, cibles secrètes : au lieu de viser toujours 50/50, chaque
--- joueur reçoit en secret un pourcentage de Oui à atteindre (10, 20… 90 %),
--- tiré au hasard quand le meneur pose le dilemme. Personne d'autre ne le
--- connaît avant la révélation.
+-- joueur reçoit en secret un nombre de Oui à obtenir, tiré au hasard quand le
+-- meneur pose le dilemme. Personne d'autre ne le connaît avant la révélation.
+--
+-- La cible s'adapte au nombre de votants (tous les joueurs sauf l'auteur) :
+-- entre 1 Oui et « votants − 1 » Oui, jamais l'unanimité. À 3 votants :
+-- 1 ou 2 Oui sur 3 (33 ou 67 %) ; à 4 votants : 25, 50 ou 75 % ; etc.
 --
 -- Points d'une proposition, selon l'écart entre la part de Oui obtenue et la
 -- cible, en points de pourcentage. On retire d'abord l'écart minimal
--- atteignable avec ce nombre de votants (à 3 votants, 50 % est impossible :
--- 33 % ou 67 % comptent comme parfaits) :
+-- atteignable avec le nombre de votants restant (utile si un joueur part en
+-- cours de manche) :
 --   écart en trop nul  -> 3 pts
 --   jusqu'à 20 points  -> 2 pts
 --   jusqu'à 40 points  -> 1 pt
@@ -23,7 +26,9 @@ create table if not exists public.dilemme_cibles (
   room_id uuid not null references public.rooms(id) on delete cascade,
   round integer not null,
   player_id uuid not null references public.players(id) on delete cascade,
-  target integer not null check (target between 0 and 100),
+  target integer not null check (target between 0 and 100),   -- en %
+  target_yes integer not null,   -- nombre de Oui visé
+  voters integer not null,       -- nombre de votants au moment du tirage
   primary key (room_id, round, player_id)
 );
 alter table public.dilemme_cibles enable row level security;
@@ -32,7 +37,7 @@ revoke all on public.dilemme_cibles from public, anon, authenticated;
 -- Le meneur a posé le début : chaque joueur actif reçoit sa cible secrète.
 create or replace function public._dilemme_set_start(p_room uuid, p_start text)
 returns void language plpgsql security definer set search_path to '' as $fn$
-declare r public.rooms;
+declare r public.rooms; n integer;
   s text := left(regexp_replace(trim(coalesce(p_start, '')), '\s+', ' ', 'g'), 140);
 begin
   select * into r from public.rooms where id = p_room for update;
@@ -41,9 +46,12 @@ begin
   s := trim(regexp_replace(s, '[\s,.…]*(mais)?[\s,.…]*$', '', 'i'));
   if length(s) < 5 then raise exception 'Écris le début du dilemme.'; end if;
   delete from public.dilemme_cibles where room_id = r.id;
-  insert into public.dilemme_cibles(room_id, round, player_id, target)
-  select r.id, r.round, p.id, 10 * (1 + floor(random() * 9))::integer
-    from public.players p where p.room_id = r.id and p.active;
+  -- votants = joueurs actifs sauf l'auteur ; cible entre 1 et votants − 1 Oui
+  select count(*) - 1 into n from public.players where room_id = r.id and active;
+  insert into public.dilemme_cibles(room_id, round, player_id, target, target_yes, voters)
+  select r.id, r.round, p.id, round(100.0 * k / greatest(n, 1))::integer, k, n
+    from (select p.id, case when n >= 2 then 1 + floor(random() * (n - 1))::integer else n end as k
+            from public.players p where p.room_id = r.id and p.active) p;
   update public.rooms set dilemme_start = s, status = 'dilemme_write',
     phase_at = now(), updated_at = now() where id = r.id;
 end $fn$;
@@ -160,7 +168,8 @@ begin
     extra := extra || jsonb_build_object('dilemme', jsonb_build_object(
       'start', r.dilemme_start,
       -- sa propre cible, connue de lui seul jusqu'à la révélation
-      'my_target', (select t.target from public.dilemme_cibles t where t.room_id = r.id and t.round = r.round and t.player_id = me.id),
+      'my_target', (select jsonb_build_object('pct', t.target, 'yes', t.target_yes, 'voters', t.voters)
+                     from public.dilemme_cibles t where t.room_id = r.id and t.round = r.round and t.player_id = me.id),
       'mine', (select b.text from public.dilemme_buts b where b.room_id = r.id and b.round = r.round and b.player_id = me.id),
       'written', (select coalesce(jsonb_agg(b.player_id), '[]'::jsonb) from public.dilemme_buts b
                    join public.players p on p.id = b.player_id and p.active
@@ -171,7 +180,8 @@ begin
             'id', b.id, 'text', b.text, 'mine', b.player_id = me.id,
             'my_vote', (select v.yes from public.dilemme_votes v where v.but_id = b.id and v.voter_id = me.id),
             'author_id', case when fin then b.player_id end,
-            'target', case when fin then (select t.target from public.dilemme_cibles t
+            'target', case when fin then (select jsonb_build_object('pct', t.target, 'yes', t.target_yes, 'voters', t.voters)
+                        from public.dilemme_cibles t
                         where t.room_id = r.id and t.round = r.round and t.player_id = b.player_id) end,
             'yes', case when fin then (select coalesce(jsonb_agg(v.voter_id), '[]'::jsonb) from public.dilemme_votes v
                      join public.players q on q.id = v.voter_id and q.active where v.but_id = b.id and v.yes) end,
