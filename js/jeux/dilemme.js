@@ -83,8 +83,7 @@ function dilemmePick(){
     <ul class="dlm-sugg">${dilChoix.map((t, i) => `<li><button type="button" class="dlm-idea${t === dilStartDraft ? ' on' : ''}" data-act="dil-idea" data-i="${i}"
       aria-pressed="${t === dilStartDraft}">${esc(t)}<span class="dlm-b">, mais…</span></button></li>`).join('')}</ul>
     <button type="button" class="btn ghost small dlm-reroll" data-act="dil-reroll">Autres idées</button>
-    <label class="dwrite"><span>Ou écris le tien</span><input id="dil-start" maxlength="120" autocomplete="off" autocapitalize="sentences"
-      placeholder="Tu gagnes…" value="${esc(dilStartDraft)}"></label>
+    <label class="dwrite"><span>Ou écris le tien</span><input id="dil-start" maxlength="120" autocomplete="off" autocapitalize="sentences" value="${esc(dilStartDraft)}"></label>
     <div class="dock"><button class="btn" data-act="dil-start" ${dis()}>Poser le dilemme</button></div>`;
 }
 
@@ -100,8 +99,7 @@ function dilemmeWrite(){
     <p class="role"><b>Complète le dilemme</b> pour obtenir pile le nombre de Oui de ta cible.</p>
     ${dilCible(d.my_target)}
     ${dilDebut()}
-    <label class="dwrite"><span>mais…</span><textarea id="dil-but" rows="2" maxlength="140" autocapitalize="off"
-      placeholder="tu dois…">${esc(dilButDraft)}</textarea></label>
+    <label class="dwrite"><span>mais…</span><textarea id="dil-but" rows="2" maxlength="140" autocapitalize="off">${esc(dilButDraft)}</textarea></label>
     <div class="dock"><button class="btn" data-act="dil-send" ${dis()}>Envoyer ma proposition</button></div>`;
 }
 
