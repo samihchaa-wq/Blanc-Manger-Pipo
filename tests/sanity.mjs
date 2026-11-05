@@ -275,4 +275,10 @@ assert.match(scripts[0], /enLigne\.texte !== connu\.texte/, 'Comparaison du cont
 assert.match(scripts[0], /const sansVersion = t => t\.replace\(\/\\\?v=/, 'Les ?v=… de la mise en ligne ne comptent pas');
 assert.match(scripts[0], /if \(state && !GAMES\[state\.room\.mode\]\) return recharger\(\)/, 'Jeu inconnu : rechargement immédiat');
 
+// Accueil : la taille des vignettes vient de la place libre, mesurée en CSS
+// (requête de conteneur), et non d'un calcul JavaScript lancé au mauvais moment.
+assert.match(css, /\.home \.gamesfit\{position:absolute;inset:0;container-type:size/, 'Cadre des vignettes mesuré en CSS');
+assert.match(css, /100cqh - \(var\(--rows\) - 1\) \* 8px\) \/ var\(--rows\)/, 'Vignettes limitées par la hauteur libre');
+assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
+
 console.log('Frontend sanity checks passed.');
