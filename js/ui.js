@@ -170,7 +170,7 @@ const PITCH = {
   white:'Démasquez l’imposteur, autour de la même table.',
   dico:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
   mimes:'Mime une action à l’intensité tirée au sort.',
-  dilemme:'Complète le dilemme pour que la table se coupe pile en deux.',
+  dilemme:'Complète le dilemme pour que la table dise Oui pile dans la proportion de ta cible secrète.',
 };
 function pitch(k){
   const n = minPlayers(k) === maxPlayers(k) ? `${minPlayers(k)} joueurs` : `${minPlayers(k)} à ${maxPlayers(k)} joueurs`;
