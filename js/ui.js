@@ -139,15 +139,15 @@ function fitDock(){
 // (retour à la ligne du libellé) : la réserve doit suivre.
 addEventListener('resize', fitDock);
 
-// Accueil : les vignettes prennent toute la largeur tant que la page tient sur
-// un écran, et rétrécissent seulement de ce qui dépasse. On mesure au lieu de
-// deviner : encoche, barre de Safari, appli installée et police réglée par le
-// système changent la hauteur disponible. Sur 3 colonnes, la grille gagne en
-// hauteur « rangées / 3 » px par px de largeur : on réduit d'autant, en
-// remesurant (avec le Dico, il y a 3 rangées et non plus 2).
+// Accueil : la taille des vignettes se règle en CSS (requête de conteneur, voir
+// .gamesbox). Seuls les navigateurs trop anciens pour ça passent par ici : les
+// vignettes prennent toute la largeur et rétrécissent de ce qui dépasse de
+// l'écran. Sur 3 colonnes, la grille gagne « rangées / 3 » px de hauteur par px
+// de largeur : on réduit d'autant, en remesurant.
+const tailleEnCss = !!window.CSS?.supports?.('container-type', 'size');
 function fitGames(){
   const g = app.querySelector('.home .seg.games');
-  if (!g) return;
+  if (!g || tailleEnCss) return;
   g.style.width = ''; g.style.margin = '';
   const rangees = Math.max(1, Math.ceil(g.children.length / 3));
   for (let i = 0; i < 4; i++) {
@@ -196,9 +196,9 @@ function home(){
       <section class="panel pane" id="pane-create" ${join ? 'hidden' : ''}>
         <label class="inline"><span>Pseudo :</span><input id="c-name" maxlength="20" autocomplete="nickname" placeholder="Ton prénom ou surnom" value="${esc(nm)}"></label>
         <div class="field">
-          <div class="seg s2 games" role="group" aria-label="Jeu">
+          <div class="gamesbox" style="--rows:${Math.ceil(Object.keys(GAMES).length / 3)}"><div class="gamesfit"><div class="seg s2 games" role="group" aria-label="Jeu">
             ${Object.entries(GAMES).map(([k,g]) => `<button type="button" class="seg-b ${k === 'phrases' ? 'on' : ''}" data-act="mode" data-v="${k}" aria-pressed="${k === 'phrases'}"><img src="games/${k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp'}" width="720" height="720" alt="${g.name}" decoding="async"></button>`).join('')}
-          </div>
+          </div></div></div>
           <input type="hidden" id="c-mode" value="phrases">
           <p class="pitch" id="c-pitch" aria-live="polite">${pitch('phrases')}</p>
         </div>

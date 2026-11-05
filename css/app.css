@@ -934,6 +934,23 @@ body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint
 .home .pane[hidden]{display:none}
 .home #pane-create>.field{margin:auto 0;padding:10px 0}
 .home .pane>.btn{margin-top:auto}
+/* Les vignettes prennent toute la place libre entre le pseudo et la description,
+   sans jamais faire défiler. Le cadre (.gamesbox) reçoit cette place ; la grille
+   en déduit la plus grande vignette carrée qui tient en largeur et en hauteur.
+   Tout se calcule en CSS : rien à rater quand le clavier, la barre de Safari ou
+   la police changent la hauteur de l'écran (le calcul en JavaScript, lancé au
+   mauvais moment, laissait les vignettes trop petites avec du vide dessous). */
+@supports (container-type:size){
+  .home #pane-create>.field{flex:1;min-height:0;margin:0;display:flex;flex-direction:column}
+  .home .gamesbox{flex:1;min-height:calc(var(--rows) * 60px + (var(--rows) - 1) * 8px);margin:0 -8px;position:relative}
+  /* posé en absolu : sa taille est celle, définitive, que la mise en page a
+     donnée au cadre (un élément flexible mesuré directement vaut 0 en hauteur) */
+  .home .gamesfit{position:absolute;inset:0;container-type:size;display:grid;place-items:center}
+  .home .gamesfit .seg.games{--t:max(60px,min((100cqw - 16px) / 3,(100cqh - (var(--rows) - 1) * 8px) / var(--rows)));
+    width:calc(3 * var(--t) + 16px);max-width:none;margin:0}
+  /* trois lignes réservées : changer de jeu ne fait pas sauter les vignettes */
+  .home .pitch{min-height:4.05em}
+}
 
 /* ===== Le Dico : le livre et sa page ===== */
 .bookwrap{display:grid;place-items:center;min-height:50vh;perspective:1300px}
