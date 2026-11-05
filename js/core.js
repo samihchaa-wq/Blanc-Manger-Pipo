@@ -45,9 +45,10 @@ const GAMES = {
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
-// Vignettes du choix du jeu (accueil et salon) : Mr White a la sienne.
+// Vignette d'un jeu, la même partout (accueil, salon, barre du haut) : Mr White
+// et Mimes ont la leur en jpg. white.svg reste l'emblème affiché pendant la partie.
 const tileImg = k => k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp';
-const gameImg = k => k === 'white' ? 'white.svg' : k === 'mimes' ? 'mimes.jpg' : (GAMES[k] ? k : 'phrases') + '.webp';
+const gameImg = k => tileImg(GAMES[k] ? k : 'phrases');
 const isPrio = () => state?.room.mode === 'priorites';
 const isWave = () => state?.room.mode === 'ondes';
 const isBac = () => state?.room.mode === 'bac';
