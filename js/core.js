@@ -40,6 +40,7 @@ const GAMES = {
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, puis jugez ceux de votre adversaire.' },
   white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
   mimes:     { name:'Mimes', desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
+  dilemme:   { name:'Dilemme parfait', desc:'Le meneur pose le début d’un dilemme (« Tu gagnes un million d’euros… »), chacun écrit la suite après « mais… ». Puis tout le monde répond Oui ou Non aux dilemmes des autres. Le but : couper la table en deux. 3 pts pour un 50/50 parfait, 0 si tout le monde répond pareil.' },
   dico:      { name:'Le Dico', desc:'Le meneur ouvre le dictionnaire au hasard, choisit un mot et le lit à voix haute. Chacun en invente une définition ; elles sont mélangées avec la vraie, le meneur les lit toutes et chacun vote pour celle qu’il croit juste. +2 pts si tu trouves la vraie, +1 pt par joueur que ta définition a dupé, +2 pts au meneur si personne ne trouve.' },
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
@@ -53,9 +54,10 @@ const isBac = () => state?.room.mode === 'bac';
 const isWhite = () => state?.room.mode === 'white';
 const isMime = () => state?.room.mode === 'mimes';
 const isDico = () => state?.room.mode === 'dico';
+const isDilemme = () => state?.room.mode === 'dilemme';
 const isInverse = () => isWave() && state?.room.wave_variant === 'inverse';
 // Priorités, Baromètre et Petit bac se jouent en manches comptées, pas au score cible.
-const isCounted = () => isPrio() || isWave() || isBac() || isWhite() || isMime() || isDico();
+const isCounted = () => isPrio() || isWave() || isBac() || isWhite() || isMime() || isDico() || isDilemme();
 // Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
 // moins deux réponses à départager. Le Petit bac se joue à deux exactement.
 // Le serveur applique les mêmes règles.
@@ -267,7 +269,7 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {}; dicoPage = null; dicoSel = null; dicoDraft = ''; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {}; dicoPage = null; dicoSel = null; dicoDraft = ''; dilChoix = null; dilStartDraft = ''; dilButDraft = ''; dilVotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     // un jeu que ce code ne connaît pas : une version plus récente est en ligne
@@ -371,6 +373,10 @@ function scheduleBots(){
   else if (r.status === 'dico_pick')  todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'dico_write') todo = bots.some(b => b.id !== r.reader_id && !(state.dico?.written || []).includes(b.id));
   else if (r.status === 'dico_vote')  todo = bots.some(b => b.id !== r.reader_id && !(state.dico?.voted || []).includes(b.id));
+  // Dilemme parfait : meneur bot, bots qui n'ont pas écrit ou pas répondu
+  else if (r.status === 'dilemme_pick')  todo = bots.some(b => b.id === r.reader_id);
+  else if (r.status === 'dilemme_write') todo = bots.some(b => !(state.dilemme?.written || []).includes(b.id));
+  else if (r.status === 'dilemme_vote')  todo = bots.some(b => !(state.dilemme?.voted || []).includes(b.id));
   else if (r.status === 'guessing')   todo = bots.some(b => b.id !== r.reader_id && !b.guessed);
   else if (r.status === 'naming')     todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'writing')    todo = bots.some(b => !b.bac_done);
@@ -392,6 +398,8 @@ function scheduleBots(){
         const p = await dicoPageAuHasard();
         await rpc('dico_bot_step', { p_code:session.code, p_token:session.token,
           p_words:p.mots.map(e => e[0]), p_natures:p.mots.map(e => e[1]), p_defs:p.mots.map(e => e[2]) });
+      } else if (r.mode === 'dilemme' && r.status.startsWith('dilemme_')) {
+        await rpc('dilemme_bot_step', { p_code:session.code, p_token:session.token, ...dilemmeBotArgs() });
       } else await rpc(fn, { p_code:session.code, p_token:session.token });
       ping(); refresh(true);
     }

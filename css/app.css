@@ -1032,3 +1032,40 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
 
 /* Baromètre inversé : − et + aux deux bouts du cadran */
 .wlabs.signs .wlab{min-width:52px;text-align:center;font-size:24px;font-weight:700;line-height:1}
+
+/* ===== Dilemme parfait ===== */
+body[data-game="dilemme"]{--accent:#FF7C64}
+.dlm-a{font-weight:500}
+.dlm-b{font-weight:800}
+.dlm-card .qtext{line-height:1.3}
+.dlm-sugg{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px}
+.dlm-idea{display:block;width:100%;padding:14px 16px;border-radius:15px;text-align:left;font-size:17px;font-weight:600;line-height:1.35;
+  color:var(--ink);background:linear-gradient(170deg,var(--paper),var(--paper-2));box-shadow:0 3px 0 var(--paper-edge),0 8px 18px -10px rgba(0,0,0,.6);
+  transition:transform .14s var(--ease)}
+.dlm-idea .dlm-b{color:var(--ink-soft)}
+.dlm-idea:active{transform:translateY(2px)}
+.dlm-idea.on{background:linear-gradient(170deg,var(--gold-paper-2),var(--gold));box-shadow:0 0 0 3px var(--mint),0 3px 0 var(--gold-deep)}
+.dlm-reroll{display:block;margin:12px auto 0}
+#dil-but{min-height:72px;font-size:17px;line-height:1.4}
+.dlm-list{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:12px}
+.dlm-item{padding:14px 16px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline)}
+.dlm-item.own{opacity:.6}
+.dlm-item.perfect{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset}
+.dlm-txt{font-size:17px;line-height:1.4}
+.dlm-own{margin-top:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.dlm-yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.dlm-yn button{padding:11px 8px;border-radius:12px;font-size:16px;font-weight:700;color:var(--text);
+  background:var(--surface-2);border:1.5px solid var(--hairline-2);transition:transform .12s var(--ease)}
+.dlm-yn button:active{transform:translateY(2px)}
+.dlm-yn .yes.on{background:var(--mint);border-color:var(--mint);color:var(--mint-ink)}
+.dlm-yn .no.on{background:var(--pop);border-color:var(--pop);color:#fff}
+.dlm-item .dby{justify-content:flex-start}
+.dlm-item .dby .plus{margin-left:auto}
+.dlm-split{display:flex;height:30px;margin-top:10px;border-radius:9px;overflow:hidden;background:var(--surface-2)}
+.dlm-split i{display:flex;align-items:center;min-width:0;font-style:normal;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden}
+.dlm-split i span{padding:0 9px}
+.dlm-split .y{background:var(--mint);color:var(--mint-ink)}
+.dlm-split .n{justify-content:flex-end;background:var(--pop);color:#fff}
+.dlm-who{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.dlm-who>div{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;font-size:13px}
+.dlm-who small{flex-basis:100%;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
