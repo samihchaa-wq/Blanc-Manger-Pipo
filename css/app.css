@@ -1069,3 +1069,18 @@ body[data-game="dilemme"]{--accent:#FF7C64}
 .dlm-who{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .dlm-who>div{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;font-size:13px}
 .dlm-who small{flex-basis:100%;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+/* Dilemme : cible secrète et repère de la cible sur la barre des résultats */
+.dlm-target{margin-top:14px;padding:14px 16px;border-radius:var(--r-md);border:1px solid rgba(255,124,100,.55);
+  background:linear-gradient(170deg,rgba(255,124,100,.16),var(--surface) 65%)}
+.dlm-target.compact{padding:11px 14px}
+.dlm-tnum{margin-top:4px;font-size:17px}
+.dlm-tnum b{font-size:28px;font-weight:800;letter-spacing:-.02em;color:#FF9C88}
+.dlm-target.compact .dlm-tnum b{font-size:22px}
+.dlm-cells{display:flex;gap:5px;margin-top:9px}
+.dlm-cells i{flex:1;height:12px;border-radius:4px;background:var(--pop)}
+.dlm-cells i.y{background:var(--mint)}
+.dlm-goal{margin-top:6px;font-size:14px;color:var(--text-dim)}
+.dlm-goal b{color:var(--text)}
+.dlm-split{position:relative}
+.dlm-mark{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;border-radius:2px;background:#fff;
+  box-shadow:0 0 0 2px var(--bg-0)}

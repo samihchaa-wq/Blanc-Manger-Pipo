@@ -1,6 +1,7 @@
 // Dilemme parfait : le meneur pose le début d'un dilemme, chacun écrit la suite
 // après « mais… », puis tout le monde répond Oui ou Non aux propositions des
-// autres. Le but : couper la table pile en deux.
+// autres. Chaque joueur a reçu en secret une cible (10 à 90 % de Oui) : il
+// écrit sa suite pour que la table réponde Oui dans cette proportion.
 // Script classique (pas un module) : tous les fichiers partagent la même portée
 // globale et se chargent dans l'ordre d'index.html, comme l'ancien script unique.
 /* ---------- Dilemme parfait ---------- */
@@ -50,6 +51,18 @@ const dilemmeBotArgs = () => ({ p_starts: melange(DILEMME_DEBUTS).slice(0, 1), p
 const dilPhrase = (start, but) => `<span class="dlm-a">${esc(start)},</span> <span class="dlm-b">mais ${esc(but)}</span>`;
 const dilDebut = (cls = '') => qcard('Le dilemme', `<span class="dlm-a">${esc(state.dilemme?.start || '')},</span> <span class="dlm-b">mais…</span>`, 'dlm-card short ' + cls);
 
+// Sa cible secrète : combien de Oui obtenir, une case par votant (vert = Oui visé).
+// La cible s'adapte au nombre de votants : jamais un pourcentage impossible.
+const ouiSur = t => `${t.yes} Oui sur ${t.voters}`;
+function dilCible(t, compact = false){
+  if (!t) return '';
+  return `<section class="dlm-target${compact ? ' compact' : ''}" aria-label="Ta cible secrète : ${ouiSur(t)}, ${t.pct} %">
+    <p class="eyebrow">Ta cible secrète${compact ? '' : ', toi seul la vois'}</p>
+    <p class="dlm-tnum"><b>${t.yes} Oui</b> sur ${t.voters} votant${t.voters > 1 ? 's' : ''} <span class="muted">(${t.pct} %)</span></p>
+    <div class="dlm-cells" aria-hidden="true">${Array.from({ length: t.voters }, (_, i) => `<i class="${i < t.yes ? 'y' : 'n'}"></i>`).join('')}</div>
+  </section>`;
+}
+
 function dilSuivi(faits, mot){
   const tous = state.players.filter(p => p.active !== false);
   const reste = tous.filter(p => !faits.includes(p.id)), n = tous.length - reste.length;
@@ -81,9 +94,11 @@ function dilemmeWrite(){
   if (d.mine) return `
     <p class="role"><b>Proposition envoyée.</b> Les autres diront s’ils acceptent.</p>
     ${qcard('Ta proposition', dilPhrase(d.start, d.mine), 'dlm-card')}
+    ${dilCible(d.my_target, true)}
     ${suivi}`;
   return `
-    <p class="role"><b>Complète le dilemme.</b> Vise une suite qui coupe la table en deux : la moitié dit oui, l’autre non.</p>
+    <p class="role"><b>Complète le dilemme</b> pour obtenir pile le nombre de Oui de ta cible.</p>
+    ${dilCible(d.my_target)}
     ${dilDebut()}
     <label class="dwrite"><span>mais…</span><textarea id="dil-but" rows="2" maxlength="140" autocapitalize="off"
       placeholder="tu dois…">${esc(dilButDraft)}</textarea></label>
@@ -99,7 +114,7 @@ function dilemmeVote(){
   const change = envoye && autres.some(x => dilVotes[x.id] !== x.my_vote);
   const items = buts.map(x => `<li class="dlm-item${x.mine ? ' own' : ''}">
     <p class="dlm-txt">${dilPhrase(d.start, x.text)}</p>
-    ${x.mine ? '<p class="dlm-own">Ta proposition</p>' : `<div class="dlm-yn" role="group" aria-label="Tu acceptes ?">
+    ${x.mine ? `<p class="dlm-own">Ta proposition${d.my_target != null ? ` · cible ${ouiSur(d.my_target)}` : ''}</p>` : `<div class="dlm-yn" role="group" aria-label="Tu acceptes ?">
       <button type="button" class="yes${dilVotes[x.id] === true ? ' on' : ''}" data-act="dil-yn" data-id="${x.id}" data-v="1" aria-pressed="${dilVotes[x.id] === true}">Oui</button>
       <button type="button" class="no${dilVotes[x.id] === false ? ' on' : ''}" data-act="dil-yn" data-id="${x.id}" data-v="0" aria-pressed="${dilVotes[x.id] === false}">Non</button>
     </div>`}</li>`).join('');
@@ -111,7 +126,7 @@ function dilemmeVote(){
     <div class="dock"><button class="btn" data-act="dil-vote" ${dis(reste > 0 || (envoye && !change))}>${label}</button></div>`;
 }
 
-// Révélation : chaque proposition avec son auteur, la part de Oui et de Non, et ses points.
+// Révélation : chaque proposition avec son auteur, sa cible, la part de Oui obtenue et ses points.
 function dilemmeReveal(){
   const d = state.dilemme || {};
   const buts = (d.buts || []).filter(x => P(x.author_id))
@@ -122,12 +137,14 @@ function dilemmeReveal(){
     <p class="role">Le dilemme de <b>${isMe(state.room.reader_id) ? 'toi' : nameOf(state.room.reader_id)}</b></p>
     <ol class="dlm-list">${buts.map(x => {
       const y = x.yes.length, n = x.no.length, tot = y + n, py = tot ? Math.round(y / tot * 100) : 0;
-      const parfait = tot > 0 && y === n;
-      return `<li class="dlm-item res${parfait ? ' perfect' : ''}">
+      const mille = tot > 0 && x.points === 3, t = x.target;
+      return `<li class="dlm-item res${mille ? ' perfect' : ''}">
         <p class="dlm-txt">${dilPhrase(d.start, x.text)}</p>
-        <p class="dby"><span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b></span>${parfait ? '<span class="tag">50/50 parfait</span>' : ''}<b class="plus" data-n="${x.points ?? 0}">+${x.points ?? 0}</b></p>
-        <div class="dlm-split" role="img" aria-label="${y} oui, ${n} non">
+        <p class="dby"><span><b>${isMe(x.author_id) ? 'Toi' : nameOf(x.author_id)}</b></span>${mille ? '<span class="tag">dans le mille</span>' : ''}<b class="plus" data-n="${x.points ?? 0}">+${x.points ?? 0}</b></p>
+        ${t ? `<p class="dlm-goal">Cible <b>${ouiSur(t)}</b> · obtenu <b>${y} Oui sur ${tot}</b></p>` : ''}
+        <div class="dlm-split" role="img" aria-label="${y} oui, ${n} non${t ? `, cible ${ouiSur(t)}` : ''}">
           <i class="y" style="width:${tot ? py : 50}%"><span>${tot ? py + ' % oui' : ''}</span></i><i class="n" style="width:${tot ? 100 - py : 50}%"><span>${tot ? 100 - py + ' % non' : ''}</span></i>
+          ${t ? `<b class="dlm-mark" style="left:${t.pct}%" aria-hidden="true"></b>` : ''}
         </div>
         <div class="dlm-who"><div><small>Oui</small>${y ? qui(x.yes) : '<span class="muted">Personne</span>'}</div><div><small>Non</small>${n ? qui(x.no) : '<span class="muted">Personne</span>'}</div></div>
       </li>` }).join('')}</ol>

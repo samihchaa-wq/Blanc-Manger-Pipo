@@ -56,6 +56,10 @@ Current production migration tail:
 
 - `20261107120000_dilemme_parfait` (huitième jeu, Dilemme parfait : phases `dilemme_pick` → `dilemme_write` → `dilemme_vote` → `reveal`, tables `dilemme_buts` / `dilemme_votes` / `dilemme_points`, RPC `dilemme_pick`, `dilemme_write`, `dilemme_vote`, `dilemme_bot_step` ; branches ajoutées à `_begin_round`, `get_state`, `reap_idle`, `_time_phase_seconds`, `_remove_player`, `create_room`, `set_room_options`. Scénario : `supabase/tests/dilemme_scenario.sql`)
 
+- `20261108120000_dilemme_cibles` (Dilemme parfait : cible secrète par joueur, de 10 à 90 % de Oui, table `dilemme_cibles` ; barème `_dilemme_points` selon l'écart à la cible, une fois retiré l'écart minimal atteignable : 3, 2 à 20 points près, 1 à 40 près ; `_dilemme_set_start`, `_dilemme_score` et `get_state` remplacés. Scénario : `supabase/tests/dilemme_cibles_scenario.sql`)
+
+- `20261109120000_dilemme_cibles_adaptees` (cible = nombre de Oui entre 1 et « votants − 1 », toujours atteignable ; colonnes `target_yes` et `voters` ; `_dilemme_set_start` et `get_state` remplacés)
+
 ## Change workflow
 
 For future database changes:
