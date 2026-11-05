@@ -820,22 +820,22 @@ button.scard:active{transform:translateY(2px)}
 #app.fresh .dial .gn{animation:fade-in .35s 1.1s both}
 
 /* Mr White : la carte de l'éliminé se retourne sur son rôle */
-.flip{perspective:900px;width:min(210px,58vw);aspect-ratio:4/5;margin:12px auto 18px}
+.flip{perspective:900px;width:min(140px,38vw);aspect-ratio:4/5;margin:8px auto 14px}
 .flip .in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(180deg)}
 #app.fresh .flip .in{animation:flip 1.1s .7s cubic-bezier(.55,0,.2,1) both}
 @keyframes flip{from{transform:rotateY(0)}}
 .flip .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-  padding:16px;border-radius:22px;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  padding:12px;border-radius:18px;text-align:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .flip .front{background:linear-gradient(170deg,var(--surface-2),var(--surface));border:1.5px solid var(--hairline-2)}
-.flip .front .fn{font-size:20px;font-weight:700}
+.flip .front .fn{font-size:17px;font-weight:700}
 .flip .back{transform:rotateY(180deg);color:var(--gold-ink);
   background:linear-gradient(168deg,var(--gold-paper-2),var(--gold));box-shadow:0 5px 0 var(--gold-deep),var(--shadow-card)}
 .flip .back.r-civil{color:var(--mint-ink);background:linear-gradient(168deg,#8DF2C8,var(--mint-2));box-shadow:0 5px 0 var(--mint-deep),var(--shadow-card)}
 .flip .back.r-undercover{color:#fff;background:linear-gradient(168deg,var(--pop),var(--pop-3));box-shadow:0 5px 0 var(--pop-deep),var(--shadow-card)}
 .flip .back.r-white{color:var(--ink);background:linear-gradient(168deg,#fff,#E7E0F0);box-shadow:0 5px 0 #8E83A0,var(--shadow-card)}
 .flip .back .eyebrow{color:inherit;opacity:.8}
-.flip .back strong{font-size:30px;font-weight:800;letter-spacing:-.035em;line-height:1}
-.flip .back img{width:70px;height:70px}
+.flip .back strong{font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1}
+.flip .back img{width:46px;height:46px}
 
 /* ===== Écrans d'attente ===== */
 /* Dos de carte à la marque : le logo sur la prune du fond, double filet doré et rose. */
