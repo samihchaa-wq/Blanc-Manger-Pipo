@@ -81,6 +81,7 @@ function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);
+  hauteurAccueil();
   // Couleur d'accent du jeu en cours (voir body[data-game] dans la feuille de style)
   const jeu = !adminOpen && session && state ? state.room.mode : '';
   if (jeu) document.body.dataset.game = jeu; else delete document.body.dataset.game;
@@ -159,6 +160,24 @@ function fitGames(){
   }
 }
 addEventListener('resize', fitGames);
+
+// Accueil : la hauteur du bloc = la hauteur réelle de l'écran moins les marges
+// de main (encoche et barre du bas comprises). Sur iPhone, 100dvh donnait
+// moins que l'écran : vide sous le bouton, vignettes petites. On ne garde que
+// la plus grande hauteur vue pour une même largeur, pour que le clavier (qui
+// réduit la fenêtre sur Android) ne fasse pas rétrécir les vignettes.
+let hauteurVue = { w: 0, h: 0 };
+function hauteurAccueil(){
+  const m = document.querySelector('main');
+  if (!m || !document.body.classList.contains('is-home')) return;
+  if (innerWidth !== hauteurVue.w) hauteurVue = { w: innerWidth, h: 0 };
+  hauteurVue.h = Math.max(hauteurVue.h, innerHeight);
+  const st = getComputedStyle(m);
+  const h = hauteurVue.h - parseFloat(st.paddingTop) - parseFloat(st.paddingBottom);
+  if (h > 300) document.documentElement.style.setProperty('--home-h', Math.floor(h) + 'px');
+}
+addEventListener('resize', hauteurAccueil);
+addEventListener('orientationchange', () => setTimeout(hauteurAccueil, 300));
 document.fonts?.ready.then(() => fitGames());
 
 // Accueil : une ligne pour le jeu choisi (nom, nombre de joueurs, principe).

@@ -68,6 +68,9 @@ body.is-home main,body.no-dock main{padding-bottom:calc(18px + env(safe-area-ins
    haut, avec du défilement en prime. */
 .home{--pad:calc(30px + 18px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
   min-height:calc(100vh - var(--pad));min-height:calc(100dvh - var(--pad));
+  /* hauteur mesurée en JavaScript (hauteurAccueil) : sur iPhone, 100dvh laissait
+     un grand vide sous le bouton et rapetissait les vignettes */
+  min-height:var(--home-h,calc(100dvh - var(--pad)));
   display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(8px,2vh,18px);position:relative}
 /* Admin réduit à son badge, posé à droite du logo : le logo monte tout en haut.
    Le logo garde 52 px de marge de chaque côté pour ne jamais passer dessous. */
