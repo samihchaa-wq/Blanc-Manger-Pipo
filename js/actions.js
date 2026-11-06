@@ -38,7 +38,7 @@ document.addEventListener('click', async e => {
     return act('dico_write', { p_text:t });
   }
   if (el.dataset.act === 'dico-vote') { pressedEl = el; return act('dico_vote', { p_def:el.dataset.id }) }
-  // Dilemme parfait : idées de début, suite, Oui/Non gardés sur le téléphone jusqu'à l'envoi
+  // Dilemme : idées de début, suite, Oui/Non gardés sur le téléphone jusqu'à l'envoi
   if (el.dataset.act === 'dil-idea') { dilStartDraft = dilChoix?.[+el.dataset.i] || ''; return render() }
   if (el.dataset.act === 'dil-reroll') { dilTirer(); return render() }
   if (el.dataset.act === 'dil-start') {
@@ -273,6 +273,7 @@ document.addEventListener('click', async e => {
   }
   if (a === 'guess') return act('submit_guess', { p_value: dialVal });
   if (a === 'wave-variant') return act('set_wave_variant', { p_variant: el.dataset.v });
+  if (a === 'dilemme-variant') return act('set_dilemme_variant', { p_variant: el.dataset.v });
   if (a === 'set-game') {
     const m = el.dataset.v, r = state.room;
     if (!GAMES[m] || m === r.mode) { gamePick = false; return render() }

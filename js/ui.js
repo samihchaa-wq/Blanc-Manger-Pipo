@@ -503,8 +503,8 @@ function gameBox(host){
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
         aria-expanded="${gamePick}">${gamePick ? 'Fermer' : 'Changer de jeu'}</button>` : ''}</div>
       ${host && gamePick ? gamePicker() : ''}
-      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : ''}` : ''}
-      ${r.mode === 'ondes' ? waveVariant(host) : ''}
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : r.mode === 'dilemme' ? `<p class="gdesc">${DILEMME_VARIANT_DESC}</p>` : ''}` : ''}
+      ${r.mode === 'ondes' ? waveVariant(host) : r.mode === 'dilemme' ? dilemmeVariant(host) : ''}
       ${host
         ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>`
         : `<p class="gdesc">${label} : <b>${optValue(k)}</b> · Temps : <b>${timeField(false)}</b>${punOpt}</p>`}
@@ -529,6 +529,14 @@ function waveVariant(host){
   if (!host) return `<p class="gdesc">Mode : <b>${v === 'inverse' ? 'Inversé' : 'Normal'}</b></p>`;
   return `<div class="seg s2 variant" role="group" aria-label="Mode du Baromètre">${[['normal','Normal'],['inverse','Inversé']].map(([k, l]) =>
     `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="wave-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
+}
+
+// Dilemme : 50/50 ou Aléatoire, au choix de l'hôte.
+function dilemmeVariant(host){
+  const v = state.room.dilemme_variant === 'moitie' ? 'moitie' : 'aleatoire', modes = [['moitie','50/50'],['aleatoire','Aléatoire']];
+  if (!host) return `<p class="gdesc">Mode : <b>${modes.find(m => m[0] === v)[1]}</b></p>`;
+  return `<div class="seg s2 variant" role="group" aria-label="Mode du Dilemme">${modes.map(([k, l]) =>
+    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="dilemme-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
 }
 
 // Écran d'après « Lancer la partie » : chacun propose ses punitions, secrètes

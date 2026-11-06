@@ -40,11 +40,13 @@ const GAMES = {
   bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, puis jugez ceux de votre adversaire.' },
   white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
   mimes:     { name:'Mimes', desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
-  dilemme:   { name:'Dilemme parfait', desc:'Le meneur lance le début d’un dilemme. Chacun écrit la suite. Ensuite, tout le monde vote : tu acceptes, oui ou non ? Ton but secret : obtenir un nombre précis de Oui. Plus tu tombes juste, plus tu marques.' },
+  dilemme:   { name:'Dilemme', desc:'Le meneur lance le début d’un dilemme. Chacun écrit la suite. Ensuite, tout le monde vote : tu acceptes, oui ou non ? Ton but secret : obtenir un nombre précis de Oui. Plus tu tombes juste, plus tu marques.' },
   dico:      { name:'Le Dico', desc:'Le meneur ouvre le dictionnaire au hasard, choisit un mot et le lit à voix haute. Chacun en invente une définition ; elles sont mélangées avec la vraie, le meneur les lit toutes et chacun vote pour celle qu’il croit juste. +2 pts si tu trouves la vraie, +1 pt par joueur que ta définition a dupé, +2 pts au meneur si personne ne trouve.' },
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
+// Dilemme : les deux modes de partie.
+const DILEMME_VARIANT_DESC = 'Mode 50/50 : tout le monde vise la moitié de Oui. Mode Aléatoire : chacun reçoit une cible secrète différente, toujours atteignable selon le nombre de joueurs.';
 // Vignette d'un jeu, la même partout (accueil, salon, barre du haut) : Mr White
 // et Mimes ont la leur en jpg. white.svg reste l'emblème affiché pendant la partie.
 const tileImg = k => k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp';
@@ -374,7 +376,7 @@ function scheduleBots(){
   else if (r.status === 'dico_pick')  todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'dico_write') todo = bots.some(b => b.id !== r.reader_id && !(state.dico?.written || []).includes(b.id));
   else if (r.status === 'dico_vote')  todo = bots.some(b => b.id !== r.reader_id && !(state.dico?.voted || []).includes(b.id));
-  // Dilemme parfait : meneur bot, bots qui n'ont pas écrit ou pas répondu
+  // Dilemme : meneur bot, bots qui n'ont pas écrit ou pas répondu
   else if (r.status === 'dilemme_pick')  todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'dilemme_write') todo = bots.some(b => !(state.dilemme?.written || []).includes(b.id));
   else if (r.status === 'dilemme_vote')  todo = bots.some(b => !(state.dilemme?.voted || []).includes(b.id));
