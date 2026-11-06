@@ -1036,7 +1036,7 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
 /* Baromètre inversé : − et + aux deux bouts du cadran */
 .wlabs.signs .wlab{min-width:52px;text-align:center;font-size:24px;font-weight:700;line-height:1}
 
-/* ===== Dilemme parfait ===== */
+/* ===== Dilemme ===== */
 body[data-game="dilemme"]{--accent:#FF7C64}
 .dlm-a{font-weight:500}
 .dlm-b{font-weight:800}
@@ -1082,6 +1082,7 @@ body[data-game="dilemme"]{--accent:#FF7C64}
 .dlm-cells{display:flex;gap:5px;margin-top:9px}
 .dlm-cells i{flex:1;height:12px;border-radius:4px;background:var(--pop)}
 .dlm-cells i.y{background:var(--mint)}
+.dlm-cells i.h{background:linear-gradient(90deg,var(--mint) 50%,var(--pop) 50%)}
 .dlm-goal{margin-top:6px;font-size:14px;color:var(--text-dim)}
 .dlm-goal b{color:var(--text)}
 .dlm-split{position:relative}

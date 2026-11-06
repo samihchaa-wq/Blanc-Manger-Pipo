@@ -283,8 +283,13 @@ assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre
 
 console.log('Frontend sanity checks passed.');
 
-// Dilemme parfait : jeu déclaré, phases branchées, bots pilotés par l'hôte, barème au 50/50.
-assert.match(scripts[0], /dilemme:\s*\{ name:'Dilemme parfait'/, 'Jeu Dilemme parfait présent');
+// Dilemme : jeu déclaré, phases branchées, bots pilotés par l'hôte, barème au 50/50.
+assert.match(scripts[0], /dilemme:\s*\{ name:'Dilemme'/, 'Jeu Dilemme présent');
+assert.match(scripts[0], /act\('set_dilemme_variant', \{ p_variant: el\.dataset\.v \}\)/, 'Choix du mode 50/50 ou Aléatoire');
+const modesMigration = fs.readFileSync(new URL('../supabase/migrations/20261110120000_dilemme_modes.sql', import.meta.url), 'utf8');
+assert.match(modesMigration, /if r\.dilemme_variant = 'moitie' then/, 'Mode 50/50 : cible à 50 %');
+assert.match(modesMigration, /'\{room,dilemme_variant\}'/, 'Mode envoyé au client');
+assert.match(modesMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 assert.match(scripts[0], /dilemme_pick:dilemmePick, dilemme_write:dilemmeWrite, dilemme_vote:dilemmeVote/, 'Phases du Dilemme déclarées');
 assert.match(scripts[0], /if \(isDilemme\(\)\) return dilemmeReveal\(\) \+ sharedRoundNext\(\)/, 'Révélation du Dilemme');
 assert.match(scripts[0], /rpc\('dilemme_bot_step'/, 'Bots du Dilemme');

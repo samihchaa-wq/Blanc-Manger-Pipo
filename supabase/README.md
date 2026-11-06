@@ -60,6 +60,8 @@ Current production migration tail:
 
 - `20261109120000_dilemme_cibles_adaptees` (cible = nombre de Oui entre 1 et « votants − 1 », toujours atteignable ; colonnes `target_yes` et `voters` ; `_dilemme_set_start` et `get_state` remplacés)
 
+- `20261110120000_dilemme_modes` (Dilemme : modes de partie `rooms.dilemme_variant` — `moitie` (50/50, cible 50 % pour tous) ou `aleatoire` (cible tirée, défaut) — avec `set_dilemme_variant` ; `_dilemme_set_start` et `get_state` remplacés)
+
 ## Change workflow
 
 For future database changes:

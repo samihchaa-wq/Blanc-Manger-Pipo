@@ -1,10 +1,10 @@
-// Dilemme parfait : le meneur pose le début d'un dilemme, chacun écrit la suite
+// Dilemme : le meneur pose le début d'un dilemme, chacun écrit la suite
 // après « mais… », puis tout le monde répond Oui ou Non aux propositions des
-// autres. Chaque joueur a reçu en secret une cible (10 à 90 % de Oui) : il
-// écrit sa suite pour que la table réponde Oui dans cette proportion.
+// autres. Chaque joueur a reçu en secret une cible de Oui (50 % en mode 50/50,
+// tirée au hasard en mode Aléatoire) : il écrit sa suite pour l'atteindre.
 // Script classique (pas un module) : tous les fichiers partagent la même portée
 // globale et se chargent dans l'ordre d'index.html, comme l'ancien script unique.
-/* ---------- Dilemme parfait ---------- */
+/* ---------- Dilemme ---------- */
 // Idées de débuts proposées au meneur (il peut aussi écrire le sien).
 const DILEMME_DEBUTS = [
   'Tu gagnes un million d’euros', 'Tu peux voler', 'Tu deviens invisible quand tu veux',
@@ -53,13 +53,16 @@ const dilDebut = (cls = '') => qcard('Le dilemme', `<span class="dlm-a">${esc(st
 
 // Sa cible secrète : combien de Oui obtenir, une case par votant (vert = Oui visé).
 // La cible s'adapte au nombre de votants : jamais un pourcentage impossible.
-const ouiSur = t => `${t.yes} Oui sur ${t.voters}`;
+// En 50/50 avec un nombre impair de votants, la moitié tombe entre deux : les deux comptent.
+const entreDeux = t => t.pct === 50 && t.voters % 2 === 1;
+const nbOui = t => entreDeux(t) ? `${(t.voters - 1) / 2} ou ${(t.voters + 1) / 2} Oui` : `${t.yes} Oui`;
+const ouiSur = t => `${nbOui(t)} sur ${t.voters}`;
 function dilCible(t, compact = false){
   if (!t) return '';
   return `<section class="dlm-target${compact ? ' compact' : ''}" aria-label="Ta cible secrète : ${ouiSur(t)}, ${t.pct} %">
     <p class="eyebrow">Ta cible secrète${compact ? '' : ', toi seul la vois'}</p>
-    <p class="dlm-tnum"><b>${t.yes} Oui</b> sur ${t.voters} votant${t.voters > 1 ? 's' : ''} <span class="muted">(${t.pct} %)</span></p>
-    <div class="dlm-cells" aria-hidden="true">${Array.from({ length: t.voters }, (_, i) => `<i class="${i < t.yes ? 'y' : 'n'}"></i>`).join('')}</div>
+    <p class="dlm-tnum"><b>${nbOui(t)}</b> sur ${t.voters} votant${t.voters > 1 ? 's' : ''} <span class="muted">(${t.pct} %)</span></p>
+    <div class="dlm-cells" aria-hidden="true">${Array.from({ length: t.voters }, (_, i) => `<i class="${i < t.yes ? 'y' : entreDeux(t) && i === t.yes ? 'h' : 'n'}"></i>`).join('')}</div>
   </section>`;
 }
 
