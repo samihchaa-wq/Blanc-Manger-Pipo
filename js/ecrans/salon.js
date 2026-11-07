@@ -36,21 +36,11 @@ function lobbyHint(){
 }
 
 /* ---------- Le jeu ---------- */
-let rulesOpen = false, gamePick = false, rulesMode = '', reglagesOuverts = false;
-// La règle s'ouvre d'elle-même la première fois qu'on voit un jeu sur ce téléphone.
-function rulesFirstTime(mode){
-  if (mode === rulesMode) return;
-  rulesMode = mode;
-  let vus = [];
-  try { vus = JSON.parse(localStorage.getItem('pdcat-rules') || '[]') } catch {}
-  rulesOpen = !vus.includes(mode);
-  if (rulesOpen) try { localStorage.setItem('pdcat-rules', JSON.stringify([...vus, mode])) } catch {}
-}
-// Le panneau du jeu : nom et accroche, la règle complète à la demande, le mode
-// propre au jeu, puis les réglages (repliés pour l'hôte, résumés pour les autres).
+let rulesOpen = false, gamePick = false, reglagesOuverts = false;
+// Le panneau du jeu : son nom, la règle seulement si on la demande, puis les
+// réglages (repliés pour l'hôte, résumés en une ligne pour les autres).
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
-  rulesFirstTime(r.mode);
   const modeDesc = { ondes: WAVE_INVERSE_DESC, dilemme: DILEMME_VARIANT_DESC, phrases: PHRASES_VARIANT_DESC }[r.mode];
   return `<section class="panel gamebox">
       <div class="gtitle">
@@ -58,10 +48,8 @@ function gameBox(host){
         ${host ? `<button type="button" class="chg" data-act="game-pick" aria-expanded="${gamePick}">${gamePick ? 'Fermer' : 'Changer de jeu'}</button>` : ''}
       </div>
       ${host && gamePick ? gamePicker() : ''}
-      <p class="gdesc">${rulesOpen ? g.desc : g.pitch}</p>
-      ${rulesOpen && modeDesc ? `<p class="gdesc">${modeDesc}</p>` : ''}
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${modeDesc ? `<p class="gdesc">${modeDesc}</p>` : ''}` : ''}
       <button type="button" class="rulesbtn" data-act="rules" aria-expanded="${rulesOpen}">${rulesOpen ? 'Masquer la règle' : 'Lire la règle'}</button>
-      ${r.mode === 'ondes' ? waveVariant(host) : r.mode === 'dilemme' ? dilemmeVariant(host) : r.mode === 'phrases' ? phrasesVariant(host) : ''}
       ${reglages(host)}
     </section>`;
 }
@@ -83,40 +71,37 @@ function gamePicker(){
 }
 
 /* ---------- Modes propres à un jeu ---------- */
-// Baromètre : Normal ou Inversé, au choix de l'hôte.
-function waveVariant(host){
-  const v = state.room.wave_variant === 'inverse' ? 'inverse' : 'normal';
-  if (!host) return `<p class="gdesc">Mode : <b>${v === 'inverse' ? 'Inversé' : 'Normal'}</b></p>`;
-  return `<div class="seg s2 variant" role="group" aria-label="Mode du Baromètre">${[['normal','Normal'],['inverse','Inversé']].map(([k, l]) =>
-    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="wave-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
+// Baromètre (Normal / Inversé), Dilemme (50/50 / Aléatoire) et Phrases à trou
+// (Normal / Private Joke) : le mode se choisit dans les réglages.
+const MODES = {
+  ondes:   { cle:'wave_variant',    act:'wave-variant',    defaut:'normal',    liste:[['normal','Normal'],['inverse','Inversé']] },
+  dilemme: { cle:'dilemme_variant', act:'dilemme-variant', defaut:'aleatoire', liste:[['moitie','50/50'],['aleatoire','Aléatoire']] },
+  phrases: { cle:'phrases_variant', act:'phrases-variant', defaut:'normal',    liste:[['normal','Normal'],['private','Private Joke']] },
+};
+function modeCourant(){
+  const m = MODES[state.room.mode];
+  if (!m) return null;
+  const v = m.liste.some(([k]) => k === state.room[m.cle]) ? state.room[m.cle] : m.defaut;
+  return { ...m, v, label: m.liste.find(([k]) => k === v)[1] };
 }
-
-// Dilemme : 50/50 ou Aléatoire, au choix de l'hôte.
-function dilemmeVariant(host){
-  const v = state.room.dilemme_variant === 'moitie' ? 'moitie' : 'aleatoire', modes = [['moitie','50/50'],['aleatoire','Aléatoire']];
-  if (!host) return `<p class="gdesc">Mode : <b>${modes.find(m => m[0] === v)[1]}</b></p>`;
-  return `<div class="seg s2 variant" role="group" aria-label="Mode du Dilemme">${modes.map(([k, l]) =>
-    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="dilemme-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
-}
-
-// Phrases à trou : paquet Normal ou Private Joke. Private Joke demande le code
-// du groupe (le code admin marche aussi) ; une fois accepté, ce téléphone le
-// retient et ne le redemande plus.
-let pjDemande = false, pjDraft = '';
-const codePJ = () => { try { return localStorage.getItem('pdcat-pj') || '' } catch { return '' } };
-const retenirPJ = c => { try { c ? localStorage.setItem('pdcat-pj', c) : localStorage.removeItem('pdcat-pj') } catch {} };
-function phrasesVariant(host){
-  const v = state.room.phrases_variant === 'private' ? 'private' : 'normal', modes = [['normal','Normal'],['private','Private Joke']];
-  if (!host) return `<p class="gdesc">Mode : <b>${modes.find(m => m[0] === v)[1]}</b></p>`;
-  return `<div class="seg s2 variant" role="group" aria-label="Mode de Phrases à trou">${modes.map(([k, l]) =>
-    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="phrases-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>
-    ${pjDemande && v === 'normal' ? `<div class="pjcode">
+function modeChoix(){
+  const m = modeCourant();
+  if (!m) return '';
+  return `<div class="seg s2 variant" role="group" aria-label="Mode de ${(GAMES[state.room.mode] || GAMES.phrases).name}">${m.liste.map(([k, l]) =>
+    `<button type="button" class="seg-b ${m.v === k ? 'on' : ''}" data-act="${m.act}" data-v="${k}" aria-pressed="${m.v === k}" ${dis()}>${l}</button>`).join('')}</div>
+    ${state.room.mode === 'phrases' && pjDemande && m.v === 'normal' ? `<div class="pjcode">
       <label class="field"><span>Code Private Joke</span>
         <input id="pj-code" type="password" autocomplete="off" enterkeyhint="go" placeholder="Le code de votre groupe" value="${esc(pjDraft)}"></label>
       <button type="button" class="btn alt small" data-act="pj-ok" ${dis()}>Débloquer</button>
       <p class="hint">Le code admin marche aussi.</p>
     </div>` : ''}`;
 }
+
+// Phrases à trou, Private Joke : il faut le code du groupe (le code admin marche
+// aussi) ; une fois accepté, ce téléphone le retient et ne le redemande plus.
+let pjDemande = false, pjDraft = '';
+const codePJ = () => { try { return localStorage.getItem('pdcat-pj') || '' } catch { return '' } };
+const retenirPJ = c => { try { c ? localStorage.setItem('pdcat-pj', c) : localStorage.removeItem('pdcat-pj') } catch {} };
 // Envoie le code : refusé, ce téléphone l'oublie et redemande.
 async function choisirPJ(code, el){
   if (busy) return;
@@ -192,12 +177,13 @@ function optLabel(){
   return (r.mode === 'bac' || r.mode === 'white') ? 'Manches à jouer'
     : k === 'turns' ? `Tours de ${r.mode === 'ondes' ? 'médium' : ['dico','dilemme'].includes(r.mode) ? 'meneur' : 'juge'}` : 'Manches à gagner';
 }
-// Une ligne qui dit tout : « 5 manches à gagner · Temps moyen · Punitions ».
+// Une ligne qui dit tout : « Mode Normal · 5 manches à gagner · Temps moyen · Punitions ».
 function resumeReglages(){
   const k = optKey(), v = optValue(k), [, temps] = timeMode();
   const nb = `${v} ${optLabel().toLowerCase().replace('manches', v > 1 ? 'manches' : 'manche').replace('tours', v > 1 ? 'tours' : 'tour')}`;
   const p = pun ? (optValue('pun') > 0 ? ' · Punitions' : ' · Sans punitions') : '';
-  return `${nb} · Temps ${temps.toLowerCase()}${p}`;
+  const m = modeCourant();
+  return `${m ? `Mode ${m.label} · ` : ''}${nb} · Temps ${temps.toLowerCase()}${p}`;
 }
 function reglages(host){
   if (!host) return `<p class="gdesc resume">${resumeReglages()}</p>`;
@@ -205,6 +191,7 @@ function reglages(host){
       <button type="button" class="regtog" data-act="reglages" aria-expanded="${reglagesOuverts}">
         <span><b>Réglages</b><small>${resumeReglages()}</small></span>${ic('next', 'chev')}</button>
       ${reglagesOuverts ? `<div class="regbody">
+        ${modeCourant() ? `<div class="rrow col"><span>Mode</span>${modeChoix()}</div>` : ''}
         <div class="rrow"><span>${optLabel()}</span>${stepper(optKey(), optKey() === 'turns' ? 'Tours' : 'Manches', optLabel())}</div>
         <div class="rrow col"><span>Temps</span>${timeField(true)}</div>
         ${pun ? `<div class="rrow"><span>Punitions <small>${PUN_NB} par joueur, tirées au sort à la fin</small></span>${punCheck()}</div>` : ''}
@@ -233,7 +220,7 @@ surAction('set-game', async el => {
   // le brouillon des réglages visait l'ancien jeu
   clearTimeout(optTimer); optTimer = null; optDraft = {};
   if (!(await act('set_room_options', { p_mode:m, p_target:Math.min(20, Math.max(1, +r.target || 5)), p_turns:Math.min(5, Math.max(1, +r.turns || 2)) }))) return;
-  gamePick = false; pjDemande = false;
+  gamePick = false; pjDemande = false; rulesOpen = false;
   retenirJeu(m);
   // même temps par défaut qu'à la création : sans minuteur pour Petit bac, Mr White et Mimes
   const t = ['bac','white','mimes'].includes(m) ? 'unlimited' : 'medium';
