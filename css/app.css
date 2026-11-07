@@ -159,6 +159,21 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg-b:active{transform:scale(.95)}
 .seg.s2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
+/* accueil : chaque jeu est une vignette ; celle choisie s'allume, les autres s'effacent */
+/* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
+   de l'accueil (marges, onglets, pseudo, bouton ≈ 266 px + logo),
+   pour que les quatre vignettes tiennent sans défiler. */
+.seg.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin:0 auto;width:100%}
+/* Accueil : les vignettes débordent un peu des marges pour être plus grandes ;
+   fitGames() ne les réduit que si l'accueil ne tient plus sur l'écran. */
+.home .seg.games{width:calc(100% + 16px);max-width:calc(100vw - 12px);margin:0 -8px;gap:8px;justify-self:center;align-self:center}
+.seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:1;
+  transition:opacity var(--dur),transform var(--dur)}
+/* toutes les vignettes restent pleines (à 55 % elles semblaient désactivées) ;
+   la choisie est cerclée de doré */
+.seg.games .seg-b.on{transform:scale(1.03);box-shadow:0 0 0 3px var(--gold),0 12px 26px -10px rgba(255,194,61,.55)}
+.seg.games .seg-b:active{transform:scale(.95)}
+.seg.games img{display:block;width:100%;height:auto;border-radius:inherit;pointer-events:none}
 .seg.who{margin-bottom:18px}
 .seg.who .seg-b{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:9px 4px}
 .seg.who .seg-b span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -830,6 +845,15 @@ button.scard:active{transform:translateY(2px)}
 .holdhint .ic{width:16px;height:16px}
 .white-secret.hold.show .holdhint{opacity:0}
 
+/* ===== Accueil : le jeu choisi en une ligne ===== */
+.pitch{display:none;margin:12px 0 0;text-align:center;font-size:15px;line-height:1.35;color:var(--text-dim)}
+.pitch b{color:var(--text);font-weight:700}
+.pitch span{color:var(--text-faint)}
+/* seulement quand l'écran a la place : l'accueil doit tenir sans défiler */
+@media (min-height:700px){
+  .home .pitch{display:block}
+}
+
 /* ===== Couleur d'accent par jeu ===== */
 /* Le jeu en cours teinte la lueur du haut, l'anneau de sa vignette et les
    barres de progression ; les cartes gardent leurs couleurs de rôle. */
@@ -849,6 +873,31 @@ body[data-game] .steps i.on{background:var(--accent)}
 body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint))}
 
 .gamebox .gdesc b{color:var(--text);font-weight:600}
+
+/* Accueil : le volet occupe la hauteur restante ; les vignettes se centrent
+   dans l'espace libre et « Créer la partie » se cale en bas, sous le pouce,
+   comme le bouton principal des autres écrans. */
+.home .pane{flex:1;display:flex;flex-direction:column}
+.home .pane[hidden]{display:none}
+.home #pane-create>.field{margin:auto 0;padding:10px 0}
+.home .pane>.btn{margin-top:auto}
+/* Les vignettes prennent toute la place libre entre le pseudo et la description,
+   sans jamais faire défiler. Le cadre (.gamesbox) reçoit cette place ; la grille
+   en déduit la plus grande vignette carrée qui tient en largeur et en hauteur.
+   Tout se calcule en CSS : rien à rater quand le clavier, la barre de Safari ou
+   la police changent la hauteur de l'écran (le calcul en JavaScript, lancé au
+   mauvais moment, laissait les vignettes trop petites avec du vide dessous). */
+@supports (container-type:size){
+  .home #pane-create>.field{flex:1;min-height:0;margin:0;display:flex;flex-direction:column}
+  .home .gamesbox{flex:1;min-height:calc(var(--rows) * 60px + (var(--rows) - 1) * 8px);margin:0 -8px;position:relative}
+  /* posé en absolu : sa taille est celle, définitive, que la mise en page a
+     donnée au cadre (un élément flexible mesuré directement vaut 0 en hauteur) */
+  .home .gamesfit{position:absolute;inset:0;container-type:size;display:grid;place-items:center}
+  .home .gamesfit .seg.games{--t:max(60px,min((100cqw - 16px) / 3,(100cqh - (var(--rows) - 1) * 8px) / var(--rows)));
+    width:calc(3 * var(--t) + 16px);max-width:none;margin:0}
+  /* trois lignes réservées : changer de jeu ne fait pas sauter les vignettes */
+  .home .pitch{min-height:4.05em}
+}
 
 /* ===== Le Dico : le livre et sa page ===== */
 .bookwrap{display:grid;place-items:center;min-height:50vh;perspective:1300px}
@@ -985,22 +1034,9 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
   box-shadow:0 0 0 2px var(--bg-0)}
 
 /* ===== Refonte : accueil, salon, liste des jeux, admin ===== */
-/* Accueil : le logo (cinq appuis = admin), une phrase, puis un seul panneau :
-   pseudo, « Créer une partie », et un code pour rejoindre. */
-.home{justify-content:center;gap:14px}
+/* Accueil : le logo est un bouton (cinq appuis rapides ouvrent l'admin), sans
+   en avoir l'air. */
 .home h1 .logo{display:block;width:100%;margin:0 auto;padding:0;background:none;border:0;cursor:default}
-.home h1 img,.home h1 .shift{width:min(100%,360px,34vh)}
-.tagline{text-align:center;font-size:15px;color:var(--text-dim);margin-top:-6px}
-.home .homebox{margin-top:6px;padding:20px;background:var(--surface);border:1px solid var(--hairline);
-  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 18px 40px -24px rgba(0,0,0,.9)}
-.invite{text-align:center;margin:0 0 14px;color:var(--text-dim)}
-.invite b{color:var(--gold);letter-spacing:.18em;font-weight:700}
-.ou{display:flex;align-items:center;gap:10px;margin:18px 0 12px;font-size:13px;color:var(--text-faint)}
-.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--hairline)}
-.joinrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-#h-code{text-align:center;letter-spacing:.2em;text-indent:.2em;font-size:20px;padding:12px 8px}
-#h-code::placeholder{letter-spacing:normal;font-size:17px}
-.joinrow .btn{width:auto;margin:0;padding:12px 18px}
 
 /* Salon : le jeu (nom, joueurs, accroche, règle à la demande), puis ses réglages. */
 .gamebox .gtitle{align-items:flex-start}

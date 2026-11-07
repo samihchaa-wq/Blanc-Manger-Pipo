@@ -65,16 +65,18 @@ assert.match(scripts[0], /const BORNES = \{ target:\[1, 20\], turns:\[1, 5\] \}/
   'Les bornes des réglages doivent suivre celles du serveur (manches 1-20, tours 1-5)');
 assert.match(scripts[0], /const OPT_BORNES = \{ \.\.\.BORNES, pun:\[0, 5\] \}/, 'Punitions de 0 (aucune) à 5 par joueur');
 assert.match(scripts[0], /data-act="step" data-k="\$\{k\}" data-d="-1"/, 'Le réglage de manches/tours se fait avec − et +');
-assert.match(scripts[0], /rpc\('create_room', \{ p_name:n, p_target:5, p_mode:dernierJeu\(\), p_turns:2 \}\)/,
-  'Une nouvelle partie part sur 5 manches, avec le dernier jeu choisi sur ce téléphone');
+assert.match(scripts[0], /rpc\('create_room', \{ p_name:n, p_target:5, p_mode:jeu, p_turns:2 \}\)/,
+  'Une nouvelle partie part sur 5 manches, avec le jeu choisi sur l’accueil');
 assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
 // Plus d'étape « Je suis prêt » : l'hôte lance quand il veut, le serveur ne
 // vérifie plus que le nombre de joueurs.
 assert.doesNotMatch(html, /data-act="ready"/, 'Plus de bouton « Je suis prêt » dans le salon');
-assert.match(scripts[0], /surAction\('start', \(\) => act\(pun\?\.on \? 'punish_start' : 'start_game'\)\)/, 'L’hôte lance la partie');
+assert.match(scripts[0], /surAction\('start', \(\) => act\('lancer_partie'\)\)/, 'L’hôte lance la partie');
 const salonMigration = fs.readFileSync(new URL('../supabase/migrations/20261112120000_salon_admin_refonte.sql', import.meta.url), 'utf8');
-assert.doesNotMatch(salonMigration, /doivent être prêts/, 'start_game et punish_start n’exigent plus « prêt »');
+assert.match(salonMigration, /update public\.players set ready = true where room_id = r\.id and active/, 'lancer_partie marque tout le monde prêt');
+assert.match(salonMigration, /if r\.punish then perform public\.punish_start\(p_code, p_token\);\s+else perform public\.start_game\(p_code, p_token\); end if;/,
+  'lancer_partie passe par punish_start ou start_game');
 assert.match(salonMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 assert.doesNotMatch(salonMigration, /\bdrop\b|\brevoke\b|\brename\b|\btruncate\b/i,
   'Migration purement additive : rien de supprimé, retiré ni renommé');
@@ -285,14 +287,19 @@ assert.match(scripts[0], /enLigne\.texte !== connu\.texte/, 'Comparaison du cont
 assert.match(scripts[0], /const sansVersion = t => t\.replace\(\/\\\?v=/, 'Les ?v=… de la mise en ligne ne comptent pas');
 assert.match(scripts[0], /if \(state && !GAMES\[state\.room\.mode\]\) return recharger\(\)/, 'Jeu inconnu : rechargement immédiat');
 
-// Accueil : un pseudo, « Créer une partie » ou un code pour rejoindre. Le jeu
-// se choisit dans le salon, dans une liste rangée par famille.
-const homeView = scripts[0].split('function home(){')[1]?.split('async function enter(')[0];
+// Accueil : les vignettes des jeux pour choisir celui de la partie, Créer et
+// Rejoindre ; plus de bouton admin visible (cinq appuis sur le logo).
+const homeView = scripts[0].split('function home(){')[1]?.split('// Accueil : la taille des vignettes')[0];
 assert.ok(homeView, 'Écran d’accueil présent');
 assert.match(homeView, /data-act="create"/, 'Créer une partie depuis l’accueil');
 assert.match(homeView, /data-act="join"/, 'Rejoindre avec un code depuis l’accueil');
-assert.doesNotMatch(homeView, /games\/|data-act="mode"/, 'Plus de vignettes de jeux sur l’accueil');
+assert.match(homeView, /data-act="mode"[\s\S]*<img src="games\/\$\{tileImg\(k\)\}"/, 'Les vignettes des jeux sont sur l’accueil');
 assert.doesNotMatch(homeView, /data-act="admin"/, 'Plus de bouton admin visible sur l’accueil');
+// La taille des vignettes vient de la place libre, mesurée en CSS (requête de
+// conteneur), et non d'un calcul JavaScript lancé au mauvais moment.
+assert.match(css, /\.home \.gamesfit\{position:absolute;inset:0;container-type:size/, 'Cadre des vignettes mesuré en CSS');
+assert.match(css, /100cqh - \(var\(--rows\) - 1\) \* 8px\) \/ var\(--rows\)/, 'Vignettes limitées par la hauteur libre');
+assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
 assert.match(scripts[0], /logoTaps\.length >= 5\) \{ logoTaps = \[\]; ouvrirAdmin\(\) \}/, 'Cinq appuis sur le logo ouvrent l’admin');
 assert.match(scripts[0], /const CATEGORIES = \[/, 'Familles de jeux pour la liste « Changer de jeu »');
 for (const k of ['phrases','priorites','dilemme','dico','bac','white','mimes','ondes'])

@@ -44,7 +44,9 @@ begin
   log := log || 'private-joke ok';
 
   ---------------------------------------------------------------- lancement sans « prêt », paquet Private
-  perform public.start_game(c, th);
+  begin perform public.lancer_partie(c, ta); raise exception 'ÉCHEC : un invité lance la partie';
+  exception when others then if sqlerrm like 'ÉCHEC%' then raise; end if; end;
+  perform public.lancer_partie(c, th);
   if (select status from public.rooms where id = rid) = 'lobby' then raise exception 'ÉCHEC : partie non lancée'; end if;
   select count(*) into n from public.hands h2 join public.answers x on x.id = h2.answer_id where h2.room_id = rid and x.pack <> 'private';
   if n > 0 then raise exception 'ÉCHEC : % cartes Normal distribuées en Private Joke', n; end if;
@@ -58,7 +60,7 @@ begin
   perform public.join_room(c, 'Alice'); perform public.join_room(c, 'Bob');
   select id into rid from public.rooms where code = c;
   perform public.punish_options(c, th, true, 2);
-  perform public.punish_start(c, th);
+  perform public.lancer_partie(c, th);
   if not (select punish_phase from public.rooms where id = rid) then raise exception 'ÉCHEC : saisie des punitions non ouverte'; end if;
   log := log || ' | punitions sans prêt ok';
 
