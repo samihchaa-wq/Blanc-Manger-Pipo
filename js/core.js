@@ -21,31 +21,41 @@ let pressedEl = null, lastHtml = '';
 // l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
 let pun = null, punDrafts = [], punAnimAt = 0, punTimer = null;
 const PUN_MS = 3400;
-// le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
-let adminOpen = false, adminPwd = '', adminLevel = '';
-let adminTab = 'j';   // l'admin s'ouvre toujours sur les Private jokes de Phrases à trou
-let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
-// Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
-// deux textes : l'extrême de gauche et celui de droite. Phrases à trou a deux
-// paquets de réponses : le paquet Normal, écrit dans les migrations, et les
-// « Private jokes », les seules réponses ajoutées depuis l'admin.
-// Une carte Mimes : l'action et ses deux bornes (intensité 1 et 10).
-const CATALOGUES = { phrases:[['q','Questions'],['j','Private jokes']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']], mimes:[['x','Actions']] };
-const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
-const MOT = { q:'question', a:'réponse', j:'réponse', p:'réponse', w:'carte', m:'paire', x:'action' };
-let catalog = { kind:'j', total:0, items:[], q:'' }, catTimer = null;
-
-// Les jeux hébergés par l'appli. Le salon en montre la règle courte.
+// Les jeux hébergés par l'appli : nom, règle complète (salon, « Lire la règle »),
+// accroche d'une ligne et famille (liste « Changer de jeu »).
 const GAMES = {
-  phrases:   { name:'Phrases à trou',  desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
-  priorites: { name:'Priorités',       desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
-  ondes:     { name:'Baromètre', desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
-  bac:       { name:'Petit bac', desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, puis jugez ceux de votre adversaire.' },
-  white:     { name:'Mr White', desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
-  mimes:     { name:'Mimes', desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
-  dilemme:   { name:'Dilemme', desc:'Le meneur lance le début d’un dilemme. Chacun écrit la suite. Ensuite, tout le monde vote : tu acceptes, oui ou non ? Ton but secret : obtenir un nombre précis de Oui. Plus tu tombes juste, plus tu marques.' },
-  dico:      { name:'Le Dico', desc:'Le meneur ouvre le dictionnaire au hasard, choisit un mot et le lit à voix haute. Chacun en invente une définition ; elles sont mélangées avec la vraie, le meneur les lit toutes et chacun vote pour celle qu’il croit juste. +2 pts si tu trouves la vraie, +1 pt par joueur que ta définition a dupé, +2 pts au meneur si personne ne trouve.' },
+  phrases:   { name:'Phrases à trou', cat:'cartes', pitch:'Complète la phrase du lecteur avec ta carte la plus drôle.',
+    desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
+  priorites: { name:'Priorités', cat:'cartes', pitch:'Devine dans quel ordre le juge classe cinq cartes.',
+    desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
+  dilemme:   { name:'Dilemme', cat:'ecrire', pitch:'Complète le dilemme pour obtenir pile le nombre de Oui de ta cible secrète.',
+    desc:'Le meneur lance le début d’un dilemme. Chacun écrit la suite. Ensuite, tout le monde vote : tu acceptes, oui ou non ? Ton but secret : obtenir un nombre précis de Oui. Plus tu tombes juste, plus tu marques.' },
+  dico:      { name:'Le Dico', cat:'ecrire', pitch:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
+    desc:'Le meneur ouvre le dictionnaire au hasard, choisit un mot et le lit à voix haute. Chacun en invente une définition ; elles sont mélangées avec la vraie, le meneur les lit toutes et chacun vote pour celle qu’il croit juste. +2 pts si tu trouves la vraie, +1 pt par joueur que ta définition a dupé, +2 pts au meneur si personne ne trouve.' },
+  bac:       { name:'Petit bac', cat:'ecrire', pitch:'Une lettre, six catégories, un duel.',
+    desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, puis jugez ceux de votre adversaire.' },
+  white:     { name:'Mr White', cat:'table', pitch:'Démasquez l’imposteur, autour de la même table.',
+    desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
+  mimes:     { name:'Mimes', cat:'table', pitch:'Mime une action à l’intensité tirée au sort.',
+    desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
+  ondes:     { name:'Baromètre', cat:'ambiance', pitch:'Place l’aiguille au plus près de la cible du médium.',
+    desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
 };
+// Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
+const CATEGORIES = [['cartes','Cartes'],['ecrire','À l’écrit'],['table','Autour de la table'],['ambiance','Ambiance']];
+// Dernier jeu choisi sur ce téléphone : une nouvelle partie le reprend.
+const dernierJeu = () => { try { const j = localStorage.getItem('pdcat-jeu'); return GAMES[j] ? j : 'phrases' } catch { return 'phrases' } };
+const retenirJeu = j => { try { localStorage.setItem('pdcat-jeu', j) } catch {} };
+
+// Les boutons portent data-act : chaque écran déclare ses actions ici, et un
+// seul écouteur de clics (actions.js) les distribue. marque:false pour une
+// action qui ne contacte pas le serveur tout de suite (le bouton ne passe pas
+// en « envoi en cours »).
+const ACTIONS = {};
+function surAction(noms, fn, { marque = true } = {}){
+  for (const n of noms.split(' ')) ACTIONS[n] = { fn, marque };
+}
+
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
 // Phrases à trou : le paquet de réponses distribué.
@@ -94,6 +104,7 @@ const ICONS = {
   prev:'<path d="M14.5 6l-6 6 6 6"/>',
   next:'<path d="M9.5 6l6 6-6 6"/>',
   voice:'<path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  pen:'<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.5 7l3.5 3.5"/>',
 };
 ICONS.down = '<g transform="rotate(180 12 12)">' + ICONS.up + '</g>';
 const ic = (n, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;

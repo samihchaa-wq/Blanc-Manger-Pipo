@@ -145,3 +145,22 @@ function dicoReveal(){
       x.player_id === r.reader_id ? '<span class="tag host">meneur</span>' : ''}</span><b class="plus" data-n="${x.points}">+${x.points}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
+
+/* ---------- Actions ---------- */
+// Le livre s'ouvre et se feuillette sur le téléphone du meneur
+surAction('dico-open', () => dicoOuvrir(false), { marque:false });
+surAction('dico-flip', () => dicoOuvrir(true), { marque:false });
+surAction('dico-entry', el => { dicoSel = +el.dataset.i; render() }, { marque:false });
+surAction('dico-choose', () => {
+  const e = dicoPage?.mots?.[dicoSel]; if (!e) return;
+  return act('dico_pick', { p_word:e[0], p_nature:e[1], p_def:e[2] });
+});
+surAction('dico-send', () => {
+  const t = (document.getElementById('dico-def')?.value || '').trim();
+  if (t.length < 3) return toast('Écris une définition.');
+  return act('dico_write', { p_text:t });
+});
+surAction('dico-vote', el => act('dico_vote', { p_def:el.dataset.id }));
+document.addEventListener('input', e => {
+  if (e.target.id === 'dico-def') { dicoDraft = e.target.value; autoGrow(e.target) }
+});

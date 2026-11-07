@@ -65,10 +65,19 @@ assert.match(scripts[0], /const BORNES = \{ target:\[1, 20\], turns:\[1, 5\] \}/
   'Les bornes des réglages doivent suivre celles du serveur (manches 1-20, tours 1-5)');
 assert.match(scripts[0], /const OPT_BORNES = \{ \.\.\.BORNES, pun:\[0, 5\] \}/, 'Punitions de 0 (aucune) à 5 par joueur');
 assert.match(scripts[0], /data-act="step" data-k="\$\{k\}" data-d="-1"/, 'Le réglage de manches/tours se fait avec − et +');
-assert.match(html, /id="c-target" value="5"/, 'Default target score must stay at 5');
+assert.match(scripts[0], /rpc\('create_room', \{ p_name:n, p_target:5, p_mode:dernierJeu\(\), p_turns:2 \}\)/,
+  'Une nouvelle partie part sur 5 manches, avec le dernier jeu choisi sur ce téléphone');
 assert.match(html, /data-act="bot"/, 'Le bouton d’ajout de bot doit rester disponible');
 assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bots via bot_step');
-assert.match(html, /data-act="ready"/, 'Ready control must remain available');
+// Plus d'étape « Je suis prêt » : l'hôte lance quand il veut, le serveur ne
+// vérifie plus que le nombre de joueurs.
+assert.doesNotMatch(html, /data-act="ready"/, 'Plus de bouton « Je suis prêt » dans le salon');
+assert.match(scripts[0], /surAction\('start', \(\) => act\(pun\?\.on \? 'punish_start' : 'start_game'\)\)/, 'L’hôte lance la partie');
+const salonMigration = fs.readFileSync(new URL('../supabase/migrations/20261112120000_salon_admin_refonte.sql', import.meta.url), 'utf8');
+assert.doesNotMatch(salonMigration, /doivent être prêts/, 'start_game et punish_start n’exigent plus « prêt »');
+assert.match(salonMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
+assert.doesNotMatch(salonMigration, /\bdrop\b|\brevoke\b|\brename\b|\btruncate\b/i,
+  'Migration purement additive : rien de supprimé, retiré ni renommé');
 
 // La barre d'action est fixe : si la page réserve une hauteur devinée au lieu
 // de la hauteur mesurée, le bouton finit par recouvrir la fin du contenu —
@@ -90,7 +99,7 @@ assert.match(scripts[0], /act\('set_time_mode', \{ p_mode: el\.dataset\.v \}\)/,
 assert.match(scripts[0], /phase_deadline/, 'Échéance serveur');
 assert.match(scripts[0], /advisoryPhase\(\)/, 'Chronos oraux non bloquants');
 assert.match(scripts[0], /function sharedRoundNext\(\)/, 'Validation manuelle des résultats');
-assert.match(scripts[0], /a === 'bac-next'\) return act\('next_round'\)/, 'Manches synchronisées');
+assert.match(scripts[0], /surAction\('bac-next', \(\) => act\('next_round'\)\)/, 'Manches synchronisées');
 assert.match(scripts[0], /rpc\('reap_idle'/, 'Expiration traitée côté serveur');
 assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Pas de minuteur autonome Petit Bac');
 
@@ -147,8 +156,9 @@ assert.doesNotMatch(scripts[0], /MrWhitz/, 'Le nom Mr White est orthographié co
 assert.match(scripts[0], /games\/white\.svg/, 'Mr White voit le logo');
 assert.doesNotMatch(scripts[0], /Ton rôle · Ne le montre à personne|white-clue-input|white-guess-input/,
   'Un Civil ou un imposteur ne voit pas son rôle et les indices sont donnés à l’oral');
-assert.match(scripts[0], /white:\[\['m','Paires de mots'\]\]/, 'Catalogue admin Mr White');
-assert.match(scripts[0], /games\/\$\{k === 'white' \? 'white-home\.jpg'/, 'Nouvelle vignette de Mr White sur l’accueil');
+assert.match(scripts[0], /white:\s*\[\{ k:'m', titre:'Paires de mots'/, 'Catalogue admin Mr White');
+assert.match(scripts[0], /const tileImg = k => k === 'white' \? 'white-home\.jpg'/, 'Vignette de Mr White dans la liste des jeux');
+assert.match(scripts[0], /<img src="games\/\$\{tileImg\(k\)\}"/, 'La liste des jeux montre la vignette de chaque jeu');
 assert.ok(fs.statSync(new URL('../games/white-home.jpg', import.meta.url)).size > 5000,
   'La vignette Mr White fournie doit être un vrai fichier image');
 assert.match(scripts[0], /class="white-mark" src="games\/white\.svg"/,
@@ -159,7 +169,7 @@ assert.match(scripts[0], /class="white-mark" src="games\/white\.svg"/,
 // Son verdict doit s'afficher puis permettre de reprendre le même mot au tour suivant.
 assert.match(scripts[0], /white_elimination:whiteElimination/,
   'L’état intermédiaire après élimination doit avoir son propre écran');
-assert.match(scripts[0], /a === 'white-resume'\) return act\('white_resume'\)/,
+assert.match(scripts[0], /surAction\('white-resume', \(\) => act\('white_resume'\)\)/,
   'L’hôte doit pouvoir relancer les indices depuis le verdict');
 const whiteElimView = scripts[0].split('function whiteElimination(){')[1]?.split('function whiteReveal(){')[0];
 const whiteFinalView = scripts[0].split('function whiteReveal(){')[1]?.split('/* ---------- Mimes ---------- */')[0];
@@ -275,11 +285,36 @@ assert.match(scripts[0], /enLigne\.texte !== connu\.texte/, 'Comparaison du cont
 assert.match(scripts[0], /const sansVersion = t => t\.replace\(\/\\\?v=/, 'Les ?v=… de la mise en ligne ne comptent pas');
 assert.match(scripts[0], /if \(state && !GAMES\[state\.room\.mode\]\) return recharger\(\)/, 'Jeu inconnu : rechargement immédiat');
 
-// Accueil : la taille des vignettes vient de la place libre, mesurée en CSS
-// (requête de conteneur), et non d'un calcul JavaScript lancé au mauvais moment.
-assert.match(css, /\.home \.gamesfit\{position:absolute;inset:0;container-type:size/, 'Cadre des vignettes mesuré en CSS');
-assert.match(css, /100cqh - \(var\(--rows\) - 1\) \* 8px\) \/ var\(--rows\)/, 'Vignettes limitées par la hauteur libre');
-assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
+// Accueil : un pseudo, « Créer une partie » ou un code pour rejoindre. Le jeu
+// se choisit dans le salon, dans une liste rangée par famille.
+const homeView = scripts[0].split('function home(){')[1]?.split('async function enter(')[0];
+assert.ok(homeView, 'Écran d’accueil présent');
+assert.match(homeView, /data-act="create"/, 'Créer une partie depuis l’accueil');
+assert.match(homeView, /data-act="join"/, 'Rejoindre avec un code depuis l’accueil');
+assert.doesNotMatch(homeView, /games\/|data-act="mode"/, 'Plus de vignettes de jeux sur l’accueil');
+assert.doesNotMatch(homeView, /data-act="admin"/, 'Plus de bouton admin visible sur l’accueil');
+assert.match(scripts[0], /logoTaps\.length >= 5\) \{ logoTaps = \[\]; ouvrirAdmin\(\) \}/, 'Cinq appuis sur le logo ouvrent l’admin');
+assert.match(scripts[0], /const CATEGORIES = \[/, 'Familles de jeux pour la liste « Changer de jeu »');
+for (const k of ['phrases','priorites','dilemme','dico','bac','white','mimes','ondes'])
+  assert.match(scripts[0], new RegExp(`${k}:\\s*\\{ name:'[^']+', cat:'[a-z]+', pitch:'`), `Famille et accroche du jeu ${k}`);
+
+// Actions : un seul écouteur de clics, chaque écran déclare les siennes.
+assert.match(scripts[0], /const action = ACTIONS\[el\.dataset\.act\];/, 'Les clics passent par le registre des actions');
+const declarees = new Set([...scripts[0].matchAll(/surAction\('([a-z0-9 -]+)'/g)].flatMap(m => m[1].split(' ')));
+for (const [, nom] of scripts[0].matchAll(/data-act="([a-z0-9-]+)"/g))
+  assert.ok(declarees.has(nom), `Bouton sans action déclarée : ${nom}`);
+
+// Private Joke : réservé au groupe, avec un code (le code admin marche aussi).
+assert.match(scripts[0], /rpc\('set_phrases_variant', \{ p_code:session\.code, p_token:session\.token, p_variant:'private', p_secret:code \}\)/,
+  'Le mode Private Joke envoie le code du groupe');
+assert.match(salonMigration, /'private_joke_hash', 'admin_hash', 'admin_plus_hash'/, 'Le code admin débloque aussi Private Joke');
+assert.match(salonMigration, /pg_sleep\(1\.5\)/, 'Un mauvais code Private Joke est freiné comme un mauvais code admin');
+
+// Admin générique : quatre fonctions pour les sept catalogues.
+for (const fn of ['admin_cards_list','admin_card_add','admin_card_update','admin_card_delete','admin_set_private_code'])
+  assert.match(scripts[0], new RegExp(`rpc\\('${fn}'`), `L’admin appelle ${fn}`);
+assert.doesNotMatch(scripts[0], /admin_add_card|admin_list_cards|admin_add_white_word|admin_add_mime_card|admin_set_card_form/,
+  'L’admin n’appelle plus les anciennes fonctions par jeu');
 
 console.log('Frontend sanity checks passed.');
 

@@ -139,3 +139,8 @@ function whiteReveal(){
         state.room.round>=bacRounds()?'Voir le résultat':'Manche suivante'}</button></div>`;
 }
 
+/* ---------- Actions ---------- */
+surAction('white-open-vote', () => act('white_open_vote'));
+surAction('white-resume', () => act('white_resume'));
+surAction('white-vote', (el, id) => act('white_vote', { p_target:id }));
+surAction('white-oral-verdict', el => act('white_oral_verdict', { p_correct:el.dataset.correct==='1' }));

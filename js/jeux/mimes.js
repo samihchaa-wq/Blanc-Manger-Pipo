@@ -56,3 +56,11 @@ function mimeReveal(){
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === r.round)}>${state.me.next_ack === r.round ? 'En attente des autres…' : roundsLeft() ? 'Manche suivante' : 'Voir le résultat'}</button></div>`;
 }
 
+/* ---------- Actions ---------- */
+surAction('mime-progress', () => act('mime_progress', { p_action:'next' }));
+surAction('mime-note', (el, id) => { mimeNotes[id] = +el.dataset.v; render() });
+surAction('mime-rate', () => {
+  const ids = mimeIds();
+  if (ids.some(x => !mimeNotes[x])) return toast('Note chaque joueur.');
+  return act('mime_rate', { p_players: ids, p_notes: ids.map(x => mimeNotes[x]) });
+});
