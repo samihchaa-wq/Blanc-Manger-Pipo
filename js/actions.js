@@ -99,10 +99,10 @@ document.addEventListener('click', async e => {
     document.getElementById('pane-join').hidden = want !== 'join';
     return;
   }
-  if (a === 'admin') { adminOpen = true; adminTab = 'a'; adminLast = {}; catalog = { kind:'a', total:0, items:[], q:'' }; return render() }
+  if (a === 'admin') { adminOpen = true; adminTab = 'j'; adminLast = {}; catalog = { kind:'j', total:0, items:[], q:'' }; return render() }
   if (a === 'admin-close') {
-    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'a'; adminLast = {};
-    catalog = { kind:'a', total:0, items:[], q:'' };
+    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'j'; adminLast = {};
+    catalog = { kind:'j', total:0, items:[], q:'' };
     return render();
   }
   // Revenir sur un jeu rouvre le catalogue qu'on y avait laissé.
@@ -147,22 +147,24 @@ document.addEventListener('click', async e => {
     return;
   }
   if (a === 'admin-add') {
-    const k = adminTab, mot = MOT[k], w = k === 'w' || k === 'm';
-    const text = val('a-text'), gauche = val('a-left'), droite = val('a-right');
-    if (w ? !gauche || !droite : !text) return toast(w ? (k === 'm' ? 'Remplis les deux mots.' : 'Remplis les deux extrêmes.') : `Écris une ${mot}.`);
+    const k = adminTab, mot = MOT[k], w = k === 'w' || k === 'm' || k === 'x';
+    const text = val('a-text'), gauche = val('a-left'), droite = val('a-right'), action = val('a-act');
+    if (k === 'x' && !action) return toast('Écris l’action à mimer.');
+    if (w ? !gauche || !droite : !text) return toast(w ? (k === 'm' ? 'Remplis les deux mots.' : k === 'x' ? 'Remplis les intensités 1 et 10.' : 'Remplis les deux extrêmes.') : `Écris une ${mot}.`);
     if (busy) return;
     busy = true; el.disabled = true;
     try {
       const d = k === 'm'
         ? await rpc('admin_add_white_word', { p_password:adminPwd, p_civil:gauche, p_undercover:droite })
+        : k === 'x' ? await rpc('admin_add_mime_card', { p_password:adminPwd, p_action:action, p_low:gauche, p_high:droite })
         : w ? await rpc('admin_add_wave_card', { p_password: adminPwd, p_left: gauche, p_right: droite })
         : await rpc('admin_add_card', { p_password: adminPwd, p_kind: k, p_text: text });
-      toast(k === 'm' ? 'Paire de mots ajoutée.' : `Ajoutée. ${d.total} ${mot}s au catalogue.`);
+      toast(k === 'm' ? 'Paire de mots ajoutée.' : `Ajoutée. ${d.total} ${mot}s ${k === 'j' ? 'en Private jokes' : 'au catalogue'}.`);
       // le rendu identique n'écrit plus le DOM : on vide les champs à la main
       const saisie = document.activeElement?.id;
-      for (const id of ['a-text', 'a-left', 'a-right']) { const c = document.getElementById(id); if (c) c.value = '' }
+      for (const id of ['a-text', 'a-act', 'a-left', 'a-right']) { const c = document.getElementById(id); if (c) c.value = '' }
       // validé au clavier : on repart de la gauche pour enchaîner les cartes
-      if (saisie === 'a-right') document.getElementById('a-left')?.focus();
+      if (saisie === 'a-right') document.getElementById(k === 'x' ? 'a-act' : 'a-left')?.focus();
       majTrous();
       autoGrow(document.getElementById('a-text'));
       el.disabled = false;
@@ -191,10 +193,12 @@ document.addEventListener('click', async e => {
   if (a === 'admin-del') {
     const item = catalog.items.find(c => String(c.id) === String(id));
     const mot = MOT[catalog.kind];
-    if (!confirm(`Supprimer « ${item ? item.text : `cette ${mot}`} » du catalogue ?`)) return;
+    const nom = !item ? `cette ${mot}` : catalog.kind === 'm' ? `${item.civil} ↔ ${item.undercover}` : item.text;
+    if (!confirm(`Supprimer « ${nom} » du catalogue ?`)) return;
     el.disabled = true;
     try {
       if (catalog.kind === 'm') await rpc('admin_delete_white_word', { p_password:adminPwd, p_id:+id });
+      else if (catalog.kind === 'x') await rpc('admin_delete_mime_card', { p_password:adminPwd, p_id:+id });
       else await rpc('admin_delete_card', { p_password: adminPwd, p_kind: catalog.kind, p_id: +id });
       catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
       catalog.total = Math.max(0, catalog.total - 1);
@@ -274,6 +278,7 @@ document.addEventListener('click', async e => {
   if (a === 'guess') return act('submit_guess', { p_value: dialVal });
   if (a === 'wave-variant') return act('set_wave_variant', { p_variant: el.dataset.v });
   if (a === 'dilemme-variant') return act('set_dilemme_variant', { p_variant: el.dataset.v });
+  if (a === 'phrases-variant') return act('set_phrases_variant', { p_variant: el.dataset.v });
   if (a === 'set-game') {
     const m = el.dataset.v, r = state.room;
     if (!GAMES[m] || m === r.mode) { gamePick = false; return render() }
@@ -374,6 +379,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Enter' && e.target.matches('#a-pwd')) document.querySelector('[data-act=admin-login]')?.click();
   // Extrêmes : Entrée passe de la gauche à la droite, puis valide la carte.
+  if (e.key === 'Enter' && e.target.matches('#a-act')) { e.preventDefault(); document.getElementById('a-left')?.focus() }
   if (e.key === 'Enter' && e.target.matches('#a-left')) { e.preventDefault(); document.getElementById('a-right')?.focus() }
   if (e.key === 'Enter' && e.target.matches('#a-right')) { e.preventDefault(); document.querySelector('[data-act=admin-add]')?.click() }
   // Une phrase tient sur une ligne logique : Entrée valide au lieu d'ajouter un
