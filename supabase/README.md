@@ -61,6 +61,8 @@ Current production migration tail:
 - `20261109120000_dilemme_cibles_adaptees` (cible = nombre de Oui entre 1 et « votants − 1 », toujours atteignable ; colonnes `target_yes` et `voters` ; `_dilemme_set_start` et `get_state` remplacés)
 
 - `20261110120000_dilemme_modes` (Dilemme : modes de partie `rooms.dilemme_variant` — `moitie` (50/50, cible 50 % pour tous) ou `aleatoire` (cible tirée, défaut) — avec `set_dilemme_variant` ; `_dilemme_set_start` et `get_state` remplacés)
+- `20261111120000_phrases_private_jokes` (Phrases à trou : `answers.pack` — `normal` ou `private`, toutes les réponses existantes passent en `private` — et `rooms.phrases_variant` (défaut `normal`) avec `set_phrases_variant` ; `_deal` ne distribue que le paquet de la salle ; `_rank_pool` ne lit plus que `priority_cards` ; questions visant le groupe retirées ; admin : `admin_add_card`/`admin_list_cards`/`admin_delete_card` gèrent le type `j` (Private jokes), catalogue Mimes `admin_add_mime_card`/`admin_list_mime_cards`/`admin_delete_mime_card` ; `get_state` enveloppe `_get_state_v8` et ajoute `room.phrases_variant`)
+- `20261111120100_phrases_reponses_normales` (paquet Normal de Phrases à trou : 480 réponses, 240 groupes nominaux et 240 verbes)
 
 ## Change workflow
 
