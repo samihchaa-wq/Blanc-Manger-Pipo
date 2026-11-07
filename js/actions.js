@@ -99,10 +99,10 @@ document.addEventListener('click', async e => {
     document.getElementById('pane-join').hidden = want !== 'join';
     return;
   }
-  if (a === 'admin') { adminOpen = true; adminTab = 'a'; adminLast = {}; catalog = { kind:'a', total:0, items:[], q:'' }; return render() }
+  if (a === 'admin') { adminOpen = true; adminTab = 'j'; adminLast = {}; catalog = { kind:'j', total:0, items:[], q:'' }; return render() }
   if (a === 'admin-close') {
-    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'a'; adminLast = {};
-    catalog = { kind:'a', total:0, items:[], q:'' };
+    adminOpen = false; adminPwd = ''; adminLevel = ''; adminTab = 'j'; adminLast = {};
+    catalog = { kind:'j', total:0, items:[], q:'' };
     return render();
   }
   // Revenir sur un jeu rouvre le catalogue qu'on y avait laissé.
@@ -186,19 +186,6 @@ document.addEventListener('click', async e => {
       const item = catalog.items.find(c => String(c.id) === String(id));
       if (item) item.form = next;
       paintCatalog();
-    } catch (e) { toast(e.message); el.disabled = false }
-    return;
-  }
-  // Une réponse change de paquet : Normal ↔ Private jokes.
-  if (a === 'admin-pack') {
-    const vers = catalog.kind === 'j' ? 'normal' : 'private';
-    el.disabled = true;
-    try {
-      await rpc('admin_set_card_pack', { p_password: adminPwd, p_id: +id, p_pack: vers });
-      catalog.items = catalog.items.filter(c => String(c.id) !== String(id));
-      catalog.total = Math.max(0, catalog.total - 1);
-      paintCatalog();
-      toast(vers === 'private' ? 'Passée en Private jokes.' : 'Passée dans le paquet Normal.');
     } catch (e) { toast(e.message); el.disabled = false }
     return;
   }

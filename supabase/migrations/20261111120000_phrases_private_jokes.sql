@@ -9,8 +9,8 @@
 -- lit plus que priority_cards (les identifiants des deux tables se mélangeaient
 -- en plus dans used_rank_cards).
 --
--- Admin : catalogue « Private jokes » à côté de « Réponses », bascule d'une
--- réponse d'un paquet à l'autre (admin_set_card_pack), et catalogue Mimes
+-- Admin : Phrases à trou n'y montre plus que les Questions et les « Private
+-- jokes » (le paquet Normal s'écrit dans les migrations), et catalogue Mimes
 -- (admin_add_mime_card, admin_list_mime_cards, admin_delete_mime_card).
 --
 -- get_state enveloppe sa version précédente, renommée _get_state_v8, et ajoute
@@ -215,19 +215,6 @@ begin
     if not found then raise exception 'Carte introuvable.'; end if;
   else raise exception 'Type de carte inconnu.'; end if;
 end $fn$;
-
--- Faire passer une réponse d'un paquet à l'autre. Les mains déjà distribuées
--- gardent la carte jusqu'à ce qu'elle soit jouée ou défaussée.
-create or replace function public.admin_set_card_pack(p_password text, p_id integer, p_pack text)
-returns void language plpgsql security definer set search_path to '' as $fn$
-begin
-  if not public._is_admin_plus(p_password) then raise exception 'Mot de passe incorrect.'; end if;
-  if p_pack is null or p_pack not in ('normal','private') then raise exception 'Paquet inconnu.'; end if;
-  update public.answers set pack = p_pack where id = p_id and deleted_at is null;
-  if not found then raise exception 'Carte introuvable.'; end if;
-end $fn$;
-revoke all on function public.admin_set_card_pack(text, integer, text) from public;
-grant execute on function public.admin_set_card_pack(text, integer, text) to anon;
 
 -- 7. Admin : Mimes -----------------------------------------------------------
 create or replace function public.admin_add_mime_card(p_password text, p_action text, p_low text, p_high text)

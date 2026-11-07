@@ -23,16 +23,17 @@ let pun = null, punDrafts = [], punAnimAt = 0, punTimer = null;
 const PUN_MS = 3400;
 // le code admin ne vit qu'en mémoire : jamais dans le fichier, jamais stocké
 let adminOpen = false, adminPwd = '', adminLevel = '';
-let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases à trou
+let adminTab = 'j';   // l'admin s'ouvre toujours sur les Private jokes de Phrases à trou
 let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
 // Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
 // deux textes : l'extrême de gauche et celui de droite. Phrases à trou a deux
-// paquets de réponses : « Réponses » (mode Normal) et « Private jokes ».
+// paquets de réponses : le paquet Normal, écrit dans les migrations, et les
+// « Private jokes », les seules réponses ajoutées depuis l'admin.
 // Une carte Mimes : l'action et ses deux bornes (intensité 1 et 10).
-const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses'],['j','Private jokes']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']], mimes:[['x','Actions']] };
+const CATALOGUES = { phrases:[['q','Questions'],['j','Private jokes']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']], mimes:[['x','Actions']] };
 const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
 const MOT = { q:'question', a:'réponse', j:'réponse', p:'réponse', w:'carte', m:'paire', x:'action' };
-let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
+let catalog = { kind:'j', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
 const GAMES = {

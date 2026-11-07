@@ -307,7 +307,7 @@ function majTrous(){
 function paintCatalog(){
   const list = document.getElementById('cat-list');
   if (!list) return;
-  const q = catalog.kind === 'q', k = catalog.kind, rep = k === 'a' || k === 'j';
+  const q = catalog.kind === 'q', k = catalog.kind;
   const mot = MOT[k];
   const count = document.getElementById('cat-count');
   if (count) count.textContent = `Catalogue · ${catalog.total} ${mot}${catalog.total > 1 ? 's' : ''}`;
@@ -323,8 +323,6 @@ function paintCatalog(){
           : k === 'm' ? `${esc(c.civil)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.undercover)}`
           : k === 'x' ? `${esc(c.text)}<small class="mimeb">1 : ${esc(c.low)} · 10 : ${esc(c.high)}</small>`
           : esc(c.text)}</span>
-        ${rep ? `<button class="form pack" data-act="admin-pack" data-id="${c.id}"
-          aria-label="${k === 'j' ? 'Passer dans le paquet Normal' : 'Passer en Private joke'}" title="${k === 'j' ? 'Passer en Normal' : 'Passer en Private joke'}">${k === 'j' ? '→ Normal' : '→ PJ'}</button>` : ''}
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">${ic('x')}</button>
       </li>`).join('')
     : `<li class="empty">Aucune ${mot}.</li>`;

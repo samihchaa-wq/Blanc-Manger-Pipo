@@ -578,8 +578,6 @@ button.scard:active{transform:translateY(2px)}
 .catlist .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,92,141,.16);
   color:var(--pop-soft);font-size:19px;line-height:1;display:grid;place-items:center}
 .catlist .del:active{background:var(--pop);color:var(--ink)}
-.catlist .form.pack{display:inline-flex;align-items:center;letter-spacing:.02em;white-space:nowrap;
-  background:rgba(255,92,141,.12);border-color:rgba(255,92,141,.45);color:var(--text)}
 .catlist .mimeb{display:block;margin-top:4px;font-size:13px;color:var(--text-faint)}
 .catlist li.empty{justify-content:center;color:var(--text-faint);border-style:dashed}
 #cat-more{margin-top:12px}
