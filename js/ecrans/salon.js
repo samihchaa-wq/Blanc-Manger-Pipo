@@ -224,8 +224,8 @@ surAction('step', el => {
   render();
 }, { marque:false });
 surAction('bot', () => act('add_bot'));
-// avec punitions, le lancement passe d'abord par l'écran de saisie
-surAction('start', () => act(pun?.on ? 'punish_start' : 'start_game'));
+// avec punitions, le serveur ouvre d'abord l'écran de saisie
+surAction('start', () => act('lancer_partie'));
 surAction('kick', (el, id) => act('kick_player',{ p_player_id:id }));
 surAction('set-game', async el => {
   const m = el.dataset.v, r = state.room;

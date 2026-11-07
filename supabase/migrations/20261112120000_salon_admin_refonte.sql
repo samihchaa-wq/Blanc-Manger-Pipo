@@ -1,8 +1,7 @@
 -- Refonte du salon et de l'admin.
 --
--- 1. Salon : l'hôte lance quand il veut. start_game et punish_start n'exigent
---    plus que chaque joueur ait touché « Je suis prêt » (la colonne
---    players.ready reste, elle ne bloque plus rien).
+-- 1. Salon : l'hôte lance quand il veut. lancer_partie marque tout le monde
+--    prêt avant d'appeler start_game ou punish_start, qui ne changent pas.
 --
 -- 2. Private Joke réservé au groupe : passer Phrases à trou en Private Joke
 --    demande un code. Le code admin (simple ou +) marche toujours ; l'admin +
@@ -28,52 +27,21 @@
 begin;
 
 -- 1. Lancement sans « prêt » ---------------------------------------------------
-create or replace function public.start_game(p_code text, p_token uuid)
+-- L'hôte lance quand il veut : lancer_partie marque tous les joueurs prêts puis
+-- passe par start_game (ou punish_start avec les punitions), comme le fait déjà
+-- _punish_maybe_start. start_game et punish_start restent inchangées.
+create or replace function public.lancer_partie(p_code text, p_token uuid)
 returns void language plpgsql security definer set search_path to '' as $fn$
-declare me public.players; r public.rooms; rd uuid; mn integer; nb integer;
+declare me public.players; r public.rooms;
 begin
   me := public._player(p_code, p_token);
   if me.id is null then raise exception 'Session expirée. Rejoins la partie à nouveau.'; end if;
-  select * into r from public.rooms where id = me.room_id for update;
+  select * into r from public.rooms where id = me.room_id;
   if r.host_id <> me.id then raise exception 'Seul l’hôte peut lancer la partie.'; end if;
   if r.status <> 'lobby' then raise exception 'La partie est déjà en cours.'; end if;
-  mn := public._min_players(r.mode);
-  select count(*) into nb from public.players where room_id = r.id and active;
-  if nb < mn then raise exception 'Il faut au moins % joueurs.', mn; end if;
-  if nb > public._max_players(r.mode) then raise exception 'Le Petit bac se joue à deux.'; end if;
-  update public.players set score = 0, discard_round = 0, next_ack_round = 0, continue_requested = false, judge_count = 0
-    where room_id = r.id and active;
-  delete from public.hands where room_id = r.id;
-  delete from public.used_answers where room_id = r.id;
-  delete from public.submissions where room_id = r.id;
-  delete from public.rankings where room_id = r.id;
-  delete from public.wave_guesses where room_id = r.id;
-  delete from public.bac_answers where room_id = r.id;
-  update public.rooms set used_questions = '{}', round = 0, previous_reader_id = null, reader_id = null, rank_cards = '{}',
-    wave_card = null, wave_target = null, wave_clue = null,
-    bac_categories = '{}', bac_letter = null, used_bac_letters = '{}', bac_step = 0 where id = r.id;
-  rd := public._random_reader(r.id, null);
-  perform public._begin_round(r.id, rd, 1);
-end $fn$;
-
-create or replace function public.punish_start(p_code text, p_token uuid)
-returns void language plpgsql security definer set search_path to '' as $fn$
-declare me public.players; r public.rooms; nb integer; mn integer;
-begin
-  me := public._player(p_code, p_token);
-  if me.id is null then raise exception 'Session expirée. Rejoins la partie à nouveau.'; end if;
-  select * into r from public.rooms where id = me.room_id for update;
-  if r.host_id <> me.id then raise exception 'Seul l’hôte peut lancer la partie.'; end if;
-  if r.status <> 'lobby' or r.punish_phase then raise exception 'La partie est déjà lancée.'; end if;
-  if not r.punish then raise exception 'Les punitions ne sont pas activées.'; end if;
-  mn := public._min_players(r.mode);
-  select count(*) into nb from public.players where room_id = r.id and active;
-  if nb < mn then raise exception 'Il faut au moins % joueurs.', mn; end if;
-  if nb > public._max_players(r.mode) then raise exception 'Le Petit bac se joue à deux.'; end if;
-  delete from public.punishments where room_id = r.id;
-  update public.players set punish_sent = false where room_id = r.id and punish_sent;
-  update public.rooms set punish_phase = true, punish_loser = null, punish_pick = null, punish_spun_at = null,
-    phase_at = now(), updated_at = now() where id = r.id;
+  update public.players set ready = true where room_id = r.id and active and not ready;
+  if r.punish then perform public.punish_start(p_code, p_token);
+  else perform public.start_game(p_code, p_token); end if;
 end $fn$;
 
 -- 2. Private Joke avec code ----------------------------------------------------
@@ -364,6 +332,7 @@ begin
   if not found then raise exception 'Carte introuvable.'; end if;
 end $fn$;
 
+grant execute on function public.lancer_partie(text, uuid) to anon, authenticated;
 grant execute on function public.set_phrases_variant(text, uuid, text, text) to anon, authenticated;
 grant execute on function public.admin_set_private_code(text, text) to anon;
 grant execute on function public.admin_cards_list(text, text, text, integer) to anon;

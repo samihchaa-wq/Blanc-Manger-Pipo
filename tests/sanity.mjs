@@ -72,9 +72,11 @@ assert.match(scripts[0], /bot_step/, 'Le client de l’hôte doit piloter les bo
 // Plus d'étape « Je suis prêt » : l'hôte lance quand il veut, le serveur ne
 // vérifie plus que le nombre de joueurs.
 assert.doesNotMatch(html, /data-act="ready"/, 'Plus de bouton « Je suis prêt » dans le salon');
-assert.match(scripts[0], /surAction\('start', \(\) => act\(pun\?\.on \? 'punish_start' : 'start_game'\)\)/, 'L’hôte lance la partie');
+assert.match(scripts[0], /surAction\('start', \(\) => act\('lancer_partie'\)\)/, 'L’hôte lance la partie');
 const salonMigration = fs.readFileSync(new URL('../supabase/migrations/20261112120000_salon_admin_refonte.sql', import.meta.url), 'utf8');
-assert.doesNotMatch(salonMigration, /doivent être prêts/, 'start_game et punish_start n’exigent plus « prêt »');
+assert.match(salonMigration, /update public\.players set ready = true where room_id = r\.id and active/, 'lancer_partie marque tout le monde prêt');
+assert.match(salonMigration, /if r\.punish then perform public\.punish_start\(p_code, p_token\);\s+else perform public\.start_game\(p_code, p_token\); end if;/,
+  'lancer_partie passe par punish_start ou start_game');
 assert.match(salonMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 assert.doesNotMatch(salonMigration, /\bdrop\b|\brevoke\b|\brename\b|\btruncate\b/i,
   'Migration purement additive : rien de supprimé, retiré ni renommé');
