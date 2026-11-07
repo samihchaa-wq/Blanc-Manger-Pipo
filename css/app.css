@@ -1048,7 +1048,8 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
 .rulesbtn{display:inline-block;margin-top:6px;padding:6px 0;font-size:14px;color:var(--accent,var(--gold-soft));
   text-decoration:underline;text-underline-offset:3px}
 body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
-.gamebox .seg.variant{margin:14px 0 10px}
+.gamebox .seg.variant{margin:0}
+.regbody .pjcode{margin:10px 0 0}
 .hint{font-size:13px;line-height:1.4;color:var(--text-faint);margin-top:8px}
 .pjcode{margin:0 0 12px;padding:12px;border-radius:var(--r-md);background:var(--field);border:1px dashed var(--hairline-2)}
 .pjcode .field{margin-bottom:10px}
