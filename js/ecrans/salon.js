@@ -123,7 +123,12 @@ async function choisirPJ(code, el){
   busy = true;
   if (el && el.isConnected) { el.disabled = true; el.classList.add('pending') }
   try {
-    await rpc('set_phrases_variant', { p_code:session.code, p_token:session.token, p_variant:'private', p_secret:code });
+    try { await rpc('set_phrases_variant', { p_code:session.code, p_token:session.token, p_variant:'private', p_secret:code }) }
+    catch (e) {
+      // serveur pas encore à jour (pas de version avec code) : l'ancienne suffit
+      if (!/PGRST202|Could not find the function/i.test(e.message)) throw e;
+      await rpc('set_phrases_variant', { p_code:session.code, p_token:session.token, p_variant:'private' });
+    }
     retenirPJ(code); pjDemande = false; pjDraft = '';
     ping(); await refresh(true);
   } catch (e) {
@@ -240,7 +245,7 @@ surAction('time-mode', el => act('set_time_mode', { p_mode: el.dataset.v }));
 surAction('wave-variant', el => act('set_wave_variant', { p_variant: el.dataset.v }));
 surAction('dilemme-variant', el => act('set_dilemme_variant', { p_variant: el.dataset.v }));
 surAction('phrases-variant', el => {
-  if (el.dataset.v !== 'private') { pjDemande = false; return act('set_phrases_variant', { p_variant:'normal', p_secret:null }) }
+  if (el.dataset.v !== 'private') { pjDemande = false; return act('set_phrases_variant', { p_variant:'normal' }) }
   if (state.room.phrases_variant === 'private') return;
   const code = codePJ();
   if (code) return choisirPJ(code, el);

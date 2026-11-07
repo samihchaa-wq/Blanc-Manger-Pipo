@@ -10,11 +10,12 @@ function qcard(tag, html, cls = '', foot = ''){
 
 // Champs dont la saisie survit à un rafraîchissement : leur valeur vient d'un
 // brouillon gardé en mémoire, le curseur est remis à sa place.
-const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|dico-def|dil-start|dil-but|h-name|h-code|pj-code|cat-q|pj-new|[ae]-(text|left|right|act))$/;
+const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|[ae]-(text|left|right|act))$/;
 function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);
+  hauteurAccueil();
   // Couleur d'accent du jeu en cours (voir body[data-game] dans la feuille de style)
   const jeu = !adminOpen && session && state ? state.room.mode : '';
   if (jeu) document.body.dataset.game = jeu; else delete document.body.dataset.game;
@@ -56,6 +57,7 @@ function render(){
     else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
     else if (session && state && state.room.status === 'writing') fillBac();
     fitDock();
+    if (!session && !adminOpen) fitGames();
   }
   updateCountdown();
   dealPending = false;
