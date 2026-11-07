@@ -240,7 +240,9 @@ function home(){
 // Une barre pour le jeu, puis les catalogues de ce jeu.
 function adminView(){
   const plus = adminLevel === 'plus';
-  const k = adminTab, q = k === 'q', w = k === 'w' || k === 'm', jeu = jeuDe(k), sous = CATALOGUES[jeu];
+  const k = adminTab, q = k === 'q', w = k === 'w' || k === 'm' || k === 'x', jeu = jeuDe(k), sous = CATALOGUES[jeu];
+  // libellés des deux champs courts : Mr White, Baromètre, Mimes
+  const [lg, ld] = k === 'm' ? ['Mot des Civils', 'Mot Undercover'] : k === 'x' ? ['Intensité 1 (à peine)', 'Intensité 10 (à fond)'] : ['Extrême gauche', 'Extrême droite'];
   const body = adminLevel
     ? `<div class="tabs jeux" role="tablist" aria-label="Jeu">
          ${Object.keys(CATALOGUES).map(g =>
@@ -252,8 +254,9 @@ function adminView(){
        </div>
        <section class="panel">
          ${w
-           ? `              <label><span>${k === 'm' ? 'Mot des Civils' : 'Extrême gauche'}</span><input id="a-left" maxlength="60" autocomplete="off" enterkeyhint="next"></label>
-              <label><span>${k === 'm' ? 'Mot Undercover' : 'Extrême droite'}</span><input id="a-right" maxlength="60" autocomplete="off" enterkeyhint="done"></label>`
+           ? `${k === 'x' ? `<label><span>Action à mimer</span><input id="a-act" maxlength="80" autocomplete="off" enterkeyhint="next" placeholder="Mange un citron"></label>` : ''}
+              <label><span>${lg}</span><input id="a-left" maxlength="60" autocomplete="off" enterkeyhint="next"${k === 'x' ? ' placeholder="c’est sucré"' : ''}></label>
+              <label><span>${ld}</span><input id="a-right" maxlength="60" autocomplete="off" enterkeyhint="done"${k === 'x' ? ' placeholder="c’est atrocement acide"' : ''}></label>`
            : `<label><textarea id="a-text" rows="1" maxlength="${q ? 150 : 80}" aria-label="Texte de la ${MOT[k]}"></textarea></label>`}
          ${q ? `<div class="holebar">
            <button class="btn ghost small" data-act="hole-add">+ Ajouter un trou</button>
@@ -263,7 +266,7 @@ function adminView(){
        </section>
        ${plus ? `
          <h3 class="sec" id="cat-count">Catalogue</h3>
-         <input class="searchfield" id="cat-q" placeholder="Rechercher ${k === 'm' ? 'une paire de mots' : w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
+         <input class="searchfield" id="cat-q" placeholder="Rechercher ${k === 'm' ? 'une paire de mots' : k === 'x' ? 'une action' : w ? 'un extrême' : `une ${MOT[k]}`}" autocomplete="off" value="${esc(catalog.q)}">
          <ul class="catlist" id="cat-list"></ul>
          <div id="cat-more"></div>` : ''}`
     : `<section class="panel">
@@ -304,20 +307,24 @@ function majTrous(){
 function paintCatalog(){
   const list = document.getElementById('cat-list');
   if (!list) return;
-  const q = catalog.kind === 'q';
-  const mot = MOT[catalog.kind];
+  const q = catalog.kind === 'q', k = catalog.kind, rep = k === 'a' || k === 'j';
+  const mot = MOT[k];
   const count = document.getElementById('cat-count');
   if (count) count.textContent = `Catalogue · ${catalog.total} ${mot}${catalog.total > 1 ? 's' : ''}`;
   list.innerHTML = catalog.items.length
     ? catalog.items.map(c => `<li>
         ${q ? (c.blanks > 1 ? '<span class="form two" aria-label="Deux trous">2 trous</span>' : '')
-            : catalog.kind === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
-            : catalog.kind === 'w' || catalog.kind === 'm' ? ''
+            : k === 'p' ? `<span class="form theme">${esc(c.theme)}</span>`
+            : k === 'w' || k === 'm' || k === 'x' ? ''
             : `<button class="form ${c.form === 'v' ? 'v' : 'n'}" data-act="admin-form" data-id="${c.id}" data-form="${esc(c.form)}"
           aria-label="${c.form === 'v' ? 'Verbe à l’infinitif' : 'Groupe nominal'}">${c.form === 'v' ? 'V' : 'N'}</button>`}
-        <span class="ct">${catalog.kind === 'w' || catalog.kind === 'm'
+        <span class="ct">${k === 'w'
           ? `${esc(c.left)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.right)}`
+          : k === 'm' ? `${esc(c.civil)} <span class="sep" aria-hidden="true">↔</span> ${esc(c.undercover)}`
+          : k === 'x' ? `${esc(c.text)}<small class="mimeb">1 : ${esc(c.low)} · 10 : ${esc(c.high)}</small>`
           : esc(c.text)}</span>
+        ${rep ? `<button class="form pack" data-act="admin-pack" data-id="${c.id}"
+          aria-label="${k === 'j' ? 'Passer dans le paquet Normal' : 'Passer en Private joke'}" title="${k === 'j' ? 'Passer en Normal' : 'Passer en Private joke'}">${k === 'j' ? '→ Normal' : '→ PJ'}</button>` : ''}
         <button class="del" data-act="admin-del" data-id="${c.id}" aria-label="Supprimer">${ic('x')}</button>
       </li>`).join('')
     : `<li class="empty">Aucune ${mot}.</li>`;
@@ -340,6 +347,8 @@ async function loadCatalog(offset = 0){
   try {
     const d = catalog.kind === 'm'
       ? await rpc('admin_list_white_words', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
+      : catalog.kind === 'x'
+      ? await rpc('admin_list_mime_cards', { p_password:adminPwd, p_search:catalog.q, p_offset:offset })
       : await rpc('admin_list_cards', { p_password:adminPwd, p_kind:catalog.kind, p_search:catalog.q, p_offset:offset });
     catalog.total = d.total;
     catalog.items = offset ? catalog.items.concat(d.items) : d.items;
@@ -503,8 +512,8 @@ function gameBox(host){
         aria-expanded="${rulesOpen}" aria-label="Règles du jeu">i</button>${host ? `<button type="button" class="chg" data-act="game-pick"
         aria-expanded="${gamePick}">${gamePick ? 'Fermer' : 'Changer de jeu'}</button>` : ''}</div>
       ${host && gamePick ? gamePicker() : ''}
-      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : r.mode === 'dilemme' ? `<p class="gdesc">${DILEMME_VARIANT_DESC}</p>` : ''}` : ''}
-      ${r.mode === 'ondes' ? waveVariant(host) : r.mode === 'dilemme' ? dilemmeVariant(host) : ''}
+      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${r.mode === 'ondes' ? `<p class="gdesc">${WAVE_INVERSE_DESC}</p>` : r.mode === 'dilemme' ? `<p class="gdesc">${DILEMME_VARIANT_DESC}</p>` : r.mode === 'phrases' ? `<p class="gdesc">${PHRASES_VARIANT_DESC}</p>` : ''}` : ''}
+      ${r.mode === 'ondes' ? waveVariant(host) : r.mode === 'dilemme' ? dilemmeVariant(host) : r.mode === 'phrases' ? phrasesVariant(host) : ''}
       ${host
         ? `<div class="setrow${pun ? ' pun' : ''}">${opts}${punOpt}${timeField(true)}</div>`
         : `<p class="gdesc">${label} : <b>${optValue(k)}</b> · Temps : <b>${timeField(false)}</b>${punOpt}</p>`}
@@ -529,6 +538,14 @@ function waveVariant(host){
   if (!host) return `<p class="gdesc">Mode : <b>${v === 'inverse' ? 'Inversé' : 'Normal'}</b></p>`;
   return `<div class="seg s2 variant" role="group" aria-label="Mode du Baromètre">${[['normal','Normal'],['inverse','Inversé']].map(([k, l]) =>
     `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="wave-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
+}
+
+// Phrases à trou : paquet Normal ou Private Joke, au choix de l'hôte.
+function phrasesVariant(host){
+  const v = state.room.phrases_variant === 'private' ? 'private' : 'normal', modes = [['normal','Normal'],['private','Private Joke']];
+  if (!host) return `<p class="gdesc">Mode : <b>${modes.find(m => m[0] === v)[1]}</b></p>`;
+  return `<div class="seg s2 variant" role="group" aria-label="Mode de Phrases à trou">${modes.map(([k, l]) =>
+    `<button type="button" class="seg-b ${v === k ? 'on' : ''}" data-act="phrases-variant" data-v="${k}" aria-pressed="${v === k}" ${dis()}>${l}</button>`).join('')}</div>`;
 }
 
 // Dilemme : 50/50 ou Aléatoire, au choix de l'hôte.

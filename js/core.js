@@ -26,10 +26,12 @@ let adminOpen = false, adminPwd = '', adminLevel = '';
 let adminTab = 'a';   // l'admin s'ouvre toujours sur les réponses de Phrases à trou
 let adminLast = {};   // dernier catalogue ouvert dans chaque jeu
 // Les catalogues de l'admin, rangés par jeu. Une carte Baromètre porte
-// deux textes : l'extrême de gauche et celui de droite.
-const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']] };
+// deux textes : l'extrême de gauche et celui de droite. Phrases à trou a deux
+// paquets de réponses : « Réponses » (mode Normal) et « Private jokes ».
+// Une carte Mimes : l'action et ses deux bornes (intensité 1 et 10).
+const CATALOGUES = { phrases:[['q','Questions'],['a','Réponses'],['j','Private jokes']], priorites:[['p','Réponses']], ondes:[['w','Extrêmes']], white:[['m','Paires de mots']], mimes:[['x','Actions']] };
 const jeuDe = k => Object.keys(CATALOGUES).find(g => CATALOGUES[g].some(([x]) => x === k));
-const MOT = { q:'question', a:'réponse', p:'réponse', w:'carte', m:'paire' };
+const MOT = { q:'question', a:'réponse', j:'réponse', p:'réponse', w:'carte', m:'paire', x:'action' };
 let catalog = { kind:'a', total:0, items:[], q:'' }, catTimer = null;
 
 // Les jeux hébergés par l'appli. Le salon en montre la règle courte.
@@ -45,6 +47,8 @@ const GAMES = {
 };
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
 const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
+// Phrases à trou : le paquet de réponses distribué.
+const PHRASES_VARIANT_DESC = 'Mode Normal : le paquet de réponses grand public. Mode Private Joke : seulement les réponses ajoutées par votre groupe.';
 // Dilemme : les deux modes de partie.
 const DILEMME_VARIANT_DESC = 'Mode 50/50 : tout le monde vise la moitié de Oui. Mode Aléatoire : chacun reçoit une cible secrète différente, toujours atteignable selon le nombre de joueurs.';
 // Vignette d'un jeu, la même partout (accueil, salon, barre du haut) : Mr White
