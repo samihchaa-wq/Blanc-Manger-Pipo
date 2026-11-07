@@ -136,3 +136,34 @@ function bacReveal(){
     <div class="dock"><button class="btn" data-act="bac-next" ${dis(state.me.next_ack === state.room.round)}>${state.me.next_ack === state.room.round ? 'En attente de l’autre joueur…' : state.room.round >= bacRounds() ? 'Voir le résultat' : 'Manche suivante'}</button></div>`;
 }
 
+/* ---------- Actions ---------- */
+surAction('bac-cat', async () => {
+  const t = (document.getElementById('bac-cat')?.value || '').trim();
+  if (!t) return toast('Écris une catégorie.');
+  if (await act('bac_category', { p_name: t })) catDraft = '';
+  render();
+});
+surAction('bac-done', () => { clearTimeout(bacTimer); return act('bac_save', { p_answers: bacDraft, p_done: true }) });
+surAction('bac-vote', async el => {
+  // le choix reste allumé pendant qu'on attend le vote de l'autre
+  bacMyVote = { k: state.room.round + ':' + (state.bac?.step || 0), v: +el.dataset.v };
+  if (!(await act('bac_vote', { p_vote: +el.dataset.v }))) { bacMyVote = null; render() }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'bac-cat') catDraft = e.target.value;
+  if (e.target.matches('.bacfield input')) {
+    bacDraft[+e.target.dataset.i] = e.target.value;
+    clearTimeout(bacTimer); bacTimer = setTimeout(saveBac, 700);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('#bac-cat')) document.querySelector('[data-act=bac-cat]')?.click();
+  // Entrée passe à la catégorie suivante, et ferme le clavier à la dernière.
+  if (e.key === 'Enter' && e.target.matches('.bacfield input')) {
+    e.preventDefault();
+    const suivant = document.getElementById('bac-' + (+e.target.dataset.i + 1));
+    suivant ? suivant.focus() : e.target.blur();
+  }
+});
+// En quittant l'appli en pleine saisie, la grille part tout de suite.
+document.addEventListener('visibilitychange', () => { if (document.hidden && state?.room.status === 'writing') saveBac() });

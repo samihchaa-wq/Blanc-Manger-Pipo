@@ -154,3 +154,31 @@ function dilemmeReveal(){
       x.player_id === state.room.reader_id ? '<span class="tag host">meneur</span>' : ''}</span><b class="plus" data-n="${x.points}">+${x.points}</b></li>`).join('')}</ol>
     <h3 class="sec">Classement</h3>${rank()}`;
 }
+
+/* ---------- Actions ---------- */
+// Idées de début, suite, Oui/Non gardés sur le téléphone jusqu'à l'envoi
+surAction('dil-idea', el => { dilStartDraft = dilChoix?.[+el.dataset.i] || ''; render() }, { marque:false });
+surAction('dil-reroll', () => { dilTirer(); render() }, { marque:false });
+surAction('dil-start', () => {
+  const t = (document.getElementById('dil-start')?.value || '').trim();
+  if (t.length < 5) return toast('Choisis ou écris le début du dilemme.');
+  return act('dilemme_pick', { p_start:t });
+});
+surAction('dil-send', () => {
+  const t = (document.getElementById('dil-but')?.value || '').trim();
+  if (t.length < 3) return toast('Écris la suite du dilemme.');
+  return act('dilemme_write', { p_text:t });
+});
+surAction('dil-yn', el => { dilVotes[el.dataset.id] = el.dataset.v === '1'; render() }, { marque:false });
+surAction('dil-vote', () => {
+  const ids = (state.dilemme?.buts || []).filter(x => !x.mine).map(x => x.id);
+  if (ids.some(id => dilVotes[id] == null)) return toast('Réponds Oui ou Non à chaque dilemme.');
+  return act('dilemme_vote', { p_buts:ids, p_yes:ids.map(id => dilVotes[id]) });
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'dil-start') dilStartDraft = e.target.value;
+  if (e.target.id === 'dil-but') { dilButDraft = e.target.value; autoGrow(e.target) }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('#dil-start')) document.querySelector('[data-act=dil-start]')?.click();
+});

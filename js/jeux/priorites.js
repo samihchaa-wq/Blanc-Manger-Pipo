@@ -77,3 +77,21 @@ function rankReveal(){
     <h3 class="sec">Classement</h3>${rank()}`;
 }
 
+/* ---------- Actions ---------- */
+// Chaque touche pose la carte sur la première marche libre ; toucher une carte
+// posée la retire et libère sa marche. Le glisser-déposer (gestes.js) peut
+// laisser des marches vides entre deux cartes.
+surAction('rank', (el, id) => {
+  const c = +id, n = (state?.rank_cards || []).length;
+  if (picks.includes(c)) return;
+  const libre = Array.from({ length:n }, (_, i) => i).find(i => !picks[i]);
+  if (libre !== undefined) picks[libre] = c;
+  render();
+});
+surAction('unrank', (el, id) => { const i = picks.indexOf(+id); if (i >= 0) picks[i] = undefined; render() });
+surAction('send-rank', () => {
+  const n = (state?.rank_cards || []).length;
+  if (picks.slice(0, n).filter(Boolean).length < n) return;
+  return act('submit_ranking', { p_cards: picks.slice(0, n) });
+});
+surAction('rankview', (el, id) => { rankView = id; render() });

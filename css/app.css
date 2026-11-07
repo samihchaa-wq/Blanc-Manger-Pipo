@@ -159,21 +159,6 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 .seg-b:active{transform:scale(.95)}
 .seg.s2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}
-/* accueil : chaque jeu est une vignette ; celle choisie s'allume, les autres s'effacent */
-/* La grille est carrée : sa largeur est la hauteur d'écran moins tout le reste
-   de l'accueil (marges, onglets, pseudo, bouton ≈ 266 px + logo),
-   pour que les quatre vignettes tiennent sans défiler. */
-.seg.games{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;background:none;border:0;margin:0 auto;width:100%}
-/* Accueil : les vignettes débordent un peu des marges pour être plus grandes ;
-   fitGames() ne les réduit que si l'accueil ne tient plus sur l'écran. */
-.home .seg.games{width:calc(100% + 16px);max-width:calc(100vw - 12px);margin:0 -8px;gap:8px;justify-self:center;align-self:center}
-.seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:1;
-  transition:opacity var(--dur),transform var(--dur)}
-/* toutes les vignettes restent pleines (à 55 % elles semblaient désactivées) ;
-   la choisie est cerclée de doré */
-.seg.games .seg-b.on{transform:scale(1.03);box-shadow:0 0 0 3px var(--gold),0 12px 26px -10px rgba(255,194,61,.55)}
-.seg.games .seg-b:active{transform:scale(.95)}
-.seg.games img{display:block;width:100%;height:auto;border-radius:inherit;pointer-events:none}
 .seg.who{margin-bottom:18px}
 .seg.who .seg-b{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:9px 4px}
 .seg.who .seg-b span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -331,12 +316,10 @@ button.scard:active{transform:translateY(2px)}
 /* Intertitres en casse normale : les capitales espacées étaient partout
    (cartes, sections, étiquettes) et ne hiérarchisaient plus rien. */
 .sec{font-size:18px;font-weight:700;letter-spacing:-.015em;color:var(--text);margin:28px 0 12px}
-/* deux joueurs par ligne, l'hôte en premier ; contour vert = prêt */
+/* deux joueurs par ligne, l'hôte en premier */
 .plist{list-style:none;padding:0;margin:0 0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .plist li{display:flex;align-items:center;gap:6px;min-width:0;min-height:48px;padding:6px 10px 6px 12px;
   border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hairline);font-size:16px}
-/* Salon : seulement le nom ; prêt = contour et fond menthe */
-.plist li.is-ready{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:linear-gradient(90deg,rgba(63,220,156,.12),var(--surface) 60%),var(--surface)}
 .plist .nm{flex:1}
 /* lu par les lecteurs d'écran, invisible à l'écran */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -357,13 +340,6 @@ button.scard:active{transform:translateY(2px)}
 .gtitle .chg{margin-left:auto;font-size:13px;letter-spacing:.04em;color:var(--gold-soft);
   padding:6px 12px;border-radius:var(--r-pill);background:rgba(255,194,61,.10);border:1px solid rgba(255,194,61,.32)}
 .gtitle .chg:active{transform:scale(.95)}
-.seg.games.pick{width:100%;margin:14px 0 4px;gap:8px}
-.seg.games.pick .seg-b{opacity:1}
-.seg.games.pick .seg-b.on{box-shadow:0 0 0 3px var(--gold);transform:none}
-.seg.games.pick .seg-b{position:relative}
-.seg.games.pick .seg-b:disabled img{opacity:.5;filter:saturate(.35)}
-.seg.games.pick .max{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);white-space:nowrap;
-  font-size:11px;letter-spacing:.04em;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-0);color:var(--text-dim);border:1px solid var(--hairline-2)}
 /* manches et punitions par joueur sur une seule ligne, cases alignées en bas */
 .step{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:52px;padding:4px;
   background:var(--field);border:1.5px solid var(--hairline-2);border-radius:var(--r-sm)}
@@ -371,28 +347,8 @@ button.scard:active{transform:translateY(2px)}
 .step button{height:100%;border-radius:9px;font-size:22px;color:var(--text);background:var(--surface-2)}
 .step button:active{transform:scale(.92)}
 .step button:disabled{opacity:.3}
-/* Punitions : une petite roue, la même qu'en fin de partie, à droite du
-   compteur. Grisée tant qu'elle est éteinte, elle fait un tour en s'allumant. */
-.punsw{position:relative;display:grid;place-items:center;width:56px;height:52px;margin-top:auto}
-.punsw .mini{width:44px;height:44px;border-radius:50%;border:3px solid var(--paper);position:relative;
-  box-shadow:0 0 0 1.5px rgba(0,0,0,.35),0 6px 14px -6px rgba(0,0,0,.8);
-  filter:grayscale(1) brightness(.6);opacity:.55;transition:filter .2s,opacity .2s}
-.punsw .mini::after{content:"";position:absolute;inset:32%;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--surface-2),var(--bg-0));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.punsw::before{content:"";position:absolute;top:1px;left:50%;transform:translateX(-50%);z-index:1;
-  border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--paper);
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));opacity:.5;transition:opacity .2s}
-.punsw.on .mini{filter:none;opacity:1;animation:tourne .9s cubic-bezier(.12,.7,.1,1) both;--spin:360deg}
-.punsw.on::before{opacity:1}
-.punsw:active{transform:scale(.92)}
 .gamebox .gtitle{display:flex;align-items:center;gap:10px;margin:0 0 10px}
 .gamebox .gname{font-size:22px;margin:0}
-/* « i » des règles : petit rond, zone de toucher élargie à 44 px */
-.info{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
-  border:1.5px solid var(--hairline-2);color:var(--text-dim);font-size:14px;font-weight:600;line-height:1}
-.info::after{content:'';position:absolute;inset:-9px}
-.info.on{border-color:var(--gold);color:var(--gold)}
-.info:active{transform:scale(.9)}
 .gamebox .gdesc{font-size:15px;line-height:1.4;color:var(--text-dim);margin-top:12px}
 .gamebox .gtitle+.gdesc{margin-top:0}
 
@@ -874,25 +830,16 @@ button.scard:active{transform:translateY(2px)}
 .holdhint .ic{width:16px;height:16px}
 .white-secret.hold.show .holdhint{opacity:0}
 
-/* ===== Accueil : le jeu choisi en une ligne ===== */
-.pitch{display:none;margin:12px 0 0;text-align:center;font-size:15px;line-height:1.35;color:var(--text-dim)}
-.pitch b{color:var(--text);font-weight:700}
-.pitch span{color:var(--text-faint)}
-/* seulement quand l'écran a la place : l'accueil doit tenir sans défiler */
-@media (min-height:700px){
-  .home .pitch{display:block}
-}
-
 /* ===== Couleur d'accent par jeu ===== */
 /* Le jeu en cours teinte la lueur du haut, l'anneau de sa vignette et les
    barres de progression ; les cartes gardent leurs couleurs de rôle. */
-body[data-game="phrases"]{--accent:#FFC23D}
-body[data-game="priorites"]{--accent:#FF9440}
-body[data-game="ondes"]{--accent:#4CC3F5}
-body[data-game="bac"]{--accent:#3FDC9C}
-body[data-game="white"]{--accent:#C4B2FF}
-body[data-game="mimes"]{--accent:#FF6B98}
-body[data-game="dico"]{--accent:#E0A458}
+[data-game="phrases"]{--accent:#FFC23D}
+[data-game="priorites"]{--accent:#FF9440}
+[data-game="ondes"]{--accent:#4CC3F5}
+[data-game="bac"]{--accent:#3FDC9C}
+[data-game="white"]{--accent:#C4B2FF}
+[data-game="mimes"]{--accent:#FF6B98}
+[data-game="dico"]{--accent:#E0A458}
 body[data-game]::before{background:
   radial-gradient(90% 46% at 50% -10%, color-mix(in srgb, var(--accent) 24%, transparent) 0%, transparent 72%),
   radial-gradient(60% 36% at 104% 0%, rgba(224,33,91,.10) 0%, rgba(224,33,91,0) 70%),
@@ -901,60 +848,7 @@ body[data-game] .gamelogo{box-shadow:0 0 0 2px var(--accent),0 8px 18px -8px rgb
 body[data-game] .steps i.on{background:var(--accent)}
 body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint))}
 
-/* ===== Réglages du salon sur une seule ligne ===== */
-/* Manches, roue des punitions et temps côte à côte, libellé court au-dessus. */
-.setrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:8px;align-items:end;margin-top:16px}
-.setrow.pun{grid-template-columns:minmax(0,.9fr) 58px minmax(0,1.2fr)}
-.gamebox .setrow .field{display:flex;flex-direction:column;min-width:0;margin:0}
-/* libellés en casse normale : en capitales, « Punitions » débordait sur « Temps » */
-/* chaque libellé est centré sur son réglage : à gauche pour deux d'entre eux et
-   centré pour la roue, la ligne paraissait décalée */
-.gamebox .setrow .field>span{margin-bottom:7px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--text-dim);text-align:center;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.setrow .punf{align-items:center}
-.setrow .punf>span{overflow:visible}
-.setrow .step{grid-template-columns:30px minmax(0,1fr) 30px;height:48px;padding:3px}
-.setrow .step b{font-size:19px;min-width:0}
-.setrow .step button{font-size:19px;border-radius:8px}
-.setrow .tstep{grid-template-columns:28px minmax(0,1fr) 28px}
-.setrow .tstep b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.setrow .tstep button{display:grid;place-items:center}
-.setrow .tstep .ic{width:18px;height:18px;stroke-width:2.6}
-@media (max-width:370px){.setrow .tstep b{font-size:14px}}
-/* très petits écrans (320 px) : le temps passe sous les manches et la roue */
-@media (max-width:340px){
-  .setrow{grid-template-columns:1fr}
-  .setrow.pun{grid-template-columns:minmax(0,1fr) 58px}
-  .setrow .field:last-child{grid-column:1/-1;margin-top:10px}
-}
-.setrow .punsw{width:52px;height:48px;margin:0}
-.setrow .punsw .mini{width:40px;height:40px}
 .gamebox .gdesc b{color:var(--text);font-weight:600}
-
-/* Accueil : le volet occupe la hauteur restante ; les vignettes se centrent
-   dans l'espace libre et « Créer la partie » se cale en bas, sous le pouce,
-   comme le bouton principal des autres écrans. */
-.home .pane{flex:1;display:flex;flex-direction:column}
-.home .pane[hidden]{display:none}
-.home #pane-create>.field{margin:auto 0;padding:10px 0}
-.home .pane>.btn{margin-top:auto}
-/* Les vignettes prennent toute la place libre entre le pseudo et la description,
-   sans jamais faire défiler. Le cadre (.gamesbox) reçoit cette place ; la grille
-   en déduit la plus grande vignette carrée qui tient en largeur et en hauteur.
-   Tout se calcule en CSS : rien à rater quand le clavier, la barre de Safari ou
-   la police changent la hauteur de l'écran (le calcul en JavaScript, lancé au
-   mauvais moment, laissait les vignettes trop petites avec du vide dessous). */
-@supports (container-type:size){
-  .home #pane-create>.field{flex:1;min-height:0;margin:0;display:flex;flex-direction:column}
-  .home .gamesbox{flex:1;min-height:calc(var(--rows) * 60px + (var(--rows) - 1) * 8px);margin:0 -8px;position:relative}
-  /* posé en absolu : sa taille est celle, définitive, que la mise en page a
-     donnée au cadre (un élément flexible mesuré directement vaut 0 en hauteur) */
-  .home .gamesfit{position:absolute;inset:0;container-type:size;display:grid;place-items:center}
-  .home .gamesfit .seg.games{--t:max(60px,min((100cqw - 16px) / 3,(100cqh - (var(--rows) - 1) * 8px) / var(--rows)));
-    width:calc(3 * var(--t) + 16px);max-width:none;margin:0}
-  /* trois lignes réservées : changer de jeu ne fait pas sauter les vignettes */
-  .home .pitch{min-height:4.05em}
-}
 
 /* ===== Le Dico : le livre et sa page ===== */
 .bookwrap{display:grid;place-items:center;min-height:50vh;perspective:1300px}
@@ -1038,7 +932,7 @@ button.ddef:active:not(:disabled){transform:translateY(2px)}
 .wlabs.signs .wlab{min-width:52px;text-align:center;font-size:24px;font-weight:700;line-height:1}
 
 /* ===== Dilemme ===== */
-body[data-game="dilemme"]{--accent:#FF7C64}
+[data-game="dilemme"]{--accent:#FF7C64}
 .dlm-a{font-weight:500}
 .dlm-b{font-weight:800}
 .dlm-card .qtext{line-height:1.3}
@@ -1089,3 +983,97 @@ body[data-game="dilemme"]{--accent:#FF7C64}
 .dlm-split{position:relative}
 .dlm-mark{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;border-radius:2px;background:#fff;
   box-shadow:0 0 0 2px var(--bg-0)}
+
+/* ===== Refonte : accueil, salon, liste des jeux, admin ===== */
+/* Accueil : le logo (cinq appuis = admin), une phrase, puis un seul panneau :
+   pseudo, « Créer une partie », et un code pour rejoindre. */
+.home{justify-content:center;gap:14px}
+.home h1 .logo{display:block;width:100%;margin:0 auto;padding:0;background:none;border:0;cursor:default}
+.home h1 img,.home h1 .shift{width:min(100%,360px,34vh)}
+.tagline{text-align:center;font-size:15px;color:var(--text-dim);margin-top:-6px}
+.home .homebox{margin-top:6px;padding:20px;background:var(--surface);border:1px solid var(--hairline);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 18px 40px -24px rgba(0,0,0,.9)}
+.invite{text-align:center;margin:0 0 14px;color:var(--text-dim)}
+.invite b{color:var(--gold);letter-spacing:.18em;font-weight:700}
+.ou{display:flex;align-items:center;gap:10px;margin:18px 0 12px;font-size:13px;color:var(--text-faint)}
+.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--hairline)}
+.joinrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#h-code{text-align:center;letter-spacing:.2em;text-indent:.2em;font-size:20px;padding:12px 8px}
+#h-code::placeholder{letter-spacing:normal;font-size:17px}
+.joinrow .btn{width:auto;margin:0;padding:12px 18px}
+
+/* Salon : le jeu (nom, joueurs, accroche, règle à la demande), puis ses réglages. */
+.gamebox .gtitle{align-items:flex-start}
+.gtitle .chg{flex:none;white-space:nowrap}
+@media (max-width:360px){.gamebox .gname{font-size:20px}.gtitle .chg{font-size:12px;padding:6px 10px}}
+.gtext{min-width:0}
+.gsub{font-size:13px;color:var(--text-faint);margin-top:4px}
+.gamebox .gdesc+.gdesc{margin-top:8px}
+.rulesbtn{display:inline-block;margin-top:6px;padding:6px 0;font-size:14px;color:var(--accent,var(--gold-soft));
+  text-decoration:underline;text-underline-offset:3px}
+body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
+.gamebox .seg.variant{margin:14px 0 10px}
+.hint{font-size:13px;line-height:1.4;color:var(--text-faint);margin-top:8px}
+.pjcode{margin:0 0 12px;padding:12px;border-radius:var(--r-md);background:var(--field);border:1px dashed var(--hairline-2)}
+.pjcode .field{margin-bottom:10px}
+.pjcode .btn{width:100%}
+
+/* Changer de jeu : la liste par famille, chaque jeu avec sa vignette, le
+   nombre de joueurs et son accroche, cerclé de sa couleur quand il est choisi. */
+.gpick{display:grid;gap:8px;margin:12px 0 6px}
+.gcat{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin:10px 2px 0;font-weight:600}
+.gcat:first-child{margin-top:2px}
+.gitem{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:center;width:100%;padding:8px;text-align:left;
+  border-radius:var(--r-md);background:var(--field);border:1.5px solid var(--hairline);transition:transform var(--dur),border-color var(--dur)}
+.gitem img{display:block;width:56px;height:56px;border-radius:14px}
+.gitem .gi{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gitem b{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.gitem small{font-size:12px;color:var(--accent);font-weight:600}
+.gitem .gi>span{font-size:13px;line-height:1.3;color:var(--text-dim)}
+.gitem.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.gitem:disabled{opacity:.45}
+.gitem:active:not(:disabled){transform:scale(.98)}
+
+/* Réglages : repliés derrière une ligne qui les résume. */
+.reglages{margin-top:14px;padding-top:4px;border-top:1px solid var(--hairline)}
+.regtog{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 0;text-align:left}
+.regtog b{display:block;font-size:16px;font-weight:600}
+.regtog small{display:block;margin-top:2px;font-size:13px;color:var(--text-dim)}
+.regtog .chev{width:20px;height:20px;color:var(--text-faint);transition:transform var(--dur)}
+.reglages.open .chev{transform:rotate(90deg)}
+.regbody{display:grid;gap:16px;padding:6px 0 4px}
+.rrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rrow>span{font-size:15px;color:var(--text)}
+.rrow>span small{display:block;margin-top:2px;font-size:12px;color:var(--text-faint)}
+.rrow.col{flex-direction:column;align-items:stretch;gap:8px}
+.rrow .step{flex:none;width:148px;height:46px;grid-template-columns:40px minmax(0,1fr) 40px;padding:3px}
+.rrow .step b{font-size:19px}
+.seg.s4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tseg .seg-b{padding:10px 2px;font-size:14px}
+.gamebox .gdesc.resume{font-size:14px;margin-top:12px}
+
+/* Interrupteur Oui / Non */
+.switch{flex:none;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:4px 14px 4px 4px;
+  border-radius:var(--r-pill);background:var(--field);border:1.5px solid var(--hairline-2)}
+.switch .knob{position:relative;width:46px;height:28px;border-radius:var(--r-pill);background:var(--surface-2);transition:background var(--dur)}
+.switch .knob::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:var(--text-faint);transition:transform var(--dur),background var(--dur)}
+.switch.on .knob{background:var(--accent,var(--mint))}
+.switch.on .knob::after{transform:translateX(18px);background:#fff}
+.switch b{min-width:2.2em;font-weight:600;text-align:left}
+.switch:active{transform:scale(.97)}
+
+/* Admin : onglet de chaque jeu à sa couleur ; cartes modifiables sur place. */
+.tabs.jeux .tab.on{background:var(--accent,var(--gold));color:var(--ink)}
+.adminform .field:last-of-type{margin-bottom:14px}
+.catlist .edit{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--surface-2);color:var(--text-dim)}
+.catlist .edit .ic{width:15px;height:15px}
+.catlist .edit:active{transform:scale(.92)}
+.catlist .sous{display:block;margin-top:3px;font-size:13px;color:var(--text-faint)}
+.catlist li.editing{display:block}
+.efields .field{margin-bottom:10px}
+.eacts{display:flex;gap:8px}
+.eacts .btn{flex:1;margin:0}
+.pjset{margin-top:22px}
+.pjset .sec{margin-top:0}
+.pjset .hint{margin:6px 0 16px}

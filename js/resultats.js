@@ -120,3 +120,7 @@ function confetti(){
   setTimeout(() => wrap.remove(), 4500);
 }
 
+/* ---------- Actions ---------- */
+surAction('continue', () => act('continue_game'));
+// résultats d'une manche : chacun valide, la manche suivante part quand tous l'ont fait
+surAction('bac-next', () => act('next_round'));

@@ -164,4 +164,23 @@ function endDial(e){
 document.addEventListener('pointerup', endDial);
 document.addEventListener('pointercancel', endDial);
 
-
+/* ---------- Actions ---------- */
+surAction('clue', () => {
+  const t = (document.getElementById('w-clue')?.value || '').trim();
+  if (!t) return toast(isInverse() ? 'Écris ta réponse.' : 'Écris un indice.');
+  return act('submit_clue', { p_clue: t });
+});
+surAction('guess', () => act('submit_guess', { p_value: dialVal }));
+surAction('theme', async () => {
+  const t = (document.getElementById('w-theme')?.value || '').trim();
+  if (!t) return toast('Écris un thème.');
+  if (await act('submit_theme', { p_theme: t })) themeDraft = '';
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'w-clue') clueDraft = e.target.value;
+  if (e.target.id === 'w-theme') themeDraft = e.target.value;
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('#w-clue')) document.querySelector('[data-act=clue]')?.click();
+  if (e.key === 'Enter' && e.target.matches('#w-theme')) document.querySelector('[data-act=theme]')?.click();
+});
