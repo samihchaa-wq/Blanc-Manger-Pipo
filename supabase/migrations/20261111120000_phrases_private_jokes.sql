@@ -24,8 +24,10 @@ alter table public.answers drop constraint if exists answers_pack_check;
 alter table public.answers add constraint answers_pack_check check (pack in ('normal','private'));
 update public.answers set pack = 'private';
 create index if not exists answers_pack_form_idx on public.answers(pack, form) where deleted_at is null;
--- Les questions servent aux deux modes : on retire celles sur l'AS Grinta.
-update public.questions set deleted_at = now() where deleted_at is null and text ilike '%grinta%';
+-- Les questions servent aux deux modes : on retire celles qui visent le groupe
+-- (l'AS Grinta, Philippe sur le terrain).
+update public.questions set deleted_at = now()
+  where deleted_at is null and (text ilike '%grinta%' or text ilike '%philippe me demande%');
 
 -- 2. Mode de la salle --------------------------------------------------------
 alter table public.rooms add column if not exists phrases_variant text not null default 'normal';
