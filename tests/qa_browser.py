@@ -163,7 +163,8 @@ def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
     if game:
         page.wait_for_function("() => document.querySelector('.lobbytop') || "
                                "document.querySelector('.bigstate') || "
-                               "document.querySelector('.role')", timeout=10000)
+                               "document.querySelector('.role') || "
+                               "document.querySelector('.bachead')", timeout=10000)
     else:
         page.locator("#pane-join" if invite else "#pane-create").wait_for(timeout=10000)
     return context,page,errors
