@@ -72,10 +72,23 @@ function fill(q, cartes){
   return html + esc(avant);
 }
 /* ---------- Écrans ---------- */
+let phraseCustomMode = false, phraseCustomDraft = '';
 function qselect(){
   const r = state.room;
   const reader = P(r.reader_id);
-  if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il choisit une carte parmi 5…');
+  if (!isMe(reader?.id)) return waitScreen(`${nameOf(reader?.id)} est le lecteur`, 'Il prépare sa phrase…');
+  if (phraseCustomMode) return `
+    <p class="role"><b>Invente ta phrase à trou.</b> Écris ____ à chaque endroit où les autres devront jouer une carte.</p>
+    <section class="panel customchallenge">
+      <label class="field"><span>Ta phrase (1 ou 2 trous)</span>
+        <textarea id="custom-phrase" rows="3" maxlength="150" placeholder="Depuis que ____ a rencontré ____, tout a changé.">${esc(phraseCustomDraft)}</textarea>
+      </label>
+      <p class="hint">Un trou = une carte réponse. Deux trous = deux cartes réponse.</p>
+    </section>
+    <div class="dock">
+      <button class="btn" data-act="custom-phrase-send" ${dis()}>Jouer ma phrase</button>
+      <button class="btn ghost" data-act="custom-phrase-cancel">Revenir aux cartes</button>
+    </div>`;
   const chosen = state.question_choices.find(q => q.id === qpick);
   // Phrase choisie : elle passe seule en grand, le lecteur la lit à la table.
   if (chosen) return `
@@ -93,6 +106,7 @@ function qselect(){
         return `<li><button class="qchoice ${chosen ? (off ? 'off' : 'on') : ''}" data-act="question" data-id="${q.id}" ${off ? 'disabled' : ''}>${blank(q.text)}</button></li>`;
       }).join('')}
     </ul>
+    <button type="button" class="btn ghost small custom-choice" data-act="custom-phrase-open">Inventer ma phrase</button>
     ${chosen ? `<div class="dock">
       <button class="btn" data-act="question-go" ${dis()}>J'ai lu la phrase</button>
       <button class="btn ghost" data-act="question-back" ${dis()}>Choisir une autre carte</button>
@@ -172,6 +186,19 @@ function judging(){
 
 /* ---------- Actions ---------- */
 // le choix reste local : les autres joueurs n'ont leur écran qu'à la validation
+surAction('custom-phrase-open', () => { phraseCustomMode = true; qpick = null; render() }, { marque:false });
+surAction('custom-phrase-cancel', () => { phraseCustomMode = false; render() }, { marque:false });
+surAction('custom-phrase-send', async () => {
+  const t = (document.getElementById('custom-phrase')?.value || '').trim();
+  const n = (t.match(/____/g) || []).length;
+  if (t.length < 5 || n < 1 || n > 2) return toast('Écris une phrase avec un ou deux trous (____).');
+  if (await act('choose_custom_question', {p_text:t})) {
+    phraseCustomMode = false; phraseCustomDraft = ''; qpick = null;
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'custom-phrase') phraseCustomDraft = e.target.value;
+});
 surAction('question', (el, id) => { qpick = +id; render() });
 surAction('question-back', () => { qpick = null; render() });
 surAction('question-go', async () => {
