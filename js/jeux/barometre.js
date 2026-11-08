@@ -79,7 +79,7 @@ function inverseClue(){
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Envoyer ma réponse</button></div>`;
 }
 
-let waveCustomEditing = false, waveLeftDraft = '', waveRightDraft = '';
+let waveCustomEditing = false, waveLeftDraft = null, waveRightDraft = null;
 function clue(){
   const r = state.room, w = state.wave || {};
   if (isInverse()) return inverseClue();
@@ -91,9 +91,9 @@ function clue(){
     <p class="role"><b>Invente ton Baromètre.</b> Définis deux extrêmes opposés. La cible reste tirée au hasard.</p>
     <section class="panel customchallenge">
       <label class="field"><span>Extrême gauche</span><input id="custom-wave-left" maxlength="40" autocomplete="off"
-        value="${esc(waveLeftDraft || w.left || '')}" placeholder="Le pire joueur de foot"></label>
+        value="${esc(waveLeftDraft ?? w.left ?? '')}" placeholder="Le pire joueur de foot"></label>
       <label class="field"><span>Extrême droite</span><input id="custom-wave-right" maxlength="40" autocomplete="off"
-        value="${esc(waveRightDraft || w.right || '')}" placeholder="Le meilleur joueur de foot"></label>
+        value="${esc(waveRightDraft ?? w.right ?? '')}" placeholder="Le meilleur joueur de foot"></label>
     </section>
     <div class="dock">
       <button class="btn" data-act="custom-wave-send" ${dis()}>Valider mes extrêmes</button>
@@ -192,7 +192,7 @@ surAction('custom-wave-send', async () => {
   if (l.length < 2 || r.length < 2 || l.toLowerCase() === r.toLowerCase())
     return toast('Écris deux extrêmes différents.');
   if (await act('choose_custom_wave', {p_left:l,p_right:r})) {
-    waveCustomEditing = false; waveLeftDraft = ''; waveRightDraft = '';
+    waveCustomEditing = false; waveLeftDraft = null; waveRightDraft = null;
   }
 });
 surAction('clue', () => {
