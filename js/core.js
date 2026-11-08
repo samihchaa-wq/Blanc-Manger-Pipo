@@ -222,8 +222,8 @@ async function act(fn, extra = {}){
 // get_state, white_state et punish_state (migrations 20261104175320 et 20261104175401). Tant
 // que la base ne la connaît pas, on retombe sur les trois appels d'avant.
 let fullState = true;
-async function readState(){
-  const args = { p_code: session.code, p_token: session.token };
+async function readState(expectedSession){
+  const args = { p_code: expectedSession.code, p_token: expectedSession.token };
   if (fullState) {
     try {
       const d = await rpc('get_full_state', args);
@@ -246,7 +246,7 @@ async function readState(){
 async function readStateLegacy(args){
   let s = await rpc('get_state', args);
   if (s.room.mode === 'white' && s.room.status !== 'lobby')
-    s.white = await rpc('white_state', { p_code:session.code, p_token:session.token });
+    s.white = await rpc('white_state', args);
   // les punitions ne servent qu'au salon et à l'écran de fin
   let pu = null;
   if (s.room.status === 'lobby' || s.room.status === 'finished')
@@ -263,11 +263,17 @@ async function readStateLegacy(args){
   return { s, pu, annulee };
 }
 
+// Chaque réponse appartient à la session et au numéro de lecture qui l'ont demandée.
+// Une réponse plus ancienne ne doit jamais remplacer un état reçu plus récemment.
+let refreshSequence = 0;
 async function refresh(force = false){
   if (!session) return;
+  const expectedSession = session, sequence = ++refreshSequence;
   lastSync = Date.now();
   try {
-    const lu = await readState(), annulee = lu.annulee;
+    const lu = await readState(expectedSession);
+    if (session !== expectedSession || sequence !== refreshSequence) return;
+    const annulee = lu.annulee;
     let s = lu.s, pu = lu.pu;
     const j = JSON.stringify([s, pu]);
     if (!force && j === last) return;
@@ -296,6 +302,7 @@ async function refresh(force = false){
     render(); scheduleAuto();
     rechargerSiPossible();
   } catch (e) {
+    if (session !== expectedSession || sequence !== refreshSequence) return;
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
   }
 }
@@ -324,6 +331,8 @@ function connect(){
   clearInterval(tickTimer); tickTimer = setInterval(updateCountdown,500);
 }
 function disconnect(){
+  // Invalide les lectures encore en vol, notamment lors d'un changement de salon.
+  refreshSequence++;
   if (channel) sb.removeChannel(channel);
   channel = null; rtOk = false; clearInterval(poll); clearInterval(tickTimer);
   clearTimeout(reapTimer); clearTimeout(botTimer); clearTimeout(roueTimer); clearTimeout(bacTimer);
