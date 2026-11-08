@@ -59,7 +59,7 @@ calls[3].resolve({ data:null, error:{message:'PGRST202 Could not find the functi
 await Promise.resolve(); await Promise.resolve();
 assert.equal(calls[4]?.name, 'get_state', 'Repli get_state attendu');
 ctx.session = { code:'9999', token:'encore-un-autre' };
-reply(calls[4], 3); // Le salon a changé pendant la lecture.
+calls[4].resolve({data:example(3),error:null}); // Le salon a changé pendant la lecture.
 await Promise.resolve(); await Promise.resolve();
 assert.equal(ctx.session.code, '9999');
 assert.equal(calls[4].args.p_token, 'nouveau', 'Le repli doit utiliser le token initial');
@@ -70,7 +70,7 @@ assert.equal(ctx.state.room.round, 2, 'Une lecture du salon précédent a été 
 
 // Quitter : ne jamais abandonner le token si le serveur n'a pas confirmé.
 const actions = readFileSync(new URL('../js/actions.js', import.meta.url), 'utf8');
-const leave = actions.slice(actions.indexOf("surAction('leave'"), actions.indexOf('// De retour dans l’appli'));
+const leave = actions.slice(actions.indexOf("surAction('leave'"), actions.indexOf('// De retour dans', actions.indexOf("surAction('leave'")));
 let leaveFn, left=0, errorMessage='';
 const lc=vm.createContext({
   session:{code:'1234',token:'secret'}, state:{room:{status:'lobby'}},busy:false,
