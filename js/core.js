@@ -207,23 +207,31 @@ function toast(m){
 /* ---------- Réseau ---------- */
 async function rpc(fn, args){ const { data, error } = await sb.rpc(fn, args); if (error) throw Error(error.message); return data }
 async function act(fn, extra = {}){
-  if (busy) return false;
+  if (busy || !session) return false;
+  const expectedSession = session;
   busy = true;
   // On marque le bouton touché plutôt que de reconstruire tout l'écran : le
   // retour est immédiat, et le reste de la page ne bouge pas sous le doigt.
   const el = pressedEl; pressedEl = null;
   if (el && el.isConnected) { el.disabled = true; el.classList.add('pending') }
-  try { await rpc(fn, { p_code: session.code, p_token: session.token, ...extra }); ping(); await refresh(true); return true }
-  catch (e) { toast(e.message); return false }
-  finally { busy = false; render() }
+  try {
+    await rpc(fn, { p_code:expectedSession.code, p_token:expectedSession.token, ...extra });
+    if (session !== expectedSession) return false;
+    ping();
+    await refresh(true);
+    return session === expectedSession;
+  } catch (e) {
+    if (session === expectedSession) toast(e.message);
+    return false;
+  } finally { busy = false; render() }
 }
 
 // Une seule requête par relecture : get_full_state enchaîne côté serveur
 // get_state, white_state et punish_state (migrations 20261104175320 et 20261104175401). Tant
 // que la base ne la connaît pas, on retombe sur les trois appels d'avant.
 let fullState = true;
-async function readState(){
-  const args = { p_code: session.code, p_token: session.token };
+async function readState(expectedSession){
+  const args = { p_code: expectedSession.code, p_token: expectedSession.token };
   if (fullState) {
     try {
       const d = await rpc('get_full_state', args);
@@ -246,7 +254,7 @@ async function readState(){
 async function readStateLegacy(args){
   let s = await rpc('get_state', args);
   if (s.room.mode === 'white' && s.room.status !== 'lobby')
-    s.white = await rpc('white_state', { p_code:session.code, p_token:session.token });
+    s.white = await rpc('white_state', args);
   // les punitions ne servent qu'au salon et à l'écran de fin
   let pu = null;
   if (s.room.status === 'lobby' || s.room.status === 'finished')
@@ -263,11 +271,17 @@ async function readStateLegacy(args){
   return { s, pu, annulee };
 }
 
+// Chaque réponse appartient à la session et au numéro de lecture qui l'ont demandée.
+// Une réponse plus ancienne ne doit jamais remplacer un état reçu plus récemment.
+let refreshSequence = 0;
 async function refresh(force = false){
   if (!session) return;
+  const expectedSession = session, sequence = ++refreshSequence;
   lastSync = Date.now();
   try {
-    const lu = await readState(), annulee = lu.annulee;
+    const lu = await readState(expectedSession);
+    if (session !== expectedSession || sequence !== refreshSequence) return;
+    const annulee = lu.annulee;
     let s = lu.s, pu = lu.pu;
     const j = JSON.stringify([s, pu]);
     if (!force && j === last) return;
@@ -296,6 +310,7 @@ async function refresh(force = false){
     render(); scheduleAuto();
     rechargerSiPossible();
   } catch (e) {
+    if (session !== expectedSession || sequence !== refreshSequence) return;
     if (/Session expirée/.test(e.message)) { toast('Tu ne fais plus partie de cette partie.'); leaveLocal() }
   }
 }
@@ -324,6 +339,8 @@ function connect(){
   clearInterval(tickTimer); tickTimer = setInterval(updateCountdown,500);
 }
 function disconnect(){
+  // Invalide les lectures encore en vol, notamment lors d'un changement de salon.
+  refreshSequence++;
   if (channel) sb.removeChannel(channel);
   channel = null; rtOk = false; clearInterval(poll); clearInterval(tickTimer);
   clearTimeout(reapTimer); clearTimeout(botTimer); clearTimeout(roueTimer); clearTimeout(bacTimer);

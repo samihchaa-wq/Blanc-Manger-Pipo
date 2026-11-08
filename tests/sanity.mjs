@@ -350,3 +350,10 @@ assert.match(adapteesMigration, /'my_target', \(select jsonb_build_object\('pct'
 assert.match(ciblesMigration, /greatest\(0, 3 - ceil\(trop \/ 20\.0\)\)/, 'Barème : 3, 2, 1, 0 selon l’écart à la cible');
 assert.match(ciblesMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule transaction');
 assert.match(scripts[0], /dilCible\(d\.my_target\)/, 'Cible secrète affichée pendant la rédaction');
+
+// Régression serveur Mr White : distribution corrigée à partir de six joueurs.
+const whiteDistribution = fs.readFileSync(new URL('../supabase/migrations/20261113120000_white_repartition_six_plus.sql', import.meta.url), 'utf8');
+assert.match(whiteDistribution, /intruders := case when n>=6 then 2 else 1 end;/,
+  'Mr White : deux imposteurs dès six joueurs');
+assert.match(whiteDistribution, /^begin;$[\s\S]*^commit;$/m,
+  'Migration Mr White transactionnelle');

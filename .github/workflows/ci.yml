@@ -19,3 +19,5 @@ jobs:
           node-version: '22'
       - name: Frontend sanity checks
         run: node tests/sanity.mjs
+      - name: Régressions réseau multijoueur
+        run: node tests/reseau.mjs
