@@ -384,6 +384,72 @@ def run(browser, base):
             raise
         finally:ctx.close()
 
+    # Défis temporaires : véritables champs et callbacks de l'interface.
+    for width in (320,390,430):
+        # Phrases à trou : le lecteur écrit deux trous, les autres cartes ne bougent pas.
+        ctx,page,errors=open_page(browser,base,game="phrases",role="host",
+                                  phase="question_select",width=width)
+        try:
+            page.locator('[data-act="custom-phrase-open"]').click()
+            page.locator('#custom-phrase').fill('____ rencontre ____')
+            page.locator('[data-act="custom-phrase-send"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='choose_custom_question')")
+            calls=page.evaluate("() => window.__qaCalls.filter(x=>x.name==='choose_custom_question')")
+            assert calls[-1]["args"]["p_text"]=="____ rencontre ____"
+            no_horizontal_overflow(page,f"phrase-libre-{width}")
+            no_errors(page,errors,f"phrase-libre-{width}")
+            checks+=1
+        finally:ctx.close()
+
+        # Baromètre normal : les extrêmes ne changent jamais la cible.
+        ctx,page,errors=open_page(browser,base,game="ondes",role="host",
+                                  phase="clue",width=width)
+        try:
+            page.locator('[data-act="custom-wave-open"]').click()
+            page.locator('#custom-wave-left').fill('Nul au foot')
+            page.locator('#custom-wave-right').fill('Génie du ballon')
+            page.locator('[data-act="custom-wave-send"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='choose_custom_wave')")
+            calls=page.evaluate("() => window.__qaCalls.filter(x=>x.name==='choose_custom_wave')")
+            assert calls[-1]["args"]["p_left"]=="Nul au foot"
+            assert calls[-1]["args"]["p_right"]=="Génie du ballon"
+            no_horizontal_overflow(page,f"barometre-libre-{width}")
+            no_errors(page,errors,f"barometre-libre-{width}")
+            checks+=1
+        finally:ctx.close()
+
+        # Mimes : la carte reste invisible tant que le juge n'a pas choisi.
+        ctx,page,errors=open_page(browser,base,game="mimes",role="host",
+                                  phase="mime_play",width=width)
+        try:
+            page.evaluate("() => { window.__qaState.mime.ready=false; refresh(true) }")
+            page.locator('[data-act="custom-mime-open"]').wait_for()
+            page.locator('[data-act="custom-mime-open"]').click()
+            page.locator('#custom-mime-action').fill('Manger un citron')
+            page.locator('#custom-mime-low').fill('Délicieux')
+            page.locator('#custom-mime-high').fill('Acide')
+            page.locator('[data-act="custom-mime-send"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='choose_mime_challenge')")
+            calls=page.evaluate("() => window.__qaCalls.filter(x=>x.name==='choose_mime_challenge')")
+            assert calls[-1]["args"]["p_custom"] is True
+            assert calls[-1]["args"]["p_action"]=="Manger un citron"
+            no_horizontal_overflow(page,f"mime-libre-{width}")
+            no_errors(page,errors,f"mime-libre-{width}")
+            checks+=1
+        finally:ctx.close()
+
+    # Le choix classique de Mimes utilise bien le même RPC, sans nouveau défi.
+    ctx,page,errors=open_page(browser,base,game="mimes",role="host",phase="mime_play")
+    try:
+        page.evaluate("() => { window.__qaState.mime.ready=false; refresh(true) }")
+        page.locator('[data-act="custom-mime-default"]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='choose_mime_challenge')")
+        calls=page.evaluate("() => window.__qaCalls.filter(x=>x.name==='choose_mime_challenge')")
+        assert calls[-1]["args"]["p_custom"] is False
+        no_errors(page,errors,"mime-classique")
+        checks+=1
+    finally:ctx.close()
+
     # Injection HTML malveillante : le contenu de joueurs et cartes doit
     # être affiché en texte et jamais interprété comme du code.
     payload='<img src="x" onerror="window.__qaInjected=true">'
