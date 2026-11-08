@@ -44,7 +44,7 @@ const one = (i,name) => {
 };
 
 // Chaque appareil effectue deux lectures simultanées.
-// Le réseau livre ensuite la nouvelle lecture AVANT l'ancienne.
+// Premier ordre défavorable : l'ancienne lecture arrive avant la nouvelle.
 const stale = clients.map(x=>vm.runInContext('refresh(true)',x.context));
 const recent = clients.map(x=>vm.runInContext('refresh(true)',x.context));
 assert.equal(pending.length,16,'Deux lectures doivent partir de chacun des huit appareils');
