@@ -313,7 +313,8 @@ async function refresh(force = false){
       toast(`Un joueur est parti : il faut au moins ${minPlayers(s.room.mode)} joueurs, la partie est arrêtée.`);
     state = s; last = j;
     if (changed) {
-      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {}; dicoPage = null; dicoSel = null; dicoDraft = ''; dilChoix = null; dilStartDraft = ''; dilButDraft = ''; dilVotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {};
+      phraseCustomMode = false; phraseCustomDraft = ''; waveCustomEditing = false; waveLeftDraft = ''; waveRightDraft = ''; mimeCustomEditing = false; mimeActionDraft = ''; mimeLowDraft = ''; mimeHighDraft = ''; dicoPage = null; dicoSel = null; dicoDraft = ''; dilChoix = null; dilStartDraft = ''; dilButDraft = ''; dilVotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     // un jeu que ce code ne connaît pas : une version plus récente est en ligne
