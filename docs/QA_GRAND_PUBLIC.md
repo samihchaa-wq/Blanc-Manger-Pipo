@@ -20,17 +20,20 @@
 | Petit Bac | six catégories, grilles figées, douze votes, barème et manche terminée | SQL transactionnel exécuté |
 | Mr White | six joueurs, deux rôles intrus, confidentialité, vote, sortie d'un Civil, reprise du cycle | SQL transactionnel exécuté |
 | Mimes | juge, deux intensités, refus de notes invalides, score et fin de manche | SQL transactionnel exécuté |
-| Le Dico | vraies/fausses définitions, rôle du meneur, auteurs cachés, changement du vote avant clôture, score | SQL transactionnel **avec migration correctrice en attente** |
+| Le Dico | vraies/fausses définitions, rôle du meneur, auteurs cachés, changement du vote avant clôture, score | SQL transactionnel exécuté, correctif déployé |
 | Dilemme | propositions cachées, refus du vote sur soi / ID dupliqué, modification du vote avant clôture, score | SQL transactionnel **avec migration correctrice en attente** |
 | Les 8 jeux | départ sous le nombre minimum, ancien jeton refusé, retour salon, reconnexion | SQL transactionnel exécuté |
 | Les 8 jeux | délai expiré, participant silencieux, score non compté deux fois, phase finale | SQL transactionnel exécuté |
 | Les 8 jeux | sept salons complets à 12 participants, refus du 13e, Petit Bac limité à 2 | SQL transactionnel exécuté |
 | Mr White | tailles 3 à 12 : rôle civil/intrus, au plus un Mr White et répartition sans erreur | SQL transactionnel exécuté |
 | 8 clients simulés | lectures désordonnées, huit actions, clic répété, session remplacée, erreur réseau et reprise | Node VM automatisé dans CI |
+| Concurrence Dico / Dilemme | 24 appels de RPC sur six connexions à la fois, vrai verrou PostgreSQL FOR UPDATE, aucune réponse mélangée | Postgres 17 jetable + fonctions RPC réelles ; avancement de phase simulé |
+| Interface Chromium | 8 salons hôte/invité, largeurs 320 à 430 px, invitations, écrans de vote et interactions de saisie | Vrai moteur Chrome, vrais HTML/CSS/JS, Supabase mocké |
+| PWA hors ligne | installation du service worker, mise en cache après première visite, navigation ensuite hors réseau | Chromium, vrai cache Service Worker ; sans session réseau active |
 
-**Limite importante :** les SQL utilisent les vraies fonctions du backend avec plusieurs jetons, mais leurs requêtes s'exécutent séquentiellement dans une transaction. Le test Node contrôle plusieurs contextes JavaScript et simule les réponses ; il ne reproduit ni huit appareils physiques ni une véritable congestion réseau Supabase. Il ne certifie pas non plus le rendu visuel.
+**Limite importante :** les suites SQL transactionnelles sur Supabase restent séquentielles. Le nouveau test de concurrence exécute des fonctions de vote réellement parallèles, mais sur **PostgreSQL jetable avec helpers d'avancement simulés**, pas sur la plateforme Supabase sous charge. Le test Node simule huit clients ; le test Chromium charge les vrais éléments visuels mais remplace Supabase par une API mockée. Aucun de ces tests ne remplace huit appareils physiques iOS/Android, la mesure de latence p95/p99, ou une véritable charge en production.
 
-Scripts : `supabase/tests/qa_multiplayer_*.sql`, `tests/reseau-multiclient.mjs`, `tests/qa-suites.mjs`. Toujours conserver le `ROLLBACK`.
+Scripts : `supabase/tests/qa_multiplayer_*.sql`, `tests/reseau-multiclient.mjs`, `tests/qa-suites.mjs`, `tests/qa_browser.py`, `tests/sql/check_concurrency.sh`. Toujours conserver le `ROLLBACK` pour les tests du backend réel.
 
 ## 3. Matrice des appareils physiques — à exécuter
 

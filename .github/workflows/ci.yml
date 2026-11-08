@@ -58,3 +58,20 @@ jobs:
           cat supabase/tests/rpc_auth_vote_integrity_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/migrations/20261118120000_restore_dico_dilemme_revotes.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/tests/qa_revotes_postgres_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+      - name: Vrais votes simultanés sur PostgreSQL isolé
+        run: |
+          cat tests/sql/concurrency_fixtures.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          bash tests/sql/check_concurrency.sh "${{ job.services.postgres.id }}"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Installer le navigateur de test
+        run: python -m pip install playwright==1.56.0
+      - name: Parcours Chromium sur les huit jeux
+        run: python tests/qa_browser.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: qa-browser-captures
+          path: test-results/browser/*.png
+          if-no-files-found: ignore
