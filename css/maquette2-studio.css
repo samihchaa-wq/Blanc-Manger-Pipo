@@ -218,3 +218,8 @@ img[src$='games/dico.webp']{content:url('../design-maquette2/dico-card.webp')}
 .home .seg.games .seg-b img{content:normal!important;aspect-ratio:1/1;opacity:0}
 .home label.inline>span{font-weight:400}
 .home h1 img{aspect-ratio:801 / 303}
+
+/* Le bandeau-titre n'augmente jamais la hauteur avant les boutons suivants. */
+.sec{padding-block:0}
+/* L'emblème est visible immédiatement, sans clignotement d'allumage. */
+.home h1{animation:none}
