@@ -316,6 +316,8 @@ button.scard:active{transform:translateY(2px)}
 .top.lobbytop{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;margin:2px 0 16px}
 .gamelogo{display:block;width:64px;height:64px;border-radius:18%}
 .lobbytop .xbtn{justify-self:end}
+.lobbytop.compact{grid-template-columns:48px minmax(0,1fr) 48px}
+.lobbytop.compact .gamelogo{width:48px;height:48px}
 .codeblock{min-width:0;text-align:center}
 .codeblock .eyebrow{font-size:11px}
 /* Partager l'invitation : sous le code, discret mais toujours à portée */
@@ -330,7 +332,7 @@ button.scard:active{transform:translateY(2px)}
   border:1.5px solid rgba(255,194,61,.45);text-shadow:0 2px 12px rgba(255,194,61,.25)}
 /* Huit chiffres regroupés 4+4, sans déborder du salon sur un écran de 320 px. */
 .bigcode.long{gap:2px;white-space:nowrap}
-.bigcode.long .ch{flex:none;width:clamp(18px,5.4vw,33px);height:clamp(33px,9vw,45px);font-size:clamp(15px,4.4vw,20px);border-radius:8px}
+.bigcode.long .ch{flex:none;width:clamp(16px,5.4vw,33px);height:clamp(33px,9vw,45px);font-size:clamp(13px,4.4vw,20px);border-radius:8px}
 .bigcode.long .ch:nth-child(5){margin-left:5px}
 /* Intertitres en casse normale : les capitales espacées étaient partout
    (cartes, sections, étiquettes) et ne hiérarchisaient plus rien. */
