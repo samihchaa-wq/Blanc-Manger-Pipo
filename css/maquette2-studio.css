@@ -322,38 +322,71 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
   box-shadow:0 3px 0 #936642;
 }
 
-/* Accueil sur un écran : répartir la hauteur réelle entre le logo, les
- * champs, les 8 cartes, la description et le bouton de création.
- * Les cartes prennent la plus grande taille carrée qui TIENT à la fois
- * en largeur et dans l'espace restant, au lieu d'un forfait de 440 px.
- * Aucun changement des images, des actions ou de l'ordre des éléments. */
+/* Accueil — Créer/Rejoindre compacts à gauche, pseudo à droite.
+ * Le DOM, les deux champs existants et leurs gestionnaires restent intacts.
+ * display:contents place les enfants des panneaux dans la grille visuelle ;
+ * [hidden] continue de masquer entièrement le panneau inactif.
+ * Les trois lignes de vignettes et le CTA restent visibles sans défilement. */
 @supports (height: 100svh) and (container-type: size) {
   .home {
     --pad: calc(21px + 12px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
     height: calc(100svh - var(--pad));
     min-height: 0;
-    gap: clamp(7px, 1.2svh, 11px);
+    display: grid;
+    grid-template-columns: minmax(132px, 40%) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: clamp(6px, 1.1svh, 10px);
   }
   body.is-home main {
     padding-top: calc(21px + env(safe-area-inset-top));
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
+  .home h1 { grid-column: 1 / -1; grid-row: 1; }
   .home h1 img { width: min(100% - 88px, 230px, 24svh); }
-  .home .pane { flex: 1 1 auto; min-height: 0; }
-  .home .pane label.inline { margin-bottom: 8px; }
-  .home #pane-create > .field {
-    flex: 1 1 0;
-    min-height: 0;
-    margin: 0;
-    padding: 0;
+  .home .tabs {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    align-self: end;
+  }
+  .home .tabs .tab {
+    font-size: clamp(12px, 3.5vw, 15px);
+    padding: 8px 2px;
+  }
+  .home .pane, .home .pane:not([hidden]) { display: contents; }
+  .home .pane[hidden] { display: none; }
+  .home .pane label.inline {
+    grid-column: 2;
+    grid-row: 2;
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+    min-width: 0;
+    margin: 0;
+  }
+  .home .pane label.inline > span { font-size: 12px; line-height: 1.2; }
+  .home .pane label.inline input {
+    min-width: 0;
+    max-width: 100%;
+    padding: 7px 9px;
+    font-size: 16px;
+  }
+  .home #pane-create > .field {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
   }
   .home .gamesbox {
     flex: 1 1 0;
     min-height: 0;
-    height: auto;
     margin: 0 -8px;
+    height: auto;
     position: relative;
   }
   .home .gamesfit {
@@ -367,19 +400,41 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
     --tile: min((100cqw - 16px) / 3,
                 (100cqh - (var(--rows) - 1) * 8px) / var(--rows));
     width: calc(3 * var(--tile) + 16px);
-    max-width: 100%;
     margin: 0;
+    max-width: 100%;
     gap: 8px;
   }
   .home .pitch {
     display: block;
     min-height: 0;
-    margin: 6px 0 0;
     font-size: 14px;
     line-height: 1.25;
+    margin: 6px 0 0;
   }
-  .home #pane-create > .btn { margin-top: 8px; }
+  .home #pane-create > .btn {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin: 0;
+    align-self: end;
+  }
+  .home #pane-join > label:not(.inline) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    align-self: start;
+    margin: 10px 0 0;
+  }
+  .home #pane-join > .btn {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin: 0;
+    align-self: end;
+  }
 }
 @media (max-width: 350px) {
   .home .gamesfit .seg.games { gap: 6px; }
+  .home .tabs .tab { font-size: 12px; }
 }
+/* Pas de transition sur la couleur du texte lors du changement d'onglet :
+ * évite un bref manque de contraste sur le fond jaune actif. */
+.home .tabs .tab { transition: background .18s ease, transform .18s ease; }
+.home .tabs .tab.on { color: #251520; }
