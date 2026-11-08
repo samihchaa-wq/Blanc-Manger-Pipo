@@ -27,10 +27,10 @@ begin
       perform public.select_question(c,reader_tok,qid);
       select * into r from public.rooms where id=rid;
       select q.blanks into v_blanks from public.questions q where q.id=qid;
-      select hand.answer_id into v_answer_id from public.hands hand where hand.player_id<>(r.reader_id)
-        and hand.room_id=rid order by hand.answer_id limit 1;
-      -- Un joueur répond, l'autre dépasse le délai.
+      -- Sélectionner la carte de la main du MÊME joueur ; deux mains sont aléatoires.
       select * into p from public.players where room_id=rid and active and id<>r.reader_id order by seat limit 1;
+      select hand.answer_id into v_answer_id from public.hands hand
+        where hand.player_id=p.id and hand.room_id=rid order by hand.answer_id limit 1;
       perform public.submit_answer(c,p.token,v_answer_id,
         case when v_blanks=2 then (select hnd.answer_id from public.hands hnd
           where hnd.player_id=p.id and hnd.answer_id<>v_answer_id order by hnd.answer_id limit 1) end);
