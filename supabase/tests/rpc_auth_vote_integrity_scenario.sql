@@ -6,7 +6,7 @@ do $audit$
 declare
   h json; a json; b json;
   code_salon text; host_token uuid; alice_token uuid;
-  host_id uuid; alice_id uuid; bob_id uuid; bot_id uuid; v_room_id uuid;
+  v_host_id uuid; alice_id uuid; bob_id uuid; bot_id uuid; v_room_id uuid;
   dico_bob uuid; dico_host uuid;
   dilemme_host uuid; dilemme_bob uuid; dilemme_bot uuid;
   before_count integer; after_count integer;
@@ -15,7 +15,7 @@ begin
   h := public.create_room('Hôte de test', 5, 'phrases', 1);
   code_salon := h->>'code';
   host_token := (h->>'token')::uuid;
-  host_id := (h->>'player_id')::uuid;
+  v_host_id := (h->>'player_id')::uuid;
   a := public.join_room(code_salon, 'Alice de test');
   b := public.join_room(code_salon, 'Bob de test');
   alice_token := (a->>'token')::uuid;
@@ -42,13 +42,13 @@ begin
   end;
 
   -- Test du Dico : le premier vote devient définitif.
-  update public.rooms set mode='dico',status='dico_vote',round=1,reader_id=host_id
+  update public.rooms set mode='dico',status='dico_vote',round=1,reader_id=v_host_id
   where id=v_room_id;
   insert into public.dico_defs(room_id,round,player_id,text)
   values(v_room_id,1,bob_id,'Une définition de Bob')
   returning id into dico_bob;
   insert into public.dico_defs(room_id,round,player_id,text)
-  values(v_room_id,1,host_id,'Une autre définition')
+  values(v_room_id,1,v_host_id,'Une autre définition')
   returning id into dico_host;
 
   perform public.dico_vote(code_salon,alice_token,dico_bob);
@@ -71,7 +71,7 @@ begin
   update public.rooms set mode='dilemme',status='dilemme_vote'
   where id=v_room_id;
   insert into public.dilemme_buts(room_id,round,player_id,text)
-    values(v_room_id,1,host_id,'Défi hôte') returning id into dilemme_host;
+    values(v_room_id,1,v_host_id,'Défi hôte') returning id into dilemme_host;
   insert into public.dilemme_buts(room_id,round,player_id,text)
     values(v_room_id,1,bob_id,'Défi Bob') returning id into dilemme_bob;
   insert into public.dilemme_buts(room_id,round,player_id,text)
