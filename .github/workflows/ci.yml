@@ -33,8 +33,12 @@ jobs:
         run: node tests/reseau.mjs
       - name: Sécurité des salons
         run: node tests/securite-salon.mjs
+      - name: Invitations sécurisées
+        run: node tests/codes-salons.mjs
       - name: PostgreSQL — scénario complet de limitation
         run: |
           cat tests/sql/room_join_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/migrations/20261114120000_room_join_rate_limits.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/tests/room_join_rate_limits_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/migrations/20261115120000_secure_eight_digit_room_codes.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/tests/room_codes_eight_digits_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
