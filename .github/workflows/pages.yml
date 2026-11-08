@@ -52,6 +52,9 @@ jobs:
           cat tests/sql/legacy_rpc_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/migrations/20261116120000_revoke_legacy_public_rpcs.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/tests/security_legacy_rpc_grants_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat tests/sql/rpc_auth_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/migrations/20261117120000_rpc_auth_and_vote_integrity.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/tests/rpc_auth_vote_integrity_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
 
   deploy:
     environment:
