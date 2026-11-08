@@ -95,7 +95,7 @@ begin
     if client_hash is not null then
       update public.room_join_limits
       set failures = failures + 1, last_attempt_at = now()
-      where room_join_limits.client_hash = join_room.client_hash;
+      where room_join_limits.client_hash = rl.client_hash;
     end if;
     if r.id is null then perform pg_catalog.pg_sleep(0.15); end if;
     return json_build_object('error', err, 'error_code', 'JOIN_REJECTED');
