@@ -85,4 +85,19 @@ assert.ok(errorMessage.includes('Départ non confirmé'));
 assert.equal(lc.session.token,'secret');
 assert.equal(lc.busy,false,'Le verrou doit être libéré après erreur');
 
+// Une action engagée dans l'ancien salon ne doit ni notifier ni rafraîchir le nouveau.
+const actionEnVol = vm.runInContext("act('white_vote')", ctx);
+const actionRpc = calls.at(-1);
+assert.equal(actionRpc.name, 'white_vote');
+assert.equal(actionRpc.args.p_token, 'encore-un-autre');
+ctx.session = { code:'2468', token:'session-actuelle' };
+actionRpc.resolve({ data:null, error:null });
+assert.equal(await actionEnVol, false, 'Une action de l’ancien salon ne doit pas réussir localement');
+assert.equal(ctx.session.code, '2468');
+
+// Le départ réussi doit bien fermer la session après la confirmation du serveur.
+lc.rpc = async () => ({});
+await leaveFn();
+assert.equal(left,1, 'Un départ confirmé doit libérer la session locale');
+
 console.log('Tests de fiabilité réseau et de départ réussis.');
