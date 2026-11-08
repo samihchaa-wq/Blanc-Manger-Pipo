@@ -233,3 +233,91 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
    réduction du halo si le navigateur demande moins d'animations. */
 @media(prefers-reduced-motion:reduce){.home h1,.home h1::before{animation:none}}
 @media(max-width:350px){.home .seg.games{gap:6px}.sec{padding:4px 10px}}
+
+/* Finition des écrans de jeu : matière papier plus affirmée sans nouvelle carte. */
+.qchoice {
+  background:
+    radial-gradient(ellipse at 8% 2%,rgba(255,255,255,.40),transparent 62%),
+    repeating-linear-gradient(32deg,rgba(125,66,23,.018) 0 1px,transparent 1px 11px),
+    linear-gradient(170deg,#ffed9f,#ffda65 50%,#f9c249);
+  border:1.5px solid #d19a41;
+  box-shadow:inset 0 1px 0 rgba(255,255,238,.55),0 5px 0 #97612b,0 15px 22px -14px rgba(0,0,0,.75);
+  font-weight:650;
+}
+/* La carte de rôle Mr White est du parchemin crème dans la maquette, et non
+   une question jaune. L'état « maintien pour voir » demeure inchangé. */
+.white-secret,.white-secret.hold {
+  background:var(--studio-paper);
+  color:#2b1a24;
+  border:2px solid #c89b6b;
+  box-shadow:0 4px 0 #9c6d4c,0 17px 25px -14px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.65);
+}
+.white-secret .eyebrow,.white-secret small {color:#6e4854}
+.white-secret .secret,.white-secret strong {color:#2b1a24}
+
+/* ===== Harmonisation transversale — écrans secondaires =====
+   Ces règles ne changent ni l'ordre des éléments, ni les marges, la grille,
+   les tailles tactiles, les handlers et les illustrations des jeux. */
+
+/* Salon : les menus de jeux et leurs chevrons restent lisibles sur parchemin. */
+.gamebox .gcat{color:#775061}
+.gamebox .regtog .chev{color:#6d4654}
+.gamebox .regbody .rrow>span small{color:#775766}
+.gamebox .gitem .gi>span{color:#604953}
+
+/* Administration : mêmes matières et encres que les cartes des joueurs.
+   Les champs eux-mêmes restent sombres pour identifier clairement la saisie. */
+.panel.adminform,.panel.pjset{
+  background:var(--studio-paper);
+  border-color:#bd895c;
+  color:#2b1a25;
+  box-shadow:0 4px 0 #865a3c,0 15px 27px -16px rgba(0,0,0,.75);
+}
+.adminform .field>span,.pjset .field>span,
+.adminform .holebar .meta,.pjset .hint{color:#644450}
+.adminform .field input,.adminform .field textarea,.pjset .field input{color:#fff4e6}
+.catlist li{
+  background:var(--studio-paper);
+  border-color:#c59a6e;
+  color:#2b1a25;
+  box-shadow:0 3px 0 #926744,0 9px 17px -13px rgba(0,0,0,.65);
+}
+.catlist .ct,.catlist .sep{color:#2b1a25}
+.catlist .sous,.catlist .mimeb,.catlist li.empty{color:#694c58}
+.catlist .form.n{background:#ffe7b1;border-color:#d6ac59;color:#694515}
+.catlist .form.v{background:#d9f2e3;border-color:#73ad8e;color:#12603f}
+.catlist .form.theme{background:#f9dce9;border-color:#d594b1;color:#923657}
+.catlist .form.two{background:#eadcf5;border-color:#b797d0;color:#633f7c}
+.catlist li.editing .field>span{color:#644450}
+.catlist .edit:focus-visible,.catlist .del:focus-visible{outline:3px solid #f8c63c;outline-offset:2px}
+
+/* Petit Bac : les réponses jugées deviennent des fiches de jeu cohérentes. */
+.bactab li{
+  background:var(--studio-paper);
+  border-color:#c59a6e;
+  color:#2b1a25;
+  box-shadow:0 3px 0 #926744;
+}
+.bactab .cat{color:#813c57}
+.bactab .ans .qui{color:#775665}
+.bactab .ans .mot{color:#2b1a25}
+
+/* Mimes et Dilemme : la carte de résultat est en papier ; les contrôles
+   interactifs conservent leur zone, leur contraste et leurs états distincts. */
+.mime-rates li,.dlm-item{
+  background:var(--studio-paper);
+  border-color:#c99d71;
+  color:#2b1a25;
+  box-shadow:0 3px 0 #936642,0 11px 18px -14px rgba(0,0,0,.68);
+}
+.mime-rates .nm,.dlm-item .dlm-txt,.dlm-item .dby{color:#2b1a25}
+.dlm-item .dlm-own,.dlm-item .dlm-who small{color:#70505d}
+.mime-notes button:not(.on),.dlm-yn button:not(.on){background:#432748;color:#fff5ea;border-color:#a37692}
+
+/* Punitions : cartes des joueurs sur papier, comme les autres listes. */
+.punlist li{
+  background:var(--studio-paper);
+  border-color:#c69a70;
+  color:#2b1a25;
+  box-shadow:0 3px 0 #936642;
+}
