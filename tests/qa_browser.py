@@ -76,6 +76,33 @@ def fixture(game, role="host", n=3, phase="lobby"):
     s={"room":r, "players":players,
        "me":{"id":me_id, "next_ack":None,"continue_requested":False,"score":0},
        "question":"Pourquoi ?","submissions":[]}
+    # Données représentatives des phases, pour piloter les VRAIS boutons.
+    if game=="phrases":
+        s["question"]="Ce soir, je pense à ____."
+        s["question_choices"]=[{"id":i,"text":"Je rêve de ____."} for i in range(1,6)]
+        s["blanks"]=1
+        s["my_cards"]=[]
+        s["me"]["can_discard"]=False
+        s["hand"]=[{"id":i,"text":"un pantalon rouge"} for i in range(1,8)]
+        for p in players:p["submitted"]=False
+    if game=="priorites":
+        s["rank_cards"]=[{"id":i,"text":"Carte numéro "+str(i)} for i in range(1,6)]
+        s["my_ranking"]=None
+        for p in players:p["ranked"]=False
+    if game=="ondes":
+        s["wave"]={"left":"Très mauvais","right":"Très bon","clue":"Une soirée agréable",
+                   "target":None,"my_guess":None,"guesses":[]}
+        for p in players:p["guessed"]=False
+    if game=="bac":
+        s["bac"]={"categories":["Animaux","Villes","Pays","Métiers","Objets","Prénoms"],
+                   "letter":"P","done":False,"mine":[""]*6}
+        for p in players:p["bac_done"]=False
+    if game=="mimes":
+        s["mime"]={"action":"Courir après un bus","low":"très lentement",
+                   "high":"très vite","mine":8,
+                   "parts":[{"player_id":"p1","intensity":8},
+                            {"player_id":"p2","intensity":4}]}
+        r["mime_index"]=0
     white=None
     if game=="white":
         alliance=phase=="reveal"
