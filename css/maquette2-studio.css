@@ -1,0 +1,235 @@
+/*
+ * LE SOULIÈTEUR — Direction artistique Maquette 2, édition studio
+ * STRICTEMENT PRÉSENTATION : aucun DOM, parcours, règle, action ou ordre de jeu.
+ * Cette feuille complète app.css sans redéfinir les coordonnées des commandes.
+ * Retirer sa balise <link> restitue le thème historique.
+ */
+:root {
+  --bg-0:#150b1b; --bg-1:#28112f;
+  --surface:#2b1932; --surface-2:#3c2442; --field:#1c1024;
+  --hairline:#6c486c; --hairline-2:#aa7f9b;
+  --ink:#25141f; --ink-soft:#71535b;
+  --paper:#fff0d3; --paper-2:#f6dab1; --paper-edge:#bd895d;
+  --gold:#ffd03b; --gold-2:#ffb72c; --gold-deep:#8f5215; --gold-soft:#ffe69a;
+  --gold-paper:#ffda66; --gold-paper-2:#ffedac;
+  --gold-ink:#261720; --gold-ink-soft:#604020;
+  --pop:#ff5390; --pop-2:#ff367d; --pop-3:#e11660; --pop-deep:#81103b;
+  --mint:#47d99e; --mint-2:#22bd80; --mint-deep:#096b47;
+  --text:#fff5e9; --text-dim:#eedde9; --text-faint:#d1bccc;
+  --r-sm:12px; --r-md:17px; --r-lg:22px;
+  --shadow-card:0 4px 0 #8c5d3a,0 17px 29px -12px rgba(0,0,0,.72);
+  --shadow-lift:0 7px 0 #855227,0 22px 36px -12px rgba(0,0,0,.8);
+  --m2-paper: url('../design-studio/parchment.webp') center/360px 360px repeat,
+      linear-gradient(150deg,#fff6e0,#f5d5a7);
+  --m2-paper-shadow: 0 4px 0 #895837,0 13px 22px -9px rgba(0,0,0,.72);
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,sans-serif;
+}
+
+/* Atmosphère illustrée constante, même dans les étapes du jeu. */
+html {background-color:#160c1d}
+body::before, body[data-game]::before {
+  background:#170b1c url('../design-studio/plum-painted.webp') center top/cover fixed no-repeat !important;
+}
+body::after{opacity:.11;mix-blend-mode:soft-light}
+main{isolation:isolate}
+
+/* Exact logo uploaded by the user; transparent background, no redraw. */
+.home h1 img {display:block;width:min(100% - 88px,230px,26vh);max-width:230px;
+  height:auto;aspect-ratio:auto;margin-inline:auto;
+  filter:drop-shadow(0 6px 0 rgba(15,5,16,.36)) drop-shadow(0 10px 22px rgba(0,0,0,.55))}
+.home h1{animation:none}
+.home h1 .shift{display:none}
+.home h1::before{background:radial-gradient(ellipse,rgba(255,195,58,.16),rgba(229,42,102,.09) 52%,transparent 72%);filter:blur(19px)}
+
+/* Traitement éditorial : titres concis, non pas de nouveaux textes. */
+.sec,.panel h2,.gamebox .gname,.bigstate,.bigwin,.white-secret strong,.gmeta b {
+  font-family:"Bricolage Grotesque",system-ui,sans-serif;
+  font-weight:800;letter-spacing:-.035em;
+}
+.sec {
+  display:table;max-width:100%;width:max-content;
+  padding:4px 13px;
+  border-radius:7px 11px 8px 6px;
+  background:var(--m2-paper);color:var(--ink);
+  box-shadow:0 3px 0 #815431,0 10px 20px -12px #000;
+  text-shadow:none;
+}
+.eyebrow{color:#ffe2ac;font-weight:750}
+.role{color:#ffead8}
+.role b,.waiting b{color:#fff7e5}
+
+/* Sélecteurs et champs : mêmes tailles, même placement, rendu illustré. */
+.tabs{background:#24152d;border-color:#e0b06e;box-shadow:0 4px 0 #100816,inset 0 1px 0 rgba(255,237,202,.15)}
+.home .tabs{border-width:1.5px}
+.tab{font-weight:800}
+.tab.on,.seg-b.on:not(.games .seg-b){color:#251520;background:linear-gradient(#ffe985,#ffc32b);box-shadow:0 3px 0 #8f571d,inset 0 1px 0 #fff0b9}
+label.inline>span{color:#fff4e4;font-weight:800}
+label>span,.field>span{color:#e6c9dc;font-weight:750}
+input,textarea{
+  background:#1a1023;color:#fff4e6;border-color:#a8839e;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.35),0 1px 0 rgba(255,245,217,.09);
+}
+input::placeholder,textarea::placeholder{color:#d4bed3}
+input:focus,textarea:focus{background:#291832;border-color:#ffd450;box-shadow:0 0 0 2px rgba(255,212,80,.18)}
+.seg:not(.games){background:#27172e;border-color:#a8788c}
+.seg-b:not(.on){color:#f5e1ec}
+
+/* Images originales des huit jeux : aucun content:url, aucun masque, aucune substitution.
+   Le cadre apporte du papier et du relief mais laisse chaque pixel de l'illustration visible. */
+.seg.games .seg-b{background:linear-gradient(160deg,#fff4dd,#d4a978);border:2px solid #f7dba5;
+  border-radius:19%;padding:3px;box-shadow:0 3px 0 #a26e49,0 9px 17px -9px #000;
+  transition:transform .15s ease,box-shadow .15s ease}
+.seg.games .seg-b img{display:block;opacity:1;visibility:visible;filter:none;content:normal!important;
+  width:100%;height:auto;aspect-ratio:1;border-radius:16%;object-fit:contain;pointer-events:none}
+.seg.games .seg-b.on{transform:scale(1.027);border-color:#ffdc54;
+  box-shadow:0 0 0 2px #ffe88e,0 4px 0 #a66b23,0 0 17px rgba(255,195,47,.46)}
+.seg.games .seg-b:active{transform:scale(.97)}
+.gamelogo,.gchip{border-color:#e3b778;box-shadow:0 3px 0 #371c27,0 8px 16px -9px #000}
+.pitch b{font-weight:800;color:#fff7e8}
+.pitch span{color:#dfcdda}
+
+/* Boutons : rose de fête, jaune pour les alternatives, sombre en contour.
+   Définition box-safe : border supprimé ou conservé sans effet de placement. */
+.btn{background:linear-gradient(180deg,#ff79a8 0%,#fa3c83 45%,#df115c 100%);
+  color:#fff6e5;font-weight:800;text-shadow:0 2px 0 #8c1540;
+  box-shadow:inset 0 2px 0 #ffd1dd,0 5px 0 #790936,0 13px 22px -13px #000;
+  outline:1.5px solid #ffd0bd;outline-offset:-1.5px}
+.btn.alt{background:linear-gradient(180deg,#ffe88c,#ffcb36 55%,#fba92a);color:#281820;
+  text-shadow:none;box-shadow:inset 0 2px 0 #fff4bb,0 5px 0 #a56820,0 14px 23px -13px #000;
+  outline-color:#ffe4a0}
+.btn.ghost{background:rgba(38,20,46,.92);border-color:#c69b9f;color:#fff1e4;
+  box-shadow:0 2px 0 #130a19;outline:none}
+.btn.on{background:linear-gradient(#98f2c8,#29bd80);color:#1b352b;text-shadow:none;box-shadow:0 4px 0 #0a714e}
+.btn:disabled:not(.pending){background:#3b2a43;outline-color:#766477;color:#dfccd9;box-shadow:inset 0 0 0 1px #766477;text-shadow:none}
+.btn:focus-visible{outline:3px solid #ffdf5d;outline-offset:2px}
+.iconbtn,.xbtn{background:#332039;color:#ffebd7;border-color:#9f778a;box-shadow:0 2px 0 #15091b}
+.link,.gamebox .rulesbtn{color:#ffd780;font-weight:750}
+
+/* Le salon conserve ses deux zones (jeu/réglages puis joueurs). */
+.panel:not(.gamebox){background:#2a1832;border-color:#63415c;box-shadow:0 4px 0 rgba(0,0,0,.24),0 16px 32px -18px #000}
+.panel.gamebox{
+  background:var(--m2-paper);color:#261720;
+  border-color:#d1a574;border-radius:15px 19px 15px 17px;
+  box-shadow:var(--m2-paper-shadow),inset 0 0 0 1px rgba(255,250,234,.75);
+}
+.gamebox .gname,.gamebox .gdesc b,.gamebox .regtog b,.gamebox .rrow>span,.gamebox .rrow small{color:#28171e}
+.gamebox .gdesc,.gamebox .gdesc.resume,.gamebox .gsub,.gamebox .regtog small{color:#70515a}
+.gamebox .rulesbtn{color:#a72853;text-decoration:underline;text-underline-offset:3px}
+.gamebox .gtitle .chg{background:linear-gradient(#ffe7a3,#ffc640);border-color:#b3863e;color:#2c1a1c;font-weight:800;box-shadow:0 2px 0 #92602b}
+.gamebox .reglages{border-top-color:#d1a777}
+.gamebox .rrow{border-color:#d1a777}
+.gamebox .seg{background:#2d1c31;border-color:#ab7f8f}
+.gamebox .seg-b:not(.on){color:#fff1e1}
+.gamebox .step{background:#302034;border-color:#a47c8f;color:#fff4e5}
+.gamebox .step b,.gamebox .step button{color:#fff4e5}
+.gamebox .step button{background:#513550}
+.gamebox .hint{color:#654d5a}
+.gamebox .pjcode{background:#341f3b}
+.gamebox .pjcode .field>span,.gamebox .pjcode .hint{color:#f6e3e8}
+.gamebox .field>span{color:#5e3d4b}
+.plist li,.gitem{
+  background:var(--m2-paper);border-color:#d0a26e;color:#28171e;
+  box-shadow:0 3px 0 #93633d,0 9px 17px -12px #000;
+  border-radius:11px 14px 11px 13px;
+}
+.plist .nm,.gitem b{color:#28171e;font-weight:800}
+.plist .tag,.plist .tag.host{background:#e9c5a6;color:#6a344c}
+.plist .tag.host{background:#ffca43;color:#3a231b}
+.plist .kick{background:#e6c1b0;color:#5e344d}
+.gitem .gi>span{color:#5c3d4b}
+.gitem small{color:#a02e5e}
+.gitem.on{border-color:#ffb52c;box-shadow:0 0 0 2px #ffb52c,0 4px 0 #976642}
+.bigcode .ch{background:#29152e;border-color:#f6c565;color:#ffe4a1;text-shadow:0 2px 0 #13091a;box-shadow:inset 0 1px 0 #684366,0 3px 0 #775037}
+.share{background:#38213d;border-color:#e3b66e;color:#ffdb91}
+
+/* Phrases à trou, Priorités, Petit Bac : la pièce maîtresse est du papier. */
+.qcard,.qchoice,.scard,.white-secret,.bacl{
+ background:linear-gradient(166deg,#ffeca4 0%,#ffdb65 52%,#ffc748 100%);
+ border-color:#ce872b;border-radius:12px 17px 12px 15px;
+ box-shadow:0 5px 0 #9b5d24,0 14px 26px -13px rgba(0,0,0,.82),inset 0 1px 0 rgba(255,252,220,.6);
+}
+.qcard::after{box-shadow:inset 0 0 0 2px rgba(102,56,26,.09)}
+.qcard .qtag{font-weight:850;letter-spacing:.16em}
+.qcard .qtext{font-weight:750;color:#25171c}
+.acard,.bacslots .cat,.dlm-idea,.rep.them,.ddef,.white-list:not(.ballot) li,.white-list button,.white-list.ballot button{
+ background:var(--m2-paper);color:#29171f;
+ border-color:#cfaa7f;border-radius:10px 15px 11px 14px;
+ box-shadow:0 3px 0 #a67a56,0 10px 20px -14px rgba(0,0,0,.85);
+}
+.acard.sel{background:linear-gradient(#ff70a5,#ed2875);color:#fff8e9;border-color:#ffd6d8;box-shadow:0 4px 0 #8a234f}
+.ladder .slot,.bacslots .slot{border-color:#a67b91;background:rgba(255,240,211,.05)}
+.qchoice.on,.scard.sel{box-shadow:0 0 0 3px #4ddd9f,0 5px 0 #96602d}
+.qchoice.off{background:#3a2942;color:#e3cfdd}
+.white-list .meta{color:#71505a}
+.white-note{background:#362040;border-color:#b188a3;color:#fbe7e7}
+.white-secret{color:#291820}
+.white-secret .secret{color:#281820}
+.flip .front{background:var(--m2-paper);color:#281820;border-color:#d0a97c}
+.flip .back{box-shadow:0 5px 0 #996238,0 12px 22px -11px #000}
+.vote,.mime-rates li,.dlm-item{background:#37223e;border-color:#9f6b91;box-shadow:0 3px 0 #1d0b22}
+.vote.on,.mime-notes button.on{border-color:#ffcc54;background:#ffe19a;color:#281820}
+.mime-notes button,.dlm-yn button{background:#4f3154;border-color:#b0809f;color:#fff5eb}
+.dlm-yn .yes.on{background:#4fd89a;color:#22392e}
+.dlm-yn .no.on{background:#f34f87;color:#fff8e8}
+.ddef .dnum{background:#322037;color:#fff5d7}
+.wlab{background:var(--m2-paper);color:#291820;border:1px solid #c89d73;box-shadow:0 3px 0 #865332}
+.dial .face{fill:#fff0d3}.dial .rim{stroke:#ba8959}
+.punlist li,.rep.mine{background:#372441;border-color:#876385}
+.bactab li{background:#2e1c38;border-color:#805c80}
+
+/* Résultats / actions finales. */
+.rank li{background:var(--m2-paper);color:#281a20;border-color:#d1a475;box-shadow:0 3px 0 #996b47}
+.rank .pos{color:#6d4655}.rank b{color:#9b531b}
+.rank li:first-child{background:linear-gradient(#ffebb1,#ffd265);border-color:#a97630;box-shadow:0 4px 0 #8d592a,0 13px 24px -13px #000}
+.rank li:first-child .pos{color:#714313}
+.bigwin{color:#ffdf69;text-shadow:0 3px 0 #521c30,0 8px 18px #09030c}
+.pod .stepb{background:linear-gradient(#ffd970,#ffa82c);box-shadow:0 5px 0 #8d4a26}
+.cardback{background:linear-gradient(155deg,#352040,#211029)}
+.cardback::after{box-shadow:inset 0 0 0 2px #e7c177,inset 0 0 0 6px #2b1a38,inset 0 0 0 8px #ed6495}
+#toast{background:var(--m2-paper);color:#281820;border:1px solid #b88761}
+.dock{background:linear-gradient(to top,#170a1b 35%,rgba(23,10,27,.96) 58%,transparent)}
+.scrim{background:linear-gradient(to bottom,#170a1b 50%,rgba(23,10,27,.91) 80%,transparent)}
+/* Respect des usages / préférences accessibilité. */
+@media (prefers-reduced-motion:reduce){.home h1,.home h1::before{animation:none}}
+@media(max-width:350px){.sec{padding-inline:10px}.home .seg.games{gap:6px}}
+
+/* ===== Finition studio V4 — identité unique, pas d'invention fonctionnelle ===== */
+:root{--studio-font:'Lilita One','Bricolage Grotesque',system-ui,sans-serif;
+  --studio-paper: url('../design-studio/parchment.webp') center/360px 360px repeat,linear-gradient(#fff5df,#f2dcba)}
+/* Une même famille de titres de jeu plutôt que le gras générique. */
+.sec,.gamebox .gname,.bigstate,.bigwin,.panel h2,.rank .pos{font-family:var(--studio-font);letter-spacing:.005em}
+.sec{font-size:clamp(16px,4.5vw,21px);font-weight:400;line-height:1.25;border-radius:5px 9px 6px 8px;
+  padding:5px 13px 6px;border:1px solid #d3a676;transform:rotate(-.5deg);width:max-content}
+.gamebox .gname{font-size:clamp(22px,5.5vw,27px);font-weight:400}
+/* Papier sur vraies cartes, sans modification des hitboxes ni de leur ordre. */
+.panel.gamebox,.plist li,.gitem,.rank li,.acard,.ddef,.dlm-idea,
+.white-list:not(.ballot) li,.white-list button,.white-list.ballot button{background:var(--studio-paper)}
+.panel.gamebox{border:2px solid #bf895c;box-shadow:0 5px 0 #875632,0 18px 32px -17px #000,inset 0 0 0 2px rgba(255,248,222,.7)}
+/* Fond général peint avec une seule texture, rendu stable sur tous les écrans. */
+body::before,body[data-game]::before{background-color:#1b0b21;background-image:
+  linear-gradient(180deg,rgba(39,9,38,.06),rgba(7,2,12,.24)),url('../design-studio/plum-painted.webp')!important;
+  background-position:center top!important;background-size:cover!important;background-attachment:fixed!important}
+body::after{opacity:.12}
+/* Actions : hiérarchie conservée rose / or / contour, pression en relief. */
+.btn{border:0;outline:1.5px solid rgba(255,235,201,.7);outline-offset:-1.5px;
+  border-radius:999px;letter-spacing:-.01em}
+.btn:active:not(:disabled){transform:translateY(3px)}
+.tab.on{outline:1px solid rgba(255,245,193,.45);outline-offset:-2px}
+/* Le panneau d’accueil d’origine est volontairement transparent : aucune
+   grande boîte opaque ne doit apparaître derrière les huit illustrations. */
+.home .panel,.home .panel:not(.gamebox){background:transparent;border:0;box-shadow:none}
+/* Une place visuelle claire pour la sélection des jeux, sans déplacer le groupe. */
+.home .seg.games{row-gap:9px;column-gap:9px}
+.home .seg.games .seg-b img{max-width:100%;min-width:0}
+/* Visibilité des saisies, des états sélectionnés et des votes. */
+input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visible{outline:3px solid #ffe374;outline-offset:2px}
+.white-list.ballot button:focus-visible,.acard:focus-visible{outline:3px solid #ffe374;outline-offset:2px}
+/* Ne jamais perdre le contraste des légendes dans les réglages Private Joke. */
+.gamebox .pjcode .hint,.gamebox .pjcode label>span{color:#ffe9dd}
+/* Textes courts sur les étiquettes, les scores et les cartes. */
+.bigwin{font-family:var(--studio-font);font-weight:400;color:#ffdc66}
+.qcard .qtext{line-height:1.25}
+/* Le CSS originel pilote la disposition et les contrôles tactiles ; uniquement une
+   réduction du halo si le navigateur demande moins d'animations. */
+@media(prefers-reduced-motion:reduce){.home h1,.home h1::before{animation:none}}
+@media(max-width:350px){.home .seg.games{gap:6px}.sec{padding:4px 10px}}
