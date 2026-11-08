@@ -48,12 +48,12 @@ function home(){
     </div>`;
 }
 
-// Accueil : la taille des vignettes se règle en CSS (requête de conteneur, voir
-// .gamesbox). Seuls les navigateurs trop anciens pour ça passent par ici : les
-// vignettes prennent toute la largeur et rétrécissent de ce qui dépasse de
+// Accueil : la taille des vignettes se règle en CSS (largeur de l'app et
+// hauteur stable 100svh, voir .gamesbox). Seuls les navigateurs sans 100svh
+// passent par ici : les vignettes prennent toute la largeur et rétrécissent de ce qui dépasse de
 // l'écran. Sur 3 colonnes, la grille gagne « rangées / 3 » px de hauteur par px
 // de largeur : on réduit d'autant, en remesurant.
-const tailleEnCss = !!window.CSS?.supports?.('container-type', 'size');
+const tailleEnCss = !!window.CSS?.supports?.('height', '100svh');
 function fitGames(){
   const g = app.querySelector('.home .seg.games');
   if (!g || tailleEnCss) return;

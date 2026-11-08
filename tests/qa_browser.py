@@ -193,6 +193,23 @@ def run(browser, base):
         ctx,page,errors=open_page(browser,base,width=width)
         try:
             assert page.locator(".seg.games button").count()==8
+            # Les barres mobiles font varier la hauteur accordée à l'accueil.
+            # Les huit images restent exactement de même taille en y revenant.
+            def icon_sizes():
+                return page.eval_on_selector_all(
+                    ".seg.games img",
+                    "(els) => els.map(el => parseFloat(getComputedStyle(el).width))"
+                )
+            original=icon_sizes()
+            assert len(original)==8 and len(set(round(x,2) for x in original))==1
+            for home_height in ["550px", "1100px"]:
+                page.evaluate("(h) => document.documentElement.style.setProperty('--home-h',h)",home_height)
+                assert icon_sizes()==original, f"Vignettes instables avec --home-h={home_height}"
+            page.evaluate("document.documentElement.style.removeProperty('--home-h')")
+            page.locator('[data-act="mode"][data-v="mimes"]').click()
+            assert icon_sizes()==original, "Changer de jeu ne doit pas redimensionner les icônes"
+            page.reload(wait_until="load")
+            assert icon_sizes()==original, "Les icônes changent de taille à la réouverture"
             page.locator('[data-act="tab"][data-tab="join"]').click()
             assert page.locator("#pane-join").is_visible()
             page.locator("#j-code").fill("00123456")

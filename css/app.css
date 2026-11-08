@@ -887,20 +887,23 @@ body[data-game] .bar i{background:linear-gradient(90deg,var(--accent),var(--mint
 .home .pane[hidden]{display:none}
 .home #pane-create>.field{margin:auto 0;padding:10px 0}
 .home .pane>.btn{margin-top:auto}
-/* Les vignettes prennent toute la place libre entre le pseudo et la description,
-   sans jamais faire défiler. Le cadre (.gamesbox) reçoit cette place ; la grille
-   en déduit la plus grande vignette carrée qui tient en largeur et en hauteur.
-   Tout se calcule en CSS : rien à rater quand le clavier, la barre de Safari ou
-   la police changent la hauteur de l'écran (le calcul en JavaScript, lancé au
-   mauvais moment, laissait les vignettes trop petites avec du vide dessous). */
-@supports (container-type:size){
+/* La hauteur disponible (100cqh / --home-h) change quand Safari masque sa
+   barre, quand le navigateur restaure la page ou quand le clavier apparaît.
+   Elle ne doit PAS redimensionner les vignettes. Leur côté dépend uniquement
+   de la largeur de l'app et de 100svh (petite hauteur stable du navigateur).
+   On réserve 440 px pour le logo, les onglets, le pseudo, la description, le
+   bouton et les marges, en tenant compte des encoches. Le cadre flexible
+   absorbe les changements de hauteur ; les huit images gardent la même taille. */
+@supports (height:100svh){
   .home #pane-create>.field{flex:1;min-height:0;margin:0;display:flex;flex-direction:column}
-  .home .gamesbox{flex:1;min-height:calc(var(--rows) * 60px + (var(--rows) - 1) * 8px);margin:0 -8px;position:relative}
-  /* posé en absolu : sa taille est celle, définitive, que la mise en page a
-     donnée au cadre (un élément flexible mesuré directement vaut 0 en hauteur) */
-  .home .gamesfit{position:absolute;inset:0;container-type:size;display:grid;place-items:center}
-  .home .gamesfit .seg.games{--t:max(60px,min((100cqw - 16px) / 3,(100cqh - (var(--rows) - 1) * 8px) / var(--rows)));
-    width:calc(3 * var(--t) + 16px);max-width:none;margin:0}
+  .home .gamesbox{
+    --tile:max(60px,min((min(100vw,520px) - 36px) / 3,
+      (100svh - 440px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - (var(--rows) - 1) * 8px) / var(--rows)));
+    flex:1;min-height:calc(var(--rows) * var(--tile) + (var(--rows) - 1) * 8px);
+    margin:0 -8px;position:relative
+  }
+  .home .gamesfit{position:absolute;inset:0;display:grid;place-items:center}
+  .home .gamesfit .seg.games{width:calc(3 * var(--tile) + 16px);max-width:none;margin:0}
   /* trois lignes réservées : changer de jeu ne fait pas sauter les vignettes */
   .home .pitch{min-height:4.05em}
 }
