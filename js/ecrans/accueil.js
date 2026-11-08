@@ -20,7 +20,7 @@ function home(){
   const jeu = dernierJeu();       // la vignette du dernier jeu choisi sur ce téléphone
   return `
     <div class="home">
-      <h1><button type="button" class="logo" data-act="logo" aria-label="Le Soulièteur"><img src="logo.svg" width="801" height="303" alt="Le Soulièteur" decoding="async" fetchpriority="high"></button><span class="shift" aria-hidden="true"></span></h1>
+      <h1><button type="button" class="logo" data-act="logo" aria-label="Le Soulièteur"><img src="design-studio/logo-officiel.webp" width="800" height="637" alt="Le Soulièteur" decoding="async" fetchpriority="high"></button><span class="shift" aria-hidden="true"></span></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer</button>
