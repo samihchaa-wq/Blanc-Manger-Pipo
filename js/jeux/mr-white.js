@@ -89,6 +89,12 @@ function whiteWinnerSentence(){
     const mr=roles.filter(p=>p.role==='white');
     return mr.length?`<p class="role"><b>${whiteTeamNames(mr)}</b> était Mr White, il a gagné.</p>`:'';
   }
+  if (w.winner==='alliance') {
+    const imposteurs=roles.filter(p=>p.role==='undercover'&&!p.out&&P(p.player_id)?.active);
+    const mrWhite=roles.filter(p=>p.role==='white'&&!p.out&&P(p.player_id)?.active);
+    if (!imposteurs.length || !mrWhite.length) return '';
+    return `<p class="role"><b>${whiteTeamNames(imposteurs)}</b> (Imposteur) et <b>${whiteTeamNames(mrWhite)}</b> (Mr White) ont gagné ensemble.</p>`;
+  }
   if (w.winner==='imposteurs') {
     const imposteurs=roles.filter(p=>p.role==='undercover'&&P(p.player_id)?.active);
     if (!imposteurs.length) return '';
