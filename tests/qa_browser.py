@@ -367,6 +367,31 @@ def run(browser, base):
             raise
         finally:ctx.close()
 
+    # Injection HTML malveillante : le contenu de joueurs et cartes doit
+    # être affiché en texte et jamais interprété comme du code.
+    payload='<img src="x" onerror="window.__qaInjected=true">'
+    for game,phase,field,selector in [
+        ("phrases","lobby","player",".plist"),
+        ("phrases","answering","card",".hand"),
+        ("dico","dico_vote","definition",".ddefs"),
+    ]:
+        role="guest" if phase!="lobby" else "host"
+        ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
+        try:
+            page.evaluate("""([kind,txt]) => {
+              window.__qaInjected=false;
+              if (kind==='player') state.players[1].name=txt;
+              if (kind==='card') state.hand[0].text=txt;
+              if (kind==='definition') state.dico.defs[0].text=txt;
+              render();
+            }""",[field,payload])
+            assert page.locator(selector+' img[src="x"]').count()==0,"HTML exécuté : "+field
+            assert page.evaluate("window.__qaInjected") is False,"XSS exécuté : "+field
+            assert payload in page.locator(selector).inner_text(), "Texte mal échappé : "+field
+            no_errors(page,errors,"injection-"+field)
+            checks+=1
+        finally:ctx.close()
+
     # Gestion de la PWA en vraie page Chromium : retour depuis hors ligne.
     ctx,page,errors=open_page(browser,base,game="phrases")
     try:
