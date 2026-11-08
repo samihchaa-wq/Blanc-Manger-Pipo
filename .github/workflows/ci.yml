@@ -58,6 +58,12 @@ jobs:
           cat supabase/tests/rpc_auth_vote_integrity_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/migrations/20261118120000_restore_dico_dilemme_revotes.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/tests/qa_revotes_postgres_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+      - name: Défis personnalisés — PostgreSQL isolé
+        run: |
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -d postgres -c "CREATE DATABASE custom_round_qa;"
+          cat tests/sql/custom_round_fixture.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d custom_round_qa -v ON_ERROR_STOP=1
+          cat supabase/migrations/20261120120000_round_custom_challenges.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d custom_round_qa -v ON_ERROR_STOP=1
+          cat supabase/tests/qa_custom_round_challenges.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d custom_round_qa -v ON_ERROR_STOP=1
       - name: Vrais votes simultanés sur PostgreSQL isolé
         run: |
           cat tests/sql/concurrency_fixtures.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
