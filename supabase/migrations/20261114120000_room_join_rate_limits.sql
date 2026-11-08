@@ -28,7 +28,7 @@ declare
   r public.rooms;
   p public.players;
   n text := left(trim(coalesce(p_name, '')), 20);
-  client_hash text;
+  v_client_hash text;
   rl public.room_join_limits;
   err text;
 begin
@@ -36,15 +36,15 @@ begin
     return json_build_object('error', 'Choisis un pseudo.', 'error_code', 'INVALID_NAME');
   end if;
 
-  client_hash := public._client_hash();
-  if client_hash is not null then
+  v_client_hash := public._client_hash();
+  if v_client_hash is not null then
     -- Série d'appels simultanés : un seul compteur par source, sans interleaving.
     perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended('bmp-join:' || client_hash, 0)
+      pg_catalog.hashtextextended('bmp-join:' || v_client_hash, 0)
     );
 
     insert into public.room_join_limits(client_hash, window_started_at, requests, failures, last_attempt_at)
-      values (client_hash, now(), 1, 0, now())
+      values (v_client_hash, now(), 1, 0, now())
     on conflict (client_hash) do update set
       window_started_at = case
         when public.room_join_limits.window_started_at < now() - interval '10 minutes'
@@ -92,7 +92,7 @@ begin
 
   if err is not null then
     -- Pas de RAISE EXCEPTION : les compteurs doivent survivre aux mauvais codes.
-    if client_hash is not null then
+    if v_client_hash is not null then
       update public.room_join_limits
       set failures = failures + 1, last_attempt_at = now()
       where room_join_limits.client_hash = rl.client_hash;
@@ -103,7 +103,7 @@ begin
 
   insert into public.players(room_id, name, seat, joined_by_hash)
   values(r.id, n, (select coalesce(max(seat), -1) + 1
-                   from public.players where room_id = r.id), client_hash)
+                   from public.players where room_id = r.id), v_client_hash)
   returning * into p;
   update public.rooms set updated_at = now() where id = r.id;
   return json_build_object('code', r.code, 'player_id', p.id, 'token', p.token);
