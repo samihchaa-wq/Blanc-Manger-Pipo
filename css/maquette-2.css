@@ -1,0 +1,198 @@
+/*
+ * LE SOULIETEUR — HABILLAGE « MAQUETTE 2 »
+ * Révision purement visuelle. Ne pas modifier le DOM, les grilles,
+ * les zones tactiles, les états, les animations métier ou les flux de jeu.
+ * Chargé après app.css ; suppression de cette feuille = retour au style précédent.
+ */
+:root{
+  --bg-0:#130B19;
+  --bg-1:#24112B;
+  --surface:#291B32;
+  --surface-2:#3A2842;
+  --field:#1C1224;
+  --hairline:#4A3454;
+  --hairline-2:#6D536F;
+  --ink:#281923;
+  --ink-soft:#65515F;
+  --paper:#FFF2D8;
+  --paper-2:#F5DFC0;
+  --paper-edge:#BE9C75;
+  --gold:#FFD139;
+  --gold-2:#FFB82D;
+  --gold-deep:#A36813;
+  --gold-soft:#FFE58B;
+  --gold-paper:#FFD45A;
+  --gold-paper-2:#FFEDAA;
+  --gold-ink:#2A1A10;
+  --gold-ink-soft:#6F4925;
+  --pop:#FF5C91;
+  --pop-2:#FA4280;
+  --pop-3:#DE2168;
+  --pop-deep:#850D43;
+  --mint:#5AD9AB;
+  --mint-2:#30C88D;
+  --text:#FFF7EB;
+  --text-dim:#EEE1E9;
+  --text-faint:#D0BECE;
+  --shadow-card:0 3px 0 rgba(37,21,29,.55),0 15px 30px -12px rgba(0,0,0,.63);
+  --m2-paper:
+    radial-gradient(circle at 9% 18%,rgba(160,110,52,.065) 0 1px,transparent 2px),
+    radial-gradient(circle at 84% 73%,rgba(135,90,65,.075) 0 1px,transparent 2px),
+    radial-gradient(ellipse at 18% 5%,rgba(255,255,255,.68),transparent 55%),
+    linear-gradient(156deg,#FFF6E0 0%,#FFEBCB 54%,#F4DCB6 100%);
+  --m2-yellow:
+    radial-gradient(ellipse at 14% 4%,rgba(255,255,255,.63),transparent 58%),
+    linear-gradient(163deg,#FFF0AC,#FFD66A 53%,#FFC64B 100%);
+}
+
+/* Fond type illustration : les calques restent fixes, légers et non interactifs. */
+body::before,body[data-game]::before{
+  background:
+    radial-gradient(ellipse 85% 22% at 95% 5%,rgba(107,32,98,.48) 0%,transparent 76%),
+    radial-gradient(ellipse 80% 24% at -18% 28%,rgba(122,38,111,.39) 0%,transparent 75%),
+    radial-gradient(ellipse 74% 20% at 102% 66%,rgba(99,30,91,.36) 0%,transparent 77%),
+    radial-gradient(ellipse 76% 27% at 12% 105%,rgba(119,36,87,.31) 0%,transparent 75%),
+    radial-gradient(ellipse 80% 62% at 52% -35%,rgba(68,31,83,.56) 0%,transparent 78%),
+    linear-gradient(156deg,#160B1C 0%,#26112F 42%,#120916 100%);
+}
+body::after{opacity:.19;mix-blend-mode:soft-light}
+
+/* Le logo reste le VRAI bouton d'administration caché du projet. */
+.home h1::before{background:radial-gradient(closest-side,rgba(255,195,64,.20),rgba(255,94,151,.10) 51%,transparent 76%)}
+.home h1 img{filter:drop-shadow(0 4px 0 rgba(255,227,165,.23)) drop-shadow(0 9px 16px rgba(0,0,0,.45))}
+.home h1 .shift{opacity:.12}
+
+/* Titres / typographie : contenu, taille générale et positions inchangés. */
+.sec,.panel h2,.gmeta b,.gamebox .gname,.bigstate{font-weight:800;letter-spacing:-.03em}
+.sec{color:#FFF1D4;text-shadow:0 2px 0 rgba(22,10,29,.8)}
+.role b,.waiting b{color:#FFF7E7}
+.eyebrow{color:#EBD2AC}
+
+/* Onglets existants, avec le même gabarit et le même comportement. */
+.tabs{background:#211529;border-color:#765170;box-shadow:inset 0 1px 0 rgba(255,233,205,.06),0 3px 0 rgba(11,6,15,.5)}
+.tab.on,.seg-b.on{background:linear-gradient(175deg,#FFE06C,#FFC235);color:#281923;box-shadow:0 3px 0 #9B5B17,0 8px 14px -9px #000}
+.home .tabs{border:1.5px solid #E7BA62}
+
+/* Champs et commandes : mêmes id et dimensions tactiles. */
+input,textarea{background:#1C1223;border-color:#80617A;color:#FFF6EA;box-shadow:inset 0 2px 5px rgba(0,0,0,.19)}
+input:focus,textarea:focus{background:#26182E;border-color:#FFCC54}
+input::placeholder,textarea::placeholder{color:#CDBDCB}
+label.inline>span{color:#FFF0D7;font-weight:700}
+#j-code{font-weight:700}
+
+/* Bouton rose/jaune à double relief : aucune modification de padding/hauteur. */
+.btn{border:1.5px solid rgba(255,214,183,.46);background:linear-gradient(178deg,#FF6899 0%,#F7357B 54%,#DC1D63 100%);
+  color:#FFF8E9;text-shadow:0 1px 0 rgba(89,0,37,.45);
+  box-shadow:0 5px 0 #820C41,0 15px 25px -12px rgba(241,44,121,.7),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.alt{background:linear-gradient(177deg,#FFE778,#FFD13E 55%,#F9B52D);border-color:#F9D68F;
+  box-shadow:0 5px 0 #976018,0 14px 24px -12px rgba(248,178,25,.6),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn.ghost{background:#2D2036;color:#FFF0D8;border-color:#B38E80;box-shadow:inset 0 0 0 1px rgba(255,229,175,.07)}
+.btn.on{background:linear-gradient(177deg,#96F1C9,#3FCD95);border-color:#A5F4D3;box-shadow:0 5px 0 #146B4B}
+.btn:disabled:not(.pending){border-color:#6C566A;background:#392C41;color:#E0CFE0;box-shadow:inset 0 0 0 1px #755E77}
+.iconbtn,.xbtn{background:#302039;border-color:#876379;color:#FFF0DB;box-shadow:inset 0 1px 0 rgba(255,250,212,.09)}
+.link{color:#FFDC83}
+
+/* La grille actuelle reste à 3 colonnes, avec les mêmes huit jeux dans le même ordre. */
+.seg.games .seg-b{border-radius:19%;padding:2px;background:linear-gradient(140deg,#FFF2D6,#D7A76B);
+  box-shadow:0 3px 0 #8F623B,0 10px 18px -10px rgba(0,0,0,.7)}
+.seg.games img{border-radius:17.5%}
+.seg.games .seg-b.on{box-shadow:0 0 0 3px #FFDB56,0 5px 0 #A36520,0 14px 22px -11px rgba(255,196,52,.7)}
+.pitch b{color:#FFE4A2}
+
+/* Panneaux existants et listes de salon : papier chaud plutôt que cadres noirs. */
+.panel:not(.gamebox){border-color:#69475E;box-shadow:0 3px 0 rgba(15,7,20,.55),0 17px 32px -20px rgba(0,0,0,.6)}
+.panel.gamebox{background:var(--m2-paper);color:var(--ink);border:2px solid #CFA774;
+  border-radius:21px 19px 22px 18px;
+  box-shadow:0 5px 0 #9C6F52,0 18px 34px -16px rgba(0,0,0,.74),inset 0 1px 0 rgba(255,255,255,.65)}
+.gamebox .gname,.gamebox .gdesc b,.gamebox .regtog b,.gamebox .rrow>span{color:#2C1D22}
+.gamebox .gdesc,.gamebox .gdesc.resume,.gamebox .gsub,.gamebox .regtog small,.gamebox .rrow>span small{color:#65505A}
+.gamebox .reglages{border-top-color:#D2B08E}
+.gamebox .regtog .chev{color:#5F3E47}
+.gamebox .rulesbtn{color:#8F2356;font-weight:700}
+.gamebox .gtitle .chg{color:#40201C;background:linear-gradient(170deg,#FFE6A1,#FFCE57);border:1.5px solid #B88935;
+  box-shadow:0 2px 0 #B48B4B}
+.gamebox .rrow .step{background:#28192C;border-color:#79546F;color:#FFF1E2}
+.gamebox .rrow .step b,.gamebox .rrow .step button{color:#FFF1E2}
+.gamebox .rrow .step button{background:#48304A}
+.gamebox .seg{background:#24152D;border-color:#77546B}
+.gamebox .seg-b:not(.on){color:#FFF0E6}
+.gamebox .field>span{color:#684852}
+.gamebox .hint{color:#6B5461}
+.gamebox .switch{background:#34233C}
+.gamebox .switch b{color:#FFF2DE}
+.gamebox .pjcode{background:#321F35}
+.gamebox .pjcode .field>span{color:#F8E5D0}
+
+.plist li{background:var(--m2-paper);color:#2B1B26;border:1.5px solid #CBA782;
+  box-shadow:0 3px 0 rgba(151,103,65,.58),0 8px 16px -12px #000}
+.plist .kick{background:#E4C6AE;color:#67455F}
+.plist .tag{background:#E6C8AD;color:#4E2B37}
+.plist .tag.host{background:#FFCE65;color:#3C2517}
+.bigcode .ch{background:linear-gradient(170deg,#34213B,#23142B);border-color:#DAAA4C;color:#FFD651;
+  text-shadow:0 1px 8px rgba(255,220,101,.22);box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 2px 0 #5A3B33}
+.share{background:#3B223E;border-color:#BD845D;color:#FFE4AA}
+
+/* Le panneau « changer de jeu » utilise les vrais jeux et leurs textes. */
+.gitem{background:var(--m2-paper);border:1.5px solid #CFA876;color:#30202A;
+  box-shadow:0 2px 0 #AD835B}
+.gitem .gi>span{color:#5D4851}
+.gitem small{color:#A3315B}
+.gitem.on{border-color:#D73F83;box-shadow:0 0 0 2px rgba(226,38,114,.27),0 2px 0 #AD835B}
+.gcat{color:#FFE0AA}
+
+/* Cartes de jeu : la phrase reste jaune ; les réponses crème, le choix rose. */
+.qcard,.qchoice,.scard,.white-secret,.bacl{
+  background:var(--m2-yellow);border:1.5px solid rgba(141,89,42,.45);
+  box-shadow:0 4px 0 #A16A2D,0 15px 25px -13px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.55)}
+.qcard::after{box-shadow:inset 0 0 0 1px rgba(100,53,12,.14),inset 0 0 0 5px rgba(255,249,205,.09)}
+.qcard.win{box-shadow:0 0 0 3px var(--mint),0 4px 0 #A16A2D,0 16px 28px -12px rgba(0,0,0,.65)}
+.acard,.ladder .acard.sel,.bacslots .cat,.dlm-idea,.rep.them,.ddef{
+  background:var(--m2-paper);border:1px solid rgba(139,98,70,.34);
+  box-shadow:0 3px 0 #BE9C75,0 10px 18px -12px rgba(0,0,0,.73)}
+.acard.sel{background:linear-gradient(171deg,#FF75A2,#F02E76 60%,#D41C67);color:#FFF9EB;
+  border-color:#FFB6CA;box-shadow:0 3px 0 #8B1951,0 12px 24px -12px rgba(255,69,140,.6)}
+.scard.sel,.qchoice.on{box-shadow:0 0 0 3px var(--mint),0 3px 0 #A16A2D,0 12px 25px -12px rgba(0,0,0,.65)}
+.qchoice.off{background:#33273C;color:#E5D6E3}
+.ladder .slot,.bacslots .slot{border-color:#B98F9D;background:rgba(255,242,216,.05)}
+.num{border:1px solid #745477}
+
+/* Mr White : les mêmes cartes secrètes, choix et votes, habillés papier. */
+.white-list:not(.ballot) li,.white-list button,.white-list.ballot button{
+  background:var(--m2-paper);color:#2D1E28;border:1.5px solid #CCA57F;
+  box-shadow:0 3px 0 #AA7E55,0 8px 16px -14px #000}
+.white-list.ballot button:active:not(:disabled){background:#FFE5A0;border-color:#E4A746}
+.white-list .meta{color:#604655}
+.white-note{background:#38243C;border-color:#956D87;color:#FFF2E5}
+.white-result strong{color:#FFDC77}
+
+/* Petit Bac, Mimes, Dico, Dilemme : aucun changement de règles ni de disposition. */
+.bacslots .cat{border-radius:15px}
+.vote,.mime-rates li,.dlm-item{background:#31203A;border-color:#76516E}
+.mime-notes button,.dlm-yn button{background:#4B3150;border-color:#94718D}
+.mime-notes button.on{background:#FFD460;color:#2D1F25}
+.dlm-yn .yes.on{background:#57D9A5;color:#133C2C}
+.dlm-yn .no.on{background:#F64B86;color:#FFF5EA}
+.ddef .dnum{background:#3D263C;color:#FFF4DD}
+.punlist li,.rep.mine{background:#35233E;border-color:#83617B}
+
+/* Résultats : même podium/classement, finition papier. */
+.rank li{background:var(--m2-paper);color:#2B1C27;border-color:#CEAB86;
+  box-shadow:0 2px 0 #AE845D}
+.rank .pos{color:#604752}
+.rank b{color:#8D4B19}
+.rank li:first-child{background:var(--m2-yellow);border-color:#A5702A;
+  box-shadow:0 3px 0 #995E2A,0 11px 24px -15px #000}
+.rank li:first-child .pos{color:#684017}
+.bigwin{background:linear-gradient(100deg,#FFE58E 2%,#FFB938 47%,#FF6B9B 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(9,4,11,.25))}
+
+/* Les zones fixes gardent leur hauteur mesurée et leur ancrage d'origine. */
+.dock{background:linear-gradient(to top,#130A1A 44%,rgba(19,10,26,.93) 66%,rgba(19,10,26,0))}
+.scrim{background:linear-gradient(to bottom,#130A1A 62%,rgba(19,10,26,.85) 82%,rgba(19,10,26,0))}
+#toast{background:var(--m2-paper);border:1px solid #D5B18E;color:#2C1F2A}
+
+/* Accessibilité : respecter la configuration du système. */
+@media (prefers-reduced-motion:reduce){
+  .home h1::before{animation:none}
+  .home h1 .shift{animation:none}
+}
