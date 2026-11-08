@@ -13,7 +13,7 @@ function pitch(k){
 // Brouillons : un rafraîchissement de l'écran ne vide pas les champs.
 let homeName = null, homeCode = null;
 function home(){
-  const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,4);
+  const code = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'').slice(0,8);
   if (homeName === null) { try { homeName = localStorage.getItem('pdcat-name') || '' } catch { homeName = '' } }
   if (homeCode === null) homeCode = code;
   const join = !!code;            // arrivé par un lien d'invitation : on ouvre le bon onglet
@@ -42,7 +42,7 @@ function home(){
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
         <label class="inline"><span>Pseudo :</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Ton prénom ou surnom" value="${esc(homeName)}"></label>
-        <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" spellcheck="false" placeholder="••••" value="${esc(homeCode)}"></label>
+        <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="one-time-code" spellcheck="false" placeholder="•••• ••••" value="${esc(homeCode)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
       </section>
     </div>`;
@@ -140,7 +140,7 @@ surAction('create', () => {
 });
 surAction('join', () => {
   const c = val('j-code').replace(/\D/g,''), n = val('j-name');
-  if (c.length !== 4) return toast('Le code fait 4 chiffres.');
+  if (c.length !== 4 && c.length !== 8) return toast('Le code fait 8 chiffres (ou 4 pour les anciens salons).');
   if (!n) return toast('Choisis un pseudo.');
   return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
 });
