@@ -40,6 +40,8 @@ jobs:
         run: node tests/reseau-multiclient.mjs
       - name: Couverture QA des huit jeux
         run: node tests/qa-suites.mjs
+      - name: Victoire commune Mr White et Imposteur
+        run: node tests/white-alliance.mjs
       - name: Sécurité des salons
         run: node tests/securite-salon.mjs
       - name: Invitations sécurisées
