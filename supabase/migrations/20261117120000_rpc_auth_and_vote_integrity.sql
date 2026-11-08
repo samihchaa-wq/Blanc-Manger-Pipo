@@ -13,7 +13,7 @@ begin
   me := public._player(p_code, p_token);
   if me.id is null then raise exception 'Session expirée. Rejoins la partie à nouveau.'; end if;
   select * into r from public.rooms where id = me.room_id for update;
-  if r.host_id <> me.id then raise exception 'Seul l’hôte pilote les bots.'; end if;
+  if r.host_id is distinct from me.id then raise exception 'Seul l’hôte pilote les bots.'; end if;
 
   if r.status = 'question_select' then
     select * into b from public.players where id = r.reader_id and active and is_bot;
