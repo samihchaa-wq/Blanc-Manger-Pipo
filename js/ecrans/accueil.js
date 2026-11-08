@@ -92,6 +92,10 @@ async function enter(call, name){
   busy = true;
   try {
     const d = await call();
+    // Les refus de connexion sont des réponses JSON (et non des exceptions SQL)
+    // afin que le serveur puisse conserver les compteurs d'essais échoués.
+    if (d && typeof d.error === 'string') throw Error(d.error);
+    if (!d?.code || !d?.token) throw Error('Réponse du serveur invalide. Réessaie.');
     try { localStorage.setItem('pdcat-name', name) } catch {}
     save({ code:d.code, token:d.token });
     homeCode = null;
