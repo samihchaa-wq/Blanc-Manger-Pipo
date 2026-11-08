@@ -78,6 +78,8 @@ begin
     raise exception 'Mimes : partie pas lancée';
   end if;
   select token into judge_token from public.players where id=r.reader_id;
+  -- Le juge valide d'abord le défi standard (nouvelle préparation facultative).
+  perform public.choose_mime_challenge(c,judge_token,false,null,null,null);
   select array_agg(m.player_id order by p.seat),
          array_agg(m.intensity order by p.seat)
     into ids,notes
