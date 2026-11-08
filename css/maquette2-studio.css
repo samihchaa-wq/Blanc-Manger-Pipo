@@ -321,3 +321,41 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
   color:#2b1a25;
   box-shadow:0 3px 0 #936642;
 }
+
+
+/* Accueil — vignettes à leur taille utile en largeur.
+ * Ne plus les rétrécir pour tenir artificiellement sur un seul écran :
+ * sur les téléphones compacts, le défilement est préférable.
+ * DOM, ordre des huit jeux, illustrations et commandes inchangés. */
+@supports (height: 100svh) {
+  .home #pane-create > .field {
+    flex: none;
+    min-height: 0;
+    display: block;
+    margin: 12px 0 14px;
+    padding: 0;
+  }
+  .home .gamesbox {
+    flex: none;
+    min-height: 0;
+    height: auto;
+    position: static;
+    margin: 0 -8px;
+  }
+  .home .gamesfit {
+    position: static;
+    inset: auto;
+    display: block;
+    container-type: normal;
+  }
+  .home .gamesfit .seg.games {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    gap: 8px;
+  }
+  .home .pitch { min-height: 0; }
+}
+@media (max-width: 350px) {
+  .home .gamesfit .seg.games { gap: 6px; }
+}
