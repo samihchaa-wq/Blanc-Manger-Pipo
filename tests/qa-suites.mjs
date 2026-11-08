@@ -10,6 +10,8 @@ const suites = [
   ['qa_multiplayer_dico_dilemme.sql', ['dico','dilemme']],
   ['qa_multiplayer_resilience.sql', ['phrases','priorites','ondes','bac','white','mimes','dico','dilemme']],
   ['qa_multiplayer_timeouts.sql', ['phrases','priorites','ondes','bac','white','mimes','dico','dilemme']],
+  ['qa_multiplayer_capacity.sql', ['phrases','priorites','ondes','bac','white','mimes','dico','dilemme']],
+  ['qa_white_distribution_full.sql', ['white']],
 ];
 for (const [filename, games] of suites) {
   const s=readFileSync(new URL('../supabase/tests/'+filename,import.meta.url),'utf8');
@@ -30,4 +32,4 @@ const dico=readFileSync(new URL('../js/jeux/dico.js',import.meta.url),'utf8');
 const dil=readFileSync(new URL('../js/jeux/dilemme.js',import.meta.url),'utf8');
 assert.match(dico,/Tu peux encore changer d’avis/);
 assert.match(dil,/Tu peux encore changer d’avis/);
-console.log('QA : 6 suites transactionnelles pour 8 jeux, reconnexions, départs et délais.');
+console.log('QA : 8 suites transactionnelles, capacités maximales et répartition Mr White.');
