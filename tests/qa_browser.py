@@ -226,13 +226,20 @@ def run(browser, base):
             page.evaluate("document.documentElement.style.removeProperty('--home-h')")
             page.locator('[data-act="mode"][data-v="mimes"]').click()
             assert icon_sizes()==original, "Changer de jeu ne doit pas redimensionner les icônes"
-            after=tiles()
-            clean(after)
-            for prev,cur in zip(before,after):
-                for prop in ("x","y","w","h"):
-                    assert abs(prev[prop]-cur[prop])<0.2, f"Vignette déplacée/agrandie après sélection : {prop}, {prev} -> {cur}"
-            assert page.locator('.seg.games button.on[data-v="mimes"]').count()==1
-            assert page.locator('.seg.games button[aria-pressed="true"]').count()==1
+            # Vérifier chaque jeu, y compris les descriptions les plus longues :
+            # aucun changement de hauteur du descriptif ne doit déplacer la grille.
+            for mode in GAMES:
+                page.locator(f'[data-act="mode"][data-v="{mode}"]').click()
+                after=tiles()
+                clean(after)
+                for prev,cur in zip(before,after):
+                    for prop in ("x","y","w","h"):
+                        assert abs(prev[prop]-cur[prop])<0.2, (
+                            f"Vignette déplacée/agrandie après sélection de {mode} : "
+                            f"{prop}, {prev} -> {cur}")
+                assert page.locator(f'.seg.games button.on[data-v="{mode}"]').count()==1
+                assert page.locator('.seg.games button[aria-pressed="true"]').count()==1
+            page.locator('[data-act="mode"][data-v="mimes"]').click()
             page.reload(wait_until="load")
             assert icon_sizes()==original, "Les icônes changent de taille à la réouverture"
             page.locator('[data-act="tab"][data-tab="join"]').click()
