@@ -167,12 +167,12 @@ textarea{resize:none;overflow:hidden;line-height:1.35}
 /* Accueil : les vignettes débordent un peu des marges pour être plus grandes ;
    fitGames() ne les réduit que si l'accueil ne tient plus sur l'écran. */
 .home .seg.games{width:calc(100% + 16px);max-width:calc(100vw - 12px);margin:0 -8px;gap:8px;justify-self:center;align-self:center}
-.seg.games .seg-b{padding:0;border-radius:18%;background:none;box-shadow:none;opacity:1;
-  transition:opacity var(--dur),transform var(--dur)}
+.seg.games .seg-b{padding:0;border:0;border-radius:18%;background:none;box-shadow:none;opacity:1;
+  transition:none;transform:none}
 /* toutes les vignettes restent pleines (à 55 % elles semblaient désactivées) ;
    la choisie est cerclée de doré */
-.seg.games .seg-b.on{transform:scale(1.03);box-shadow:0 0 0 3px var(--gold),0 12px 26px -10px rgba(255,194,61,.55)}
-.seg.games .seg-b:active{transform:scale(.95)}
+.seg.games .seg-b.on{transform:none;outline:3px solid var(--gold);outline-offset:-3px}
+.seg.games .seg-b:active{transform:none}
 .seg.games img{display:block;width:100%;height:auto;border-radius:inherit;pointer-events:none}
 .seg.who{margin-bottom:18px}
 .seg.who .seg-b{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:9px 4px}
