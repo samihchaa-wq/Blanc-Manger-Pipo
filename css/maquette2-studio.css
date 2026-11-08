@@ -77,13 +77,25 @@ input:focus,textarea:focus{background:#291832;border-color:#ffd450;box-shadow:0 
 /* Images originales des huit jeux : aucun content:url, aucun masque, aucune substitution.
    Le cadre apporte du papier et du relief mais laisse chaque pixel de l'illustration visible. */
 .seg.games .seg-b{background:linear-gradient(160deg,#fff4dd,#d4a978);border:2px solid #f7dba5;
-  border-radius:19%;padding:3px;box-shadow:0 3px 0 #a26e49,0 9px 17px -9px #000;
-  transition:transform .15s ease,box-shadow .15s ease}
+  border-radius:19%;padding:3px;position:relative;isolation:isolate;
+  box-shadow:0 3px 0 #a26e49,0 9px 17px -9px #000;
+  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease}
 .seg.games .seg-b img{display:block;opacity:1;visibility:visible;filter:none;content:normal!important;
   width:100%;height:auto;aspect-ratio:1;border-radius:16%;object-fit:contain;pointer-events:none}
-.seg.games .seg-b.on{transform:scale(1.027);border-color:#ffdc54;
-  box-shadow:0 0 0 2px #ffe88e,0 4px 0 #a66b23,0 0 17px rgba(255,195,47,.46)}
-.seg.games .seg-b:active{transform:scale(.97)}
+/* La carte choisie NE change jamais de taille : contraste fort, anneau doré
+   et coche purement décorative, sans déplacement ni impact sur la grille. */
+.seg.games .seg-b.on{transform:none;border-color:#ffe259;
+  background:linear-gradient(160deg,#fff7c7,#f9ca55);
+  box-shadow:0 0 0 2px #29162b,0 0 0 5px #ffdc41,0 0 19px rgba(255,201,43,.68),0 3px 0 #a66b23;z-index:1}
+.seg.games .seg-b.on::after{
+  content:"✓";position:absolute;top:3px;right:3px;
+  display:grid;place-items:center;pointer-events:none;
+  width:clamp(18px,5.5vw,24px);height:clamp(18px,5.5vw,24px);
+  border-radius:50%;background:#ffda3b;border:2px solid #4b2630;
+  color:#2d1725;font-size:clamp(12px,3.6vw,16px);font-weight:900;line-height:1;
+  box-shadow:0 2px 5px rgba(0,0,0,.48)
+}
+.seg.games .seg-b:active{transform:none}
 .gamelogo,.gchip{border-color:#e3b778;box-shadow:0 3px 0 #371c27,0 8px 16px -9px #000}
 .pitch b{font-weight:800;color:#fff7e8}
 .pitch span{color:#dfcdda}
