@@ -245,7 +245,7 @@ begin
     end if;
   end if;
   return base::json;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.submit_answer(p_code text, p_token uuid, p_answer_id integer, p_answer_id2 integer DEFAULT NULL::integer)
@@ -289,7 +289,7 @@ begin
   perform public._maybe_judge(r.id);
   update public.rooms set updated_at = now() where id = r.id;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.bot_step(p_code text, p_token uuid)
@@ -422,7 +422,7 @@ begin
       update public.rooms set updated_at = now() where id = r.id;
     end if;
   end if;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.mime_bot_step(p_code text, p_token uuid)
@@ -446,7 +446,7 @@ begin
     into ids, notes
     from public.mime_parts m where m.room_id = r.id and m.round = r.round and m.intensity is not null;
   perform public._mime_score(r.id, coalesce(ids, '{}'), coalesce(notes, '{}'));
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.mime_rate(p_code text, p_token uuid, p_players uuid[], p_notes integer[])
@@ -475,7 +475,7 @@ begin
     raise exception 'Note chaque joueur.';
   end if;
   perform public._mime_score(r.id, p_players, p_notes);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.mime_progress(p_code text, p_token uuid, p_action text)
@@ -499,7 +499,7 @@ begin
   where m.room_id=r.id and m.round=r.round;
  if r.mime_index>=n then raise exception 'Tous les mimes sont passés.'; end if;
  update public.rooms set mime_index=r.mime_index+1,mime_started_at=now(),updated_at=now() where id=r.id;
-end $function$
+end $function$;
 
 
 -- Les signatures existantes conservent leurs grants; les nouvelles ont des grants explicites.
