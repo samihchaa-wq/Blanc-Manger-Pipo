@@ -125,6 +125,12 @@ def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
                              + ");")
         page.add_init_script("window.__qaState = "+json.dumps(state,ensure_ascii=False)+";"
                              "window.__qaWhite = "+json.dumps(white,ensure_ascii=False)+";")
+    else:
+        # Un visiteur arrive sans session, puis entre dans un salon simulé.
+        # Le mock doit donc aussi avoir un état auquel le connecter.
+        state,white=fixture("phrases",role="guest",n=3)
+        page.add_init_script("window.__qaState = "+json.dumps(state,ensure_ascii=False)+";"
+                             "window.__qaWhite = "+json.dumps(white,ensure_ascii=False)+";")
     url=base+("/?code=00123456" if invite else "/")
     page.goto(url,wait_until="load",timeout=20000)
     if game:
