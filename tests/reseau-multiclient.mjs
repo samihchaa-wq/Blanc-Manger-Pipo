@@ -104,7 +104,7 @@ const offline=vm.runInContext('refresh(true)',clients[2].context);
 one(2,'get_full_state').resolve({data:null,error:{message:'Connexion indisponible'}});
 await offline;
 assert.equal(clients[2].context.state.room.round,3,'Une erreur réseau ne doit pas détruire la partie');
-assert.equal(clients[2].alerts,beforeAlerts,'L'erreur non liée à une expiration ne doit pas déconnecter');
+assert.equal(clients[2].alerts,beforeAlerts,"Une panne réseau ordinaire ne doit pas déconnecter le joueur");
 const back=vm.runInContext('refresh(true)',clients[2].context);
 respond(one(2,'get_full_state'),5);
 await back;
