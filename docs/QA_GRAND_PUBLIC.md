@@ -44,7 +44,7 @@ Pour chaque configuration, noter : modèle, version OS/navigateur, résolution u
 | Android PWA installée | ☐ | ☐ | ☐ | ☐ |
 | Plusieurs modèles et générations mélangés | ☐ | ☐ | ☐ | ☐ |
 
-**Note :** Petit Bac accepte deux joueurs seulement. Mr White nécessite **trois joueurs minimum dans le backend actuel**, même si une ancienne répartition avait été envisagée à deux. Vérifier/acter ce choix produit avant le lancement ; ne jamais présenter le mode à deux comme opérationnel sans évolution et test des égalités.
+**Règle confirmée :** Petit Bac accepte deux joueurs seulement. **Mr White se joue à partir de trois joueurs**, sans exception. Si les Civils ne sont plus majoritaires, les adversaires gagnent. Si Mr White et l'Imposteur sont encore vivants (par exemple face au dernier Civil), **ils gagnent ensemble** ; leurs barèmes de points restent distincts. Une égalité des voix pendant un vote n'élimine personne et le jeu continue.
 
 ## 4. Scénarios obligatoires communs à tous les jeux
 
@@ -114,8 +114,10 @@ Pour chaque configuration, noter : modèle, version OS/navigateur, résolution u
 - **WHI-05** Majorité, égalité et vote incomplet au délai : résultat correct.
 - **WHI-06** Élimination d'un Civil / Imposteur / Mr White : issue et bon écran.
 - **WHI-07** Tentative de deviner le mot / arbitre / fausse réponse : aucune victoire indue.
-- **WHI-08** Victoire des Civils / Imposteurs / Mr White, barème et score collectif cohérents.
+- **WHI-08** Victoire des Civils / Imposteurs / Mr White ou **victoire commune Imposteur + Mr White vivants**, dont le cas un Civil contre les deux ; barèmes inchangés.
 - **WHI-09** Départ de joueurs de chaque rôle entre indice et vote, puis reprise.
+- **WHI-10** Distinguer une égalité des voix (pas d'élimination) d'une égalité numérique Civils/Adversaires (victoire des adversaires).
+- **WHI-11** Confirmer le texte des gagnants dans l'écran final : afficher les deux noms et leurs rôles en cas de victoire commune.
 
 ### Mimes
 - **MIM-01** Card action / intensité secrète : le juge ne doit pas voir les intensités avant sa note.
