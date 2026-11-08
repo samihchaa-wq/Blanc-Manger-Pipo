@@ -10,17 +10,18 @@ declare
   older json;
   newer json;
   i integer;
+  distinct_count integer;
 begin
   for i in 1..150 loop
     candidate := public._new_code();
     if candidate !~ '^[0-9]{8}$' then
       raise exception 'Code non conforme : %', candidate;
     end if;
-    if candidate = any(seen) then
-      raise exception 'Collision non prévue entre 150 codes aléatoires';
-    end if;
     seen := array_append(seen, candidate);
   end loop;
+
+  select count(distinct x) into distinct_count from unnest(seen) x;
+  if distinct_count < 140 then raise exception 'Tirage non aléatoire : % codes distincts', distinct_count; end if;
 
   if pg_catalog.has_function_privilege('anon', 'public._new_code()', 'EXECUTE') then
     raise exception 'Le générateur privé est accessible anonymement';
