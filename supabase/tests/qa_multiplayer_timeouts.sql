@@ -7,8 +7,8 @@ select pg_catalog.set_config('request.headers','{"x-forwarded-for":"192.0.2.186"
 do $qa_timers$
 declare
   g text; h json; a json; b json; c text; rid uuid; r public.rooms;
-  th uuid; ra uuid; reader_tok uuid; p public.players; answer_id integer;
-  qid integer; blanks integer; scores_before integer; i integer;
+  th uuid; ra uuid; reader_tok uuid; p public.players; v_answer_id integer;
+  qid integer; v_blanks integer; scores_before integer; i integer;
   st json; names text[]:=array['Animaux','Métiers','Villes','Noms','Objets','Pays'];
 begin
   foreach g in array array['phrases','priorites','ondes','bac','white','mimes','dico','dilemme'] loop
@@ -26,17 +26,17 @@ begin
       qid:=r.question_choices[1];
       perform public.select_question(c,reader_tok,qid);
       select * into r from public.rooms where id=rid;
-      select blanks into blanks from public.questions where id=qid;
-      select answer_id into answer_id from public.hands where player_id<>(r.reader_id)
-        and room_id=rid order by answer_id limit 1;
+      select q.blanks into v_blanks from public.questions q where q.id=qid;
+      select hand.answer_id into v_answer_id from public.hands hand where hand.player_id<>(r.reader_id)
+        and hand.room_id=rid order by hand.answer_id limit 1;
       -- Un joueur répond, l'autre dépasse le délai.
       select * into p from public.players where room_id=rid and active and id<>r.reader_id order by seat limit 1;
-      perform public.submit_answer(c,p.token,answer_id,
-        case when blanks=2 then (select hnd.answer_id from public.hands hnd
-          where hnd.player_id=p.id and hnd.answer_id<>answer_id order by hnd.answer_id limit 1) end);
+      perform public.submit_answer(c,p.token,v_answer_id,
+        case when v_blanks=2 then (select hnd.answer_id from public.hands hnd
+          where hnd.player_id=p.id and hnd.answer_id<>v_answer_id order by hnd.answer_id limit 1) end);
       update public.rooms set phase_at=now()-interval '1 hour' where id=rid;
       perform public.reap_idle(c,th);
-      select status into r.status from public.rooms where id=rid;
+      select * into r from public.rooms where id=rid;
       if r.status<>'judging' then raise exception 'Timer Phrases bloqué sur %',r.status; end if;
 
     elsif g='priorites' then
