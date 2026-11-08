@@ -35,23 +35,23 @@ begin
 
     -- Fixer un tirage déterministe : siège 2 Imposteur, siège 3 Mr White.
     -- Les quatre autres sont Civils. Seulement dans la transaction de QA.
-    update public.white_roles wr set role=case pp.seat
+    update public.white_roles wr set role=case pp.pos
       when 2 then 'undercover'
       when 3 then 'white'
       else 'civil' end, eliminated=false, eliminated_cycle=null
-    from public.players pp
+    from (select id,row_number() over(order by seat) pos from public.players where room_id=v_room_id) pp
     where wr.player_id=pp.id and wr.room_id=v_room_id and wr.round=r.round;
 
     update public.white_roles wr set eliminated=true,eliminated_cycle=1
-    from public.players pp
+    from (select id,row_number() over(order by seat) pos from public.players where room_id=v_room_id) pp
     where wr.player_id=pp.id and wr.room_id=v_room_id and wr.round=r.round
       and (
-        (scenario='alliance_one_civil' and pp.seat in(4,5,6))
-        or (scenario='alliance_parity' and pp.seat in(5,6))
-        or (scenario='undercover_only' and pp.seat in(3,4,5,6))
-        or (scenario='white_only' and pp.seat in(2,4,5,6))
-        or (scenario='civils' and pp.seat in(2,3))
-        or (scenario='continue' and pp.seat=6)
+        (scenario='alliance_one_civil' and pp.pos in(4,5,6))
+        or (scenario='alliance_parity' and pp.pos in(5,6))
+        or (scenario='undercover_only' and pp.pos in(3,4,5,6))
+        or (scenario='white_only' and pp.pos in(2,4,5,6))
+        or (scenario='civils' and pp.pos in(2,3))
+        or (scenario='continue' and pp.pos=6)
       );
 
     select count(*) filter(where wr.role='civil'),count(*) filter(where wr.role<>'civil')
