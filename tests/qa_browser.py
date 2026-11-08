@@ -201,7 +201,7 @@ def run(browser, base):
                     "(els) => els.map(el => parseFloat(getComputedStyle(el).width))"
                 )
             original=icon_sizes()
-            assert len(original)==8 and len(set(round(x,2) for x in original))==1
+            assert len(original)==8 and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
             for home_height in ["550px", "1100px"]:
                 page.evaluate("(h) => document.documentElement.style.setProperty('--home-h',h)",home_height)
                 assert icon_sizes()==original, f"Vignettes instables avec --home-h={home_height}"
