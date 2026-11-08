@@ -2,6 +2,17 @@
 // Script classique (pas un module) : tous les fichiers partagent la même portée
 // globale et se chargent dans l'ordre d'index.html, comme l'ancien script unique.
 const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg');
+// En PWA, enregistrer explicitement le service worker : la présence de sw.js
+// ne suffit pas à activer le cache et l'ouverture hors connexion. La portée
+// relative protège le chemin GitHub Pages /Blanc-Manger-Pipo/.
+// Un refus navigateur (mode privé, permissions, ancien moteur) ne doit jamais
+// empêcher les jeux en ligne de démarrer.
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }, { once:true });
+}
+
 const app = document.getElementById('app');
 let session = load(), state = null, busy = false, picks = [], picked = null, readIndex = 0, rankView = null;
 let last = '', channel = null, poll = null, deb = null, dealPending = false, rtOk = false, lastSync = 0;
