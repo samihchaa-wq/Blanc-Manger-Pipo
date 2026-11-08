@@ -295,10 +295,12 @@ assert.match(homeView, /data-act="create"/, 'Créer une partie depuis l’accuei
 assert.match(homeView, /data-act="join"/, 'Rejoindre avec un code depuis l’accueil');
 assert.match(homeView, /data-act="mode"[\s\S]*<img src="games\/\$\{tileImg\(k\)\}"/, 'Les vignettes des jeux sont sur l’accueil');
 assert.doesNotMatch(homeView, /data-act="admin"/, 'Plus de bouton admin visible sur l’accueil');
-// La taille des vignettes vient de la place libre, mesurée en CSS (requête de
-// conteneur), et non d'un calcul JavaScript lancé au mauvais moment.
-assert.match(css, /\.home \.gamesfit\{position:absolute;inset:0;container-type:size/, 'Cadre des vignettes mesuré en CSS');
-assert.match(css, /100cqh - \(var\(--rows\) - 1\) \* 8px\) \/ var\(--rows\)/, 'Vignettes limitées par la hauteur libre');
+// Taille identique lors des retours à l'accueil : pas de dépendance à la
+// hauteur du conteneur recalculée quand la barre de Safari disparaît.
+assert.ok(css.includes('@supports (height:100svh)'), 'Une hauteur de fenêtre stable est utilisée');
+assert.ok(css.includes('--tile:max(60px,min((min(100vw,520px) - 36px) / 3'), 'Taille liée à la largeur de l’app');
+assert.ok(css.includes('100svh - 440px - env(safe-area-inset-top)'), 'Budget vertical et encoches stables');
+assert.ok(!css.includes('container-type:size'), 'Ne plus redimensionner par la hauteur du conteneur');
 assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
 assert.match(scripts[0], /logoTaps\.length >= 5\) \{ logoTaps = \[\]; ouvrirAdmin\(\) \}/, 'Cinq appuis sur le logo ouvrent l’admin');
 assert.match(scripts[0], /const CATEGORIES = \[/, 'Familles de jeux pour la liste « Changer de jeu »');
