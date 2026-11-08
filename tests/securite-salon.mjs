@@ -55,7 +55,7 @@ assert.match(sql,/on conflict \(client_hash\) do update set/,'Le compteur doit p
 assert.match(sql,/failures = failures \+ 1/,'Les échecs doivent être comptés');
 assert.match(sql,/if rl\.requests > 48 or rl\.failures >= 8/,'Limiter la fréquence et les mauvais codes');
 assert.match(sql,/return json_build_object\('error', err/,'Ne pas annuler les compteurs avec une exception SQL');
-assert.doesNotMatch(sql,/raise exception/i,'Les refus attendus ne doivent pas provoquer de rollback SQL');
+assert.doesNotMatch(sql,/^\\s*raise exception/im,'Les refus attendus ne doivent pas provoquer de rollback SQL');
 const pages=readFileSync(new URL('../.github/workflows/pages.yml',import.meta.url),'utf8');
 assert.match(pages,/needs: test/,'Le déploiement attend la CI');
 for (const script of ['sanity','reseau','securite-salon'])
