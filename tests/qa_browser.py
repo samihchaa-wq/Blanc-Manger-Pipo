@@ -289,6 +289,81 @@ def run(browser, base):
             checks+=1
         finally:ctx.close()
 
+    # Exercices complets de boutons : les véritables écouteurs JS déclenchent
+    # les RPC mockés, dont on inspecte la charge utile exacte.
+    for game,phase,role,do in [
+        ("phrases","answering","guest","phrases"),
+        ("priorites","ranking","guest","priorites"),
+        ("ondes","guessing","guest","ondes"),
+        ("bac","writing","guest","bac"),
+        ("mimes","mime_play","host","mimes"),
+        ("dico","dico_vote","guest","dico"),
+        ("dilemme","dilemme_vote","guest","dilemme"),
+        ("white","white_vote","guest","white"),
+    ]:
+        ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
+        try:
+            if do=="phrases":
+                page.locator('[data-act="select"]').first.click()
+                assert page.locator('[data-act="send"]').is_enabled()
+                page.locator('[data-act="send"]').click()
+                name="submit_answer"
+            elif do=="priorites":
+                for i in range(5):
+                    page.locator('[data-act="rank"]').first.click()
+                assert page.locator('[data-act="send-rank"]').is_enabled()
+                page.locator('[data-act="send-rank"]').click()
+                name="submit_ranking"
+            elif do=="ondes":
+                page.locator('[data-act="guess"]').click()
+                name="submit_guess"
+            elif do=="bac":
+                for i in range(6):
+                    page.locator("#bac-"+str(i)).fill("Pomme"+str(i))
+                page.locator('[data-act="bac-done"]').click()
+                name="bac_save"
+            elif do=="mimes":
+                page.locator('[data-act="mime-note"][data-id="p1"][data-v="8"]').click()
+                page.locator('[data-act="mime-note"][data-id="p2"][data-v="6"]').click()
+                assert page.locator('[data-act="mime-rate"]').is_enabled()
+                page.locator('[data-act="mime-rate"]').click()
+                name="mime_rate"
+            elif do=="dico":
+                assert page.locator('[data-act="dico-vote"][data-id="d2"]').is_disabled()
+                page.locator('[data-act="dico-vote"][data-id="d1"]').click()
+                name="dico_vote"
+            elif do=="dilemme":
+                page.locator('[data-act="dil-yn"][data-id="b1"][data-v="1"]').click()
+                page.locator('[data-act="dil-yn"][data-id="b3"][data-v="0"]').click()
+                assert page.locator('[data-act="dil-vote"]').is_enabled()
+                page.locator('[data-act="dil-vote"]').click()
+                name="dilemme_vote"
+            elif do=="white":
+                assert page.locator('[data-act="white-vote"][data-id="p1"]').count()==0
+                page.locator('[data-act="white-vote"][data-id="p0"]').click()
+                name="white_vote"
+            page.wait_for_function("""name => window.__qaCalls.some(c=>c.name===name)""",
+                                   arg=name, timeout=5000)
+            calls=page.evaluate("""name => window.__qaCalls.filter(x=>x.name===name)""",name)
+            args=calls[-1]["args"]
+            if do=="priorites": assert args["p_cards"]==[1,2,3,4,5],args
+            if do=="ondes": assert args["p_value"]==50,args
+            if do=="bac":
+                assert any(c["args"].get("p_done") is True
+                    for c in calls),calls
+            if do=="mimes":
+                assert args["p_players"]==["p1","p2"] and args["p_notes"]==[8,6],args
+            if do=="dilemme":
+                assert args["p_buts"]==["b1","b3"] and args["p_yes"]==[True,False],args
+            if do=="white": assert args["p_target"]=="p0",args
+            no_horizontal_overflow(page,game+"-"+phase+"-interactif")
+            no_errors(page,errors,game+"-"+phase+"-interactif")
+            checks+=1
+        except Exception:
+            page.screenshot(path=str(OUT/(game+"-"+phase+"-interactif.png")),full_page=True)
+            raise
+        finally:ctx.close()
+
     # Gestion de la PWA en vraie page Chromium : retour depuis hors ligne.
     ctx,page,errors=open_page(browser,base,game="phrases")
     try:
