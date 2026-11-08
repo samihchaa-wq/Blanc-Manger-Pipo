@@ -46,7 +46,7 @@ BEGIN
   SELECT * INTO r FROM public.rooms WHERE id=me.room_id FOR UPDATE;
   IF r.mode <> 'phrases' OR r.status <> 'question_select' OR r.reader_id IS DISTINCT FROM me.id
   THEN RAISE EXCEPTION 'Seul le lecteur peut inventer la question à cette étape.'; END IF;
-  t := btrim(p_text);
+  t := btrim(coalesce(p_text,''));
   n := (length(t)-length(replace(t,'____',''))) / 4;
   IF length(t) < 5 OR length(t) > 150 OR n NOT IN (1,2)
   THEN RAISE EXCEPTION 'Écris une phrase de 150 caractères maximum avec 1 ou 2 trous (____).'; END IF;
@@ -67,7 +67,7 @@ BEGIN
   IF r.mode <> 'ondes' OR r.wave_variant <> 'normal' OR r.status <> 'clue'
      OR r.reader_id IS DISTINCT FROM me.id OR r.wave_clue IS NOT NULL
   THEN RAISE EXCEPTION 'Tu ne peux plus modifier ce Baromètre.'; END IF;
-  l := btrim(p_left); rr := btrim(p_right);
+  l := btrim(coalesce(p_left,'')); rr := btrim(coalesce(p_right,''));
   IF length(l) < 2 OR length(rr) < 2 OR length(l) > 40 OR length(rr) > 40
      OR lower(l)=lower(rr)
   THEN RAISE EXCEPTION 'Définis deux extrêmes différents (2 à 40 caractères chacun).'; END IF;
@@ -89,7 +89,7 @@ BEGIN
      OR r.mime_ready OR r.mime_index <> 0
   THEN RAISE EXCEPTION 'Ce mime a déjà commencé, ou tu n’es pas le juge.'; END IF;
   IF coalesce(p_custom,false) THEN
-    a:=btrim(p_action); l:=btrim(p_low); h:=btrim(p_high);
+    a:=btrim(coalesce(p_action,'')); l:=btrim(coalesce(p_low,'')); h:=btrim(coalesce(p_high,''));
     IF length(a)<3 OR length(a)>80 OR length(l)<2 OR length(l)>60
        OR length(h)<2 OR length(h)>60
     THEN RAISE EXCEPTION 'Décris l’action (3 à 80 caractères) et les deux intensités (2 à 60).'; END IF;
