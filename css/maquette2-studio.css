@@ -212,3 +212,9 @@ img[src$='games/dico.webp']{content:url('../design-maquette2/dico-card.webp')}
 .home .panel{background:none;border:0;box-shadow:none}
 /* La sélection épouse la vignette au lieu de dessiner un carré parasite. */
 .home .seg.games .seg-b.on{box-shadow:none;filter:drop-shadow(0 0 5px #ffc544) drop-shadow(0 0 7px rgba(255,193,43,.82))}
+
+/* Audit de non-déplacement : les images source des boutons d'accueil restent carrées.
+   La décoration occupe le fond, jamais le gabarit des cases. */
+.home .seg.games .seg-b img{content:normal!important;aspect-ratio:1/1;opacity:0}
+.home label.inline>span{font-weight:400}
+.home h1 img{aspect-ratio:801 / 303}
