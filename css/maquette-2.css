@@ -196,3 +196,16 @@ label.inline>span{color:#FFF0D7;font-weight:700}
   .home h1::before{animation:none}
   .home h1 .shift{animation:none}
 }
+
+/* Audit final : mêmes emplacements tactiles que le thème initial.
+   Le trait décoratif des boutons est dessiné à l'intérieur plutôt qu'en
+   bordure de boîte : il ne rajoute donc pas 2 px à chaque commande. */
+.btn:not(.ghost){border:0;outline:1.5px solid rgba(255,214,183,.46);outline-offset:-1.5px}
+.btn.alt{outline-color:#F9D68F}
+.btn:disabled:not(.pending){outline-color:#6C566A}
+.panel.gamebox{border-width:1px;box-shadow:0 5px 0 #9C6F52,0 18px 34px -16px rgba(0,0,0,.74),inset 0 0 0 1px #CFA774,inset 0 1px 0 rgba(255,255,255,.65)}
+.plist li{border-width:1px}
+
+/* Le panneau de déverrouillage Private Joke est sombre, même lorsque son
+   panneau parent est en parchemin : son aide doit rester claire. */
+.gamebox .pjcode .hint{color:#F2DCE8}
