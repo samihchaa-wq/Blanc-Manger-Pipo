@@ -10,7 +10,7 @@ function qcard(tag, html, cls = '', foot = ''){
 
 // Champs dont la saisie survit à un rafraîchissement : leur valeur vient d'un
 // brouillon gardé en mémoire, le curseur est remis à sa place.
-const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|[ae]-(text|left|right|act))$/;
+const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|custom-phrase|custom-wave-left|custom-wave-right|custom-mime-action|custom-mime-low|custom-mime-high|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|[ae]-(text|left|right|act))$/;
 function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
