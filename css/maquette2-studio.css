@@ -233,3 +233,25 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
    réduction du halo si le navigateur demande moins d'animations. */
 @media(prefers-reduced-motion:reduce){.home h1,.home h1::before{animation:none}}
 @media(max-width:350px){.home .seg.games{gap:6px}.sec{padding:4px 10px}}
+
+
+/* Finition des écrans de jeu : matière papier plus affirmée sans nouvelle carte. */
+.qchoice {
+  background:
+    radial-gradient(ellipse at 8% 2%,rgba(255,255,255,.40),transparent 62%),
+    repeating-linear-gradient(32deg,rgba(125,66,23,.018) 0 1px,transparent 1px 11px),
+    linear-gradient(170deg,#ffed9f,#ffda65 50%,#f9c249);
+  border:1.5px solid #d19a41;
+  box-shadow:inset 0 1px 0 rgba(255,255,238,.55),0 5px 0 #97612b,0 15px 22px -14px rgba(0,0,0,.75);
+  font-weight:650;
+}
+/* La carte de rôle Mr White est du parchemin crème dans la maquette, et non
+   une question jaune. L'état « maintien pour voir » demeure inchangé. */
+.white-secret,.white-secret.hold {
+  background:var(--studio-paper);
+  color:#2b1a24;
+  border:2px solid #c89b6b;
+  box-shadow:0 4px 0 #9c6d4c,0 17px 25px -14px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.65);
+}
+.white-secret .eyebrow,.white-secret small {color:#6e4854}
+.white-secret .secret,.white-secret strong {color:#2b1a24}
