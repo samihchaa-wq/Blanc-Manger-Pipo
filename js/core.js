@@ -32,25 +32,25 @@ let pressedEl = null, lastHtml = '';
 // l'instant local où l'on a vu la roue partir (pour l'animer une seule fois).
 let pun = null, punDrafts = [], punAnimAt = 0, punTimer = null;
 const PUN_MS = 3400;
-// Les jeux hébergés par l'appli : nom, règle complète (salon, « Lire la règle »),
+// Les jeux hébergés par l'appli : nom, consignes courtes (salon, « Lire la règle »),
 // accroche d'une ligne et famille (liste « Changer de jeu »).
 const GAMES = {
   phrases:   { name:'Phrases à trou', cat:'cartes', pitch:'Complète la phrase du lecteur avec ta carte la plus drôle.',
-    desc:'Le lecteur pose une phrase à trou, chacun la complète avec sa carte la plus drôle.' },
+    desc:["Le lecteur choisit et lit une phrase à trou.","Les autres la complètent avec leurs cartes.","Le lecteur choisit la réponse qu’il préfère."] },
   priorites: { name:'Priorités', cat:'cartes', pitch:'Devine dans quel ordre le juge classe cinq cartes.',
-    desc:'Un juge classe 5 cartes par importance, les autres devinent son classement.' },
+    desc:["Le juge classe cinq cartes de la plus importante à la moins importante.","Les autres essaient de retrouver son classement.","Comparez les classements à la révélation."] },
   ondes:     { name:'Baromètre', cat:'ambiance', pitch:'Place l’aiguille au plus près de la cible du médium.',
-    desc:'Le médium donne un indice pour situer une cible cachée, les autres placent leur aiguille au plus près.' },
+    desc:["Le médium découvre une cible secrète et donne un indice.","Les autres placent leur aiguille d’après cet indice.","Révélez la cible une fois les positions validées."] },
   bac:       { name:'Petit bac', cat:'ecrire', pitch:'Une lettre, six catégories, un duel.',
-    desc:'Vous inventez les catégories, la roue tire la lettre. Trouvez des mots qui commencent par elle, puis jugez ceux de votre adversaire.' },
+    desc:["À deux, proposez tour à tour six catégories.","Une lettre est tirée au sort : trouvez un mot par catégorie.","Jugez les réponses de votre adversaire, catégorie par catégorie."] },
   white:     { name:'Mr White', cat:'table', pitch:'Démasquez l’imposteur, autour de la même table.',
-    desc:'Ensemble dans la même pièce : découvrez votre mot en secret, donnez des indices à voix haute puis votez. Dans une partie sur cinq en moyenne, un imposteur devient Mr White et ne reçoit aucun mot.' },
+    desc:["Consultez votre carte en secret : Civils et Imposteurs ont des mots différents, Mr White n’a aucun mot.","Donnez chacun un indice à voix haute, à tour de rôle.","Votez pour éliminer un suspect, puis reprenez si la partie continue.","Si Mr White est éliminé, il peut tenter de deviner le mot des Civils."] },
   mimes:     { name:'Mimes', cat:'table', pitch:'Mime une action à l’intensité tirée au sort.',
-    desc:'Le juge lit une action à voix haute. Chacun reçoit en secret une intensité de 1 à 10 et la mime à son tour. Le juge devine l’intensité de chacun : 3 pts si c’est exact, 2 pts à 1 près, 1 pt à 2 près.' },
+    desc:["Le juge lit une action à voix haute.","Les autres la miment à tour de rôle selon leur intensité secrète, de 1 à 10.","Le juge devine l’intensité de chaque mime."] },
   dilemme:   { name:'Dilemme', cat:'ecrire', pitch:'Complète le dilemme pour obtenir pile le nombre de Oui de ta cible secrète.',
-    desc:'Le meneur lance le début d’un dilemme. Chacun écrit la suite. Ensuite, tout le monde vote : tu acceptes, oui ou non ? Ton but secret : obtenir un nombre précis de Oui. Plus tu tombes juste, plus tu marques.' },
+    desc:["Le meneur choisit le début d’un dilemme.","Chacun le complète après « mais » pour atteindre sa cible secrète de votes Oui.","Répondez Oui ou Non aux dilemmes des autres."] },
   dico:      { name:'Le Dico', cat:'ecrire', pitch:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
-    desc:'Le meneur ouvre le dictionnaire au hasard, choisit un mot et le lit à voix haute. Chacun en invente une définition ; elles sont mélangées avec la vraie, le meneur les lit toutes et chacun vote pour celle qu’il croit juste. +2 pts si tu trouves la vraie, +1 pt par joueur que ta définition a dupé, +2 pts au meneur si personne ne trouve.' },
+    desc:["Le meneur choisit un mot du dictionnaire et le lit à voix haute.","Les autres inventent chacun une définition.","Le meneur lit toutes les définitions, mélangées à la vraie.","Votez pour celle que vous pensez correcte."] },
 };
 // Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
 const CATEGORIES = [['cartes','Cartes'],['ecrire','À l’écrit'],['table','Autour de la table'],['ambiance','Ambiance']];
@@ -68,11 +68,11 @@ function surAction(noms, fn, { marque = true } = {}){
 }
 
 // Baromètre inversé : un joueur écrit un thème, le médium y répond selon la cible.
-const WAVE_INVERSE_DESC = 'Mode inversé : un joueur écrit un thème (« un salaire que j’aimerais toucher »), le médium voit la cible et répond (« 100 000 € »), les autres placent l’aiguille d’après sa réponse.';
+const WAVE_INVERSE_DESC = 'Mode inversé : un joueur propose un thème. Le médium voit la cible et répond. Les autres placent leur aiguille.';
 // Phrases à trou : le paquet de réponses distribué.
-const PHRASES_VARIANT_DESC = 'Mode Normal : le paquet de réponses grand public. Mode Private Joke : seulement les réponses ajoutées par votre groupe.';
+const PHRASES_VARIANT_DESC = 'Mode Normal : cartes classiques. Mode Private Joke : cartes ajoutées par votre groupe.';
 // Dilemme : les deux modes de partie.
-const DILEMME_VARIANT_DESC = 'Mode 50/50 : tout le monde vise la moitié de Oui. Mode Aléatoire : chacun reçoit une cible secrète différente, toujours atteignable selon le nombre de joueurs.';
+const DILEMME_VARIANT_DESC = 'Mode 50/50 : visez la moitié des votes Oui. Mode Aléatoire : chacun reçoit une cible secrète de votes Oui.';
 // Vignette d'un jeu, la même partout (accueil, salon, barre du haut) : Mr White
 // et Mimes ont la leur en jpg. white.svg reste l'emblème affiché pendant la partie.
 const tileImg = k => k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp';
