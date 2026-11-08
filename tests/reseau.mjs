@@ -56,11 +56,11 @@ assert.equal(ctx.session.code, '5678', 'Une ancienne erreur a détruit la nouvel
 // Le chemin de repli (ancien serveur) doit garder le token de sa lecture initiale.
 const fallback = vm.runInContext('refresh(true)',ctx);
 calls[3].resolve({ data:null, error:{message:'PGRST202 Could not find the function get_full_state'} });
-await Promise.resolve(); await Promise.resolve();
+for (let i=0; i<30 && !calls[4]; i++) await Promise.resolve();
 assert.equal(calls[4]?.name, 'get_state', 'Repli get_state attendu');
 ctx.session = { code:'9999', token:'encore-un-autre' };
 calls[4].resolve({data:example(3),error:null}); // Le salon a changé pendant la lecture.
-await Promise.resolve(); await Promise.resolve();
+for (let i=0; i<30 && !calls[5]; i++) await Promise.resolve();
 assert.equal(ctx.session.code, '9999');
 assert.equal(calls[4].args.p_token, 'nouveau', 'Le repli doit utiliser le token initial');
 // En mode lobby le repli appelle également punish_state, on le résout.
