@@ -314,7 +314,7 @@ async function refresh(force = false){
     state = s; last = j;
     if (changed) {
       picks = []; picked = null; readIndex = 0; rankView = null; qpick = null; dialVal = 50; clueDraft = ''; mimeNotes = {};
-      phraseCustomMode = false; phraseCustomDraft = ''; waveCustomEditing = false; waveLeftDraft = ''; waveRightDraft = ''; mimeCustomEditing = false; mimeActionDraft = ''; mimeLowDraft = ''; mimeHighDraft = ''; dicoPage = null; dicoSel = null; dicoDraft = ''; dilChoix = null; dilStartDraft = ''; dilButDraft = ''; dilVotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
+      phraseCustomMode = false; phraseCustomDraft = ''; waveCustomEditing = false; waveLeftDraft = null; waveRightDraft = null; mimeCustomEditing = false; mimeActionDraft = ''; mimeLowDraft = ''; mimeHighDraft = ''; dicoPage = null; dicoSel = null; dicoDraft = ''; dilChoix = null; dilStartDraft = ''; dilButDraft = ''; dilVotes = {}; dealPending = s.room.status === 'answering' || s.room.status === 'ranking';
     }
     if (s.room.mode === 'bac') bacSync(prev, s);
     // un jeu que ce code ne connaît pas : une version plus récente est en ligne
