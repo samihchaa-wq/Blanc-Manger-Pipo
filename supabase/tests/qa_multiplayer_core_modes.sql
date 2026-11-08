@@ -103,7 +103,7 @@ end $qa$;
 
 do $qa$
 declare h json; a json; b json; code_salon text; th uuid; ta uuid; tb uuid;
-  rid uuid; r public.rooms; st json; p public.players;
+  rid uuid; r public.rooms; st json; player_row public.players;
 begin
   h:=public.create_room('QA Ondes Hôte',5,'ondes',1); code_salon:=h->>'code';
   th:=(h->>'token')::uuid;
@@ -120,8 +120,8 @@ begin
   end if;
   select p.token into th from public.players p where p.id=r.reader_id;
   perform public.submit_clue(code_salon,th,'Indice de contrôle');
-  for p in select * from public.players where room_id=rid and active and id<>r.reader_id loop
-    perform public.submit_guess(code_salon,p.token,r.wave_target);
+  for player_row in select * from public.players where room_id=rid and active and id<>r.reader_id loop
+    perform public.submit_guess(code_salon,player_row.token,r.wave_target);
   end loop;
   select * into r from public.rooms where id=rid;
   if r.status<>'reveal' then raise exception 'Baromètre : révélation absente'; end if;
