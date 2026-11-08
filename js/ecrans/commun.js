@@ -104,7 +104,7 @@ function topbar(){
   if (r.status === 'lobby') return `<div class="top lobbytop">
       <img class="gamelogo" src="games/${gameImg(r.mode)}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
       <div class="codeblock"><p class="eyebrow">Code de la partie</p>
-        <div class="bigcode">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
+        <div class="bigcode${r.code.length === 8 ? ' long' : ''}" aria-label="Code de la partie : ${esc(r.code)}">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
         <button type="button" class="share" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>Inviter</button></div>
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>`;
