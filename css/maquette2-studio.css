@@ -322,39 +322,63 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
   box-shadow:0 3px 0 #936642;
 }
 
-
-/* Accueil — vignettes à leur taille utile en largeur.
- * Ne plus les rétrécir pour tenir artificiellement sur un seul écran :
- * sur les téléphones compacts, le défilement est préférable.
- * DOM, ordre des huit jeux, illustrations et commandes inchangés. */
-@supports (height: 100svh) {
-  .home #pane-create > .field {
-    flex: none;
+/* Accueil sur un écran : répartir la hauteur réelle entre le logo, les
+ * champs, les 8 cartes, la description et le bouton de création.
+ * Les cartes prennent la plus grande taille carrée qui TIENT à la fois
+ * en largeur et dans l'espace restant, au lieu d'un forfait de 440 px.
+ * Aucun changement des images, des actions ou de l'ordre des éléments. */
+@supports (height: 100svh) and (container-type: size) {
+  .home {
+    --pad: calc(21px + 12px + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+    height: calc(100svh - var(--pad));
     min-height: 0;
-    display: block;
-    margin: 12px 0 14px;
+    gap: clamp(7px, 1.2svh, 11px);
+  }
+  body.is-home main {
+    padding-top: calc(21px + env(safe-area-inset-top));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .home h1 img { width: min(100% - 88px, 230px, 24svh); }
+  .home .pane { flex: 1 1 auto; min-height: 0; }
+  .home .pane label.inline { margin-bottom: 8px; }
+  .home #pane-create > .field {
+    flex: 1 1 0;
+    min-height: 0;
+    margin: 0;
     padding: 0;
+    display: flex;
+    flex-direction: column;
   }
   .home .gamesbox {
-    flex: none;
+    flex: 1 1 0;
     min-height: 0;
     height: auto;
-    position: static;
     margin: 0 -8px;
+    position: relative;
   }
   .home .gamesfit {
-    position: static;
-    inset: auto;
-    display: block;
-    container-type: normal;
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    container-type: size;
   }
   .home .gamesfit .seg.games {
-    width: 100%;
-    max-width: none;
+    --tile: min((100cqw - 16px) / 3,
+                (100cqh - (var(--rows) - 1) * 8px) / var(--rows));
+    width: calc(3 * var(--tile) + 16px);
+    max-width: 100%;
     margin: 0;
     gap: 8px;
   }
-  .home .pitch { min-height: 0; }
+  .home .pitch {
+    display: block;
+    min-height: 0;
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .home #pane-create > .btn { margin-top: 8px; }
 }
 @media (max-width: 350px) {
   .home .gamesfit .seg.games { gap: 6px; }
