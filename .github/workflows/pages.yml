@@ -36,6 +36,10 @@ jobs:
         run: node tests/sanity.mjs
       - name: Régressions réseau multijoueur
         run: node tests/reseau.mjs
+      - name: Huit clients réseau indépendants
+        run: node tests/reseau-multiclient.mjs
+      - name: Couverture QA des huit jeux
+        run: node tests/qa-suites.mjs
       - name: Sécurité des salons
         run: node tests/securite-salon.mjs
       - name: Invitations sécurisées
@@ -55,6 +59,8 @@ jobs:
           cat tests/sql/rpc_auth_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/migrations/20261117120000_rpc_auth_and_vote_integrity.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           cat supabase/tests/rpc_auth_vote_integrity_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/migrations/20261118120000_restore_dico_dilemme_revotes.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/tests/qa_revotes_postgres_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
 
   deploy:
     environment:
