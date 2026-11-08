@@ -209,3 +209,101 @@ label.inline>span{color:#FFF0D7;font-weight:700}
 /* Le panneau de déverrouillage Private Joke est sombre, même lorsque son
    panneau parent est en parchemin : son aide doit rester claire. */
 .gamebox .pjcode .hint{color:#F2DCE8}
+
+
+/*
+ * LE SOULIÈTEUR — MAQUETTE 2 / FINITION ILLUSTRÉE (V2)
+ * Habillage uniquement : aucune structure HTML, action, dimension de commande,
+ * règle, sélecteur de jeu ou navigation modifiés.
+ */
+:root{
+  --bg-0:#120A19;--bg-1:#27142F;
+  --surface:#2B1A32;--surface-2:#3B2643;--field:#201328;
+  --hairline:#644667;--hairline-2:#8E6A89;
+  --paper:#FFF4DE;--paper-2:#FFE5C0;--paper-edge:#BA8965;
+  --gold:#FFD03B;--gold-2:#F6B834;--gold-paper:#FFD659;--gold-paper-2:#FFEC9A;
+  --pop:#FF5890;--pop-2:#F93E81;--pop-3:#D91E64;
+  --text:#FFF5E8;--text-dim:#EFE0E7;
+  --m2-paper:
+      radial-gradient(ellipse 72% 54% at 0% 0%,rgba(255,255,255,.72),transparent 70%),
+      radial-gradient(ellipse 70% 50% at 100% 100%,rgba(187,123,67,.13),transparent 75%),
+      repeating-linear-gradient(28deg,rgba(105,76,49,.024) 0 1px,transparent 1px 13px),
+      linear-gradient(167deg,#FFF7E7 0%,#FFECCF 57%,#F4D9B4 100%);
+  --m2-yellow:
+      radial-gradient(ellipse 72% 50% at 5% 2%,rgba(255,255,255,.6),transparent 70%),
+      linear-gradient(167deg,#FFF1AA,#FFD869 55%,#FBBF45);
+}
+/* Fond illustré : remplace le faible dégradé V1. */
+html{background:#120A19}
+body::before,body[data-game]::before{background:#1A0F24 url('../art/night.svg') center center/cover no-repeat!important}
+body::after{opacity:.12;mix-blend-mode:soft-light}
+/* Le logo reste le vrai bouton de l'administration cachée. */
+.home h1 .logo img{content:url('../art/logo.svg');filter:drop-shadow(0 7px 1px rgba(20,5,18,.65)) drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.home h1::before{background:radial-gradient(closest-side,rgba(252,193,63,.25),rgba(243,63,124,.17) 55%,transparent 78%);filter:blur(24px)}
+.home h1 .shift{display:none}
+/* Les huit jeux restent dans la grille existante à trois colonnes. */
+.home .seg.games .seg-b{border-radius:12px;background-color:transparent;border:0;box-shadow:0 5px 0 rgba(15,6,19,.55),0 10px 16px -9px rgba(0,0,0,.75);background-size:100% 100%;background-repeat:no-repeat;overflow:visible}
+.home .seg.games .seg-b img{opacity:0}
+.home .seg.games .seg-b[data-v='phrases']{background-image:url('../art/phrases.svg')}
+.home .seg.games .seg-b[data-v='priorites']{background-image:url('../art/priorites.svg')}
+.home .seg.games .seg-b[data-v='ondes']{background-image:url('../art/ondes.svg')}
+.home .seg.games .seg-b[data-v='bac']{background-image:url('../art/bac.svg')}
+.home .seg.games .seg-b[data-v='white']{background-image:url('../art/white.svg')}
+.home .seg.games .seg-b[data-v='mimes']{background-image:url('../art/mimes.svg')}
+.home .seg.games .seg-b[data-v='dico']{background-image:url('../art/dico.svg')}
+.home .seg.games .seg-b[data-v='dilemme']{background-image:url('../art/dilemme.svg')}
+.home .seg.games .seg-b.on{outline:3px solid #FFD23D;outline-offset:-3px;transform:scale(1.028);box-shadow:0 5px 0 #A76928,0 0 0 2px #FFEEB9,0 12px 20px -10px rgba(0,0,0,.7)}
+/* Les mêmes illustrations sont utilisées sur les autres écrans de jeu. */
+img[src$='games/phrases.webp']{content:url('../art/phrases.svg')}
+img[src$='games/priorites.webp']{content:url('../art/priorites.svg')}
+img[src$='games/ondes.webp']{content:url('../art/ondes.svg')}
+img[src$='games/bac.webp']{content:url('../art/bac.svg')}
+img[src$='games/white-home.jpg']{content:url('../art/white.svg')}
+img[src$='games/mimes.jpg']{content:url('../art/mimes.svg')}
+img[src$='games/dico.webp']{content:url('../art/dico.svg')}
+img[src$='games/dilemme.webp']{content:url('../art/dilemme.svg')}
+.gamelogo{border:2px solid #F3C879;box-shadow:0 3px 0 #1D1022,0 8px 12px -7px #050307;border-radius:11px}
+/* Les titres de section deviennent des bandeaux papier, sans nouvel élément. */
+.sec:not(.admin .sec){display:table;max-width:100%;padding:4px 13px 5px;background:var(--m2-paper);color:#271822;font-size:18px;font-weight:900;border-radius:7px 11px 8px 5px;border:1px solid #D7A878;box-shadow:0 3px 0 rgba(41,22,22,.6),0 10px 17px -13px rgba(0,0,0,.8);text-shadow:none;transform:rotate(-.6deg)}
+.eyebrow{color:#FFE1B2;font-weight:800}
+.gmeta b,.top .gtitle b,.bigstate,.bigwin{font-weight:900;letter-spacing:-.035em}
+/* Interrupteurs, champ pseudo et code : mêmes actions et positions. */
+.tabs,.seg:not(.games){border-color:#D7A56D;border-width:1.5px;background:#28182D;box-shadow:inset 0 1px 0 rgba(255,236,200,.12),0 4px 0 rgba(11,5,15,.63)}
+.tabs .tab.on,.seg-b.on:not(.games .seg-b){background:linear-gradient(173deg,#FFE87D,#FDC034);color:#281920;box-shadow:0 3px 0 #A16120,0 8px 17px -10px #000}
+.home .tabs{box-shadow:0 4px 0 #09030d}
+label.inline>span{font-weight:900}
+input,textarea{background:#1D1026;border-color:#8B6C83;box-shadow:inset 0 3px 5px rgba(0,0,0,.18),0 1px 0 rgba(255,222,187,.1)}
+/* Boutons illustrés à double relief, sans changement de dimensions. */
+.btn:not(.ghost){background:linear-gradient(180deg,#FF76A8 0%,#FC4B91 38%,#E51F6A 100%);color:#FFF8E6;outline:2px solid #F9C7B1;outline-offset:-2px;box-shadow:0 5px 0 #75103D,0 13px 20px -12px #000,inset 0 2px 0 rgba(255,255,255,.32);font-weight:850;text-shadow:0 2px 0 rgba(100,17,57,.5)}
+.btn.alt{background:linear-gradient(180deg,#FFE785 0%,#FFD13A 55%,#F6AF28)!important;color:#241721!important;outline-color:#FFF1A5!important;box-shadow:0 5px 0 #965B1B,0 15px 22px -13px #000,inset 0 2px 0 rgba(255,255,255,.5)!important;text-shadow:none!important}
+.btn.ghost{background:#301C38;color:#FFF1D7;border-color:#E1BB84}
+.iconbtn,.xbtn{border:1.5px solid #D9A57E;background:#301B36;color:#FFF3DA;box-shadow:0 3px 0 #160A1B}
+/* Salon : papier chaud, faux bords irréguliers et relief. */
+.panel.gamebox,.gitem,.plist li,.rank li,.acard,.white-list button,.dlm-idea,.ddef{border-radius:10px 16px 12px 9px}
+.panel.gamebox{background:var(--m2-paper);border-color:#A87243;box-shadow:0 5px 0 #8B573E,0 15px 25px -12px #08040A,inset 0 0 0 2px rgba(255,249,223,.72)}
+.gamebox .gname{font-size:23px;color:#21131B;text-shadow:0 1px 0 #FFF8E6;font-weight:900}
+.gamebox .gtitle .chg{color:#291720;background:linear-gradient(#FFE7A5,#FFC540);border-color:#A66A27;font-weight:800;box-shadow:0 3px 0 #AD7E3D}
+.gamebox .rulesbtn{color:#CE286D;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.gamebox .regtog b{font-weight:850}
+.gamebox .reglages{border-top:2px solid #D6B58F}
+.gamebox .rrow{border-color:#D6B58F}
+.plist li{background:var(--m2-paper);border-color:#BD956E;box-shadow:0 3px 0 #9D6A4D,0 11px 18px -11px #000;font-weight:750}
+.plist .tag.host{background:#FFD042;border-radius:6px;font-weight:900}
+.plist .kick{background:#E7C3AE;border:1px solid #BF9D91}
+.gitem{background:var(--m2-paper);border:1px solid #C59570;box-shadow:0 3px 0 #99694A}
+.bigcode .ch{background:linear-gradient(170deg,#41244C,#291431);border:2px solid #FFCF53;color:#FFD647;box-shadow:0 3px 0 #8D4B2B,inset 0 1px 0 #856388;font-weight:900}
+.share{background:linear-gradient(#FFDF83,#F9C43E);color:#2A1820;border:1px solid #B27D33;font-weight:850;box-shadow:0 3px 0 #87512C}
+/* Jeux : objets papier, questions jaunes, réponses crème. */
+.qcard,.qchoice,.scard,.white-secret,.bacl{background:var(--m2-yellow);border:2px solid #9E622D;border-radius:9px 14px 12px 8px;box-shadow:0 6px 0 #9A5A2B,0 16px 25px -13px #000,inset 0 1px 0 rgba(255,255,255,.55)}
+.qcard .qtext{font-weight:700;letter-spacing:-.03em}
+.acard,.ladder .acard.sel,.bacslots .cat,.dlm-idea,.rep.them,.ddef{background:var(--m2-paper);border:1.5px solid #BB926D;box-shadow:0 4px 0 #A3785A,0 12px 23px -15px #050307}
+.acard.sel{background:linear-gradient(#FF70A4,#E82978);color:#FFF8E7;border-color:#FFD0D0;box-shadow:0 4px 0 #90204B}
+.white-list:not(.ballot) li,.white-list button,.white-list.ballot button{background:var(--m2-paper);color:#271721;border:1.5px solid #A77A5D;box-shadow:0 4px 0 #956B51}
+.mime-rates li,.vote,.dlm-item{background:#3C2643;border:1.5px solid #B0819B;box-shadow:0 3px 0 rgba(0,0,0,.6)}
+.mime-notes button,.dlm-yn button{border-radius:8px;border:1px solid #D7A8A0;background:#543259;color:#FFF4DF}
+.rank li{background:var(--m2-paper);border-color:#B5855E;box-shadow:0 4px 0 #A26D4F;color:#211420}
+.rank li:first-child{background:var(--m2-yellow);border-color:#B97A36;box-shadow:0 4px 0 #925723,0 12px 19px -12px #000}
+.bigwin{color:#FFCF3D;background:none;-webkit-text-stroke:1px #A85B2B;text-shadow:0 4px 0 #451B30,0 8px 18px rgba(0,0,0,.7)}
+.dock{background:linear-gradient(to top,#16091B 41%,rgba(22,9,27,.93) 65%,rgba(22,9,27,0))}
+.scrim{background:linear-gradient(to bottom,#16091B 61%,rgba(22,9,27,.9) 85%,rgba(22,9,27,0))}
+@media(prefers-reduced-motion:reduce){.home h1{animation:none}}
