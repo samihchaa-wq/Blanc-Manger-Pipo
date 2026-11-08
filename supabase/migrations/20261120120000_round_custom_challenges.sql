@@ -13,6 +13,14 @@ ALTER TABLE public.rooms
   ADD COLUMN IF NOT EXISTS custom_mime_high text,
   ADD COLUMN IF NOT EXISTS mime_ready boolean NOT NULL DEFAULT true;
 
+-- Activation différée : la préparation Mimes n'est utilisée qu'une fois
+-- l'interface nouvelle effectivement publiée (migration d'activation séparée).
+CREATE OR REPLACE FUNCTION public._custom_round_enabled()
+RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path TO '' AS $fn$
+  SELECT false
+$fn$;
+REVOKE ALL ON FUNCTION public._custom_round_enabled() FROM PUBLIC, anon, authenticated;
+
 -- Nettoyage systématique lors de chaque changement de manche (ou retour au salon).
 CREATE OR REPLACE FUNCTION public._clear_round_custom_challenge()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path TO '' AS $fn$
@@ -26,7 +34,7 @@ BEGIN
     NEW.custom_mime_action := NULL;
     NEW.custom_mime_low := NULL;
     NEW.custom_mime_high := NULL;
-    NEW.mime_ready := NEW.mode <> 'mimes' OR NEW.status <> 'mime_play';
+    NEW.mime_ready := NOT (NEW.mode = 'mimes' AND NEW.status = 'mime_play' AND public._custom_round_enabled());
   END IF;
   RETURN NEW;
 END $fn$;
