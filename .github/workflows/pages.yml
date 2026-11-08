@@ -17,6 +17,16 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,6 +38,11 @@ jobs:
         run: node tests/reseau.mjs
       - name: Sécurité des salons
         run: node tests/securite-salon.mjs
+      - name: PostgreSQL — scénario complet de limitation
+        run: |
+          cat tests/sql/room_join_stub.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/migrations/20261114120000_room_join_rate_limits.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          cat supabase/tests/room_join_rate_limits_scenario.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
 
   deploy:
     environment:
