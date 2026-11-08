@@ -13,8 +13,34 @@ function mimeOrder(){
   return `<h3 class="sec">Ordre de passage</h3><ol class="mime-order">${mimeIds().map(id =>
     `<li>${nameOf(id)}${isMe(id) ? ' <span class="tag">toi</span>' : ''}</li>`).join('')}</ol>`;
 }
+let mimeCustomEditing = false, mimeActionDraft = '', mimeLowDraft = '', mimeHighDraft = '';
 function mimePlay(){
   const r = state.room, m = state.mime || {}, judge = isMe(r.reader_id);
+  if (m.ready === false) {
+    if (!judge) return `
+      <p class="role"><b>${nameOf(r.reader_id)}</b> prépare le défi Mimes.</p>
+      <p class="waiting"><span class="pulse"></span>Le juge choisit une action ou invente son défi…</p>
+      ${scoreStrip('l')}`;
+    if (mimeCustomEditing) return `
+      <p class="role"><b>Invente ton mime.</b> Les intensités secrètes des joueurs sont déjà tirées.</p>
+      <section class="panel customchallenge">
+        <label class="field"><span>Action à mimer</span><input id="custom-mime-action" maxlength="80"
+          autocomplete="off" value="${esc(mimeActionDraft)}" placeholder="Manger un citron"></label>
+        <label class="field"><span>Intensité 1</span><input id="custom-mime-low" maxlength="60"
+          autocomplete="off" value="${esc(mimeLowDraft)}" placeholder="C'est délicieux"></label>
+        <label class="field"><span>Intensité 10</span><input id="custom-mime-high" maxlength="60"
+          autocomplete="off" value="${esc(mimeHighDraft)}" placeholder="C'est atrocement acide"></label>
+      </section>
+      <div class="dock">
+        <button class="btn" data-act="custom-mime-send" ${dis()}>Lancer mon mime</button>
+        <button class="btn ghost" data-act="custom-mime-cancel">Annuler</button>
+      </div>`;
+    return `
+      <p class="role"><b>Tu es le juge.</b> Pour cette manche, choisis le défi classique ou invente le tien.</p>
+      ${mimeCard('aloud short')}
+      <button class="btn ghost small custom-choice" data-act="custom-mime-open">Inventer mon mime</button>
+      <div class="dock"><button class="btn" data-act="custom-mime-default" ${dis()}>Jouer le mime proposé</button></div>`;
+  }
   const order = mimeIds(), step = Math.max(0, Math.min(order.length, Number(r.mime_index) || 0));
   const current = step ? order[step - 1] : null;
   const stage = r.time_mode === 'unlimited' ? '' : '<section class="mime-stage">'
@@ -57,6 +83,26 @@ function mimeReveal(){
 }
 
 /* ---------- Actions ---------- */
+surAction('custom-mime-open', () => { mimeCustomEditing = true; render() }, { marque:false });
+surAction('custom-mime-cancel', () => { mimeCustomEditing = false; render() }, { marque:false });
+surAction('custom-mime-default', () => act('choose_mime_challenge', {
+  p_custom:false,p_action:null,p_low:null,p_high:null
+}));
+surAction('custom-mime-send', async () => {
+  const a = (document.getElementById('custom-mime-action')?.value || '').trim();
+  const l = (document.getElementById('custom-mime-low')?.value || '').trim();
+  const h = (document.getElementById('custom-mime-high')?.value || '').trim();
+  if (a.length < 3 || l.length < 2 || h.length < 2)
+    return toast('Renseigne l’action et ses deux intensités.');
+  if (await act('choose_mime_challenge', {p_custom:true,p_action:a,p_low:l,p_high:h})) {
+    mimeCustomEditing = false; mimeActionDraft = ''; mimeLowDraft = ''; mimeHighDraft = '';
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'custom-mime-action') mimeActionDraft = e.target.value;
+  if (e.target.id === 'custom-mime-low') mimeLowDraft = e.target.value;
+  if (e.target.id === 'custom-mime-high') mimeHighDraft = e.target.value;
+});
 surAction('mime-progress', () => act('mime_progress', { p_action:'next' }));
 surAction('mime-note', (el, id) => { mimeNotes[id] = +el.dataset.v; render() });
 surAction('mime-rate', () => {
