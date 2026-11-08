@@ -21,16 +21,30 @@ document.addEventListener('click', e => {
 // Barre du haut : inviter, quitter.
 surAction('share', () => shareInvite(), { marque:false });
 surAction('leave', async () => {
-  // En pleine partie, un tap par erreur sur la croix sortait le joueur (et
-  // pouvait renvoyer tout le monde au salon) : on demande confirmation.
-  if (state && state.room.status !== 'lobby' && !confirm('Quitter la partie en cours ? Tu ne pourras pas la reprendre.')) return;
-  try { await rpc('leave_room',{ p_code:session.code, p_token:session.token }); ping() } catch {}
-  leaveLocal();
-});
+  if (busy || !session) return;
+  // En pleine partie, un tap par erreur sur la croix sortait le joueur : confirmation.
+  if (state && state.room.status !== 'lobby' && !confirm('Quitter la partie en cours ?')) return;
+  const expectedSession = session;
+  busy = true;
+  try {
+    await rpc('leave_room', { p_code:expectedSession.code, p_token:expectedSession.token });
+    if (session !== expectedSession) return;
+    ping();
+    leaveLocal();
+  } catch (e) {
+    if (session !== expectedSession) return;
+    if (/Session expirée/.test(e.message)) leaveLocal();
+    else toast('Départ non confirmé. Vérifie ta connexion et réessaie : ta place est conservée.');
+  } finally { busy = false }
+}, { marque:false });
 
 // De retour dans l'appli : relecture, écran allumé, et une mise à jour éventuelle.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(true); keepAwake(); verifierVersion() } });
 
 const urlCode = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g,'');
-if (session && urlCode && urlCode !== session.code) save(null);
+// Un lien d'invitation ne doit pas abandonner silencieusement une partie active.
+if (session && urlCode && urlCode !== session.code) {
+  history.replaceState(null, '', location.pathname + '?code=' + session.code);
+  setTimeout(() => toast('Tu es déjà dans une partie : quitte-la avant d’en rejoindre une autre.'), 0);
+}
 session ? startSession() : render();
