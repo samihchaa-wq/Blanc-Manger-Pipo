@@ -207,15 +207,23 @@ function toast(m){
 /* ---------- Réseau ---------- */
 async function rpc(fn, args){ const { data, error } = await sb.rpc(fn, args); if (error) throw Error(error.message); return data }
 async function act(fn, extra = {}){
-  if (busy) return false;
+  if (busy || !session) return false;
+  const expectedSession = session;
   busy = true;
   // On marque le bouton touché plutôt que de reconstruire tout l'écran : le
   // retour est immédiat, et le reste de la page ne bouge pas sous le doigt.
   const el = pressedEl; pressedEl = null;
   if (el && el.isConnected) { el.disabled = true; el.classList.add('pending') }
-  try { await rpc(fn, { p_code: session.code, p_token: session.token, ...extra }); ping(); await refresh(true); return true }
-  catch (e) { toast(e.message); return false }
-  finally { busy = false; render() }
+  try {
+    await rpc(fn, { p_code:expectedSession.code, p_token:expectedSession.token, ...extra });
+    if (session !== expectedSession) return false;
+    ping();
+    await refresh(true);
+    return session === expectedSession;
+  } catch (e) {
+    if (session === expectedSession) toast(e.message);
+    return false;
+  } finally { busy = false; render() }
 }
 
 // Une seule requête par relecture : get_full_state enchaîne côté serveur
