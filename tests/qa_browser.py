@@ -132,7 +132,7 @@ def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
                                "document.querySelector('.bigstate') || "
                                "document.querySelector('.role')", timeout=10000)
     else:
-        page.locator("#pane-create").wait_for(timeout=10000)
+        page.locator("#pane-join" if invite else "#pane-create").wait_for(timeout=10000)
     return context,page,errors
 
 def no_horizontal_overflow(page, label):
