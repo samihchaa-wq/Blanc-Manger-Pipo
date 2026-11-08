@@ -101,7 +101,7 @@ addEventListener('online', () => { render(); if (session) refresh(true) });
 function topbar(){
   const r = state.room;
   // Salon : la vignette du jeu à gauche, le code au milieu, la croix à droite.
-  if (r.status === 'lobby') return `<div class="top lobbytop">
+  if (r.status === 'lobby') return `<div class="top lobbytop${r.code.length === 8 ? ' compact' : ''}">
       <img class="gamelogo" src="games/${gameImg(r.mode)}" width="720" height="720" alt="${(GAMES[r.mode] || GAMES.phrases).name}">
       <div class="codeblock"><p class="eyebrow">Code de la partie</p>
         <div class="bigcode${r.code.length === 8 ? ' long' : ''}" aria-label="Code de la partie : ${esc(r.code)}">${[...r.code].map(c => `<span class="ch">${esc(c)}</span>`).join('')}</div>
