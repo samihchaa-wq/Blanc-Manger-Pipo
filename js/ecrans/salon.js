@@ -48,7 +48,7 @@ function gameBox(host){
         ${host ? `<button type="button" class="chg" data-act="game-pick" aria-expanded="${gamePick}">${gamePick ? 'Fermer' : 'Changer de jeu'}</button>` : ''}
       </div>
       ${host && gamePick ? gamePicker() : ''}
-      ${rulesOpen ? `<p class="gdesc">${g.desc}</p>${modeDesc ? `<p class="gdesc">${modeDesc}</p>` : ''}` : ''}
+      ${rulesOpen ? `<ul class="gdesc grules">${g.desc.map(step => `<li>${esc(step)}</li>`).join("")}</ul>${modeDesc ? `<p class="gdesc">${esc(modeDesc)}</p>` : ''}` : ''}
       <button type="button" class="rulesbtn" data-act="rules" aria-expanded="${rulesOpen}">${rulesOpen ? 'Masquer la règle' : 'Lire la règle'}</button>
       ${reglages(host)}
     </section>`;
