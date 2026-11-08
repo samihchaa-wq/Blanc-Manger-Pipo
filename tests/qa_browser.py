@@ -202,12 +202,37 @@ def run(browser, base):
                 )
             original=icon_sizes()
             assert len(original)==8 and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
+            # Les illustrations doivent être à nu : aucun cartouche papier, padding,
+            # bordure ou ombre, même pour le jeu sélectionné.
+            def tiles():
+                return page.eval_on_selector_all(".seg.games button", """els => els.map(el => {
+                    const s=getComputedStyle(el), b=el.getBoundingClientRect();
+                    return {x:b.x,y:b.y,w:b.width,h:b.height,transform:s.transform,
+                            border:s.borderTopWidth,padding:s.paddingTop,
+                            background:s.backgroundColor,shadow:s.boxShadow}
+                })""")
+            def clean(icons):
+                for icon in icons:
+                    assert icon["transform"]=="none", icon
+                    assert icon["border"]=="0px", icon
+                    assert icon["padding"]=="0px", icon
+                    assert icon["shadow"]=="none", icon
+                    assert icon["background"] in ("rgba(0, 0, 0, 0)", "transparent"), icon
+            before=tiles()
+            clean(before)
             for home_height in ["550px", "1100px"]:
                 page.evaluate("(h) => document.documentElement.style.setProperty('--home-h',h)",home_height)
                 assert icon_sizes()==original, f"Vignettes instables avec --home-h={home_height}"
             page.evaluate("document.documentElement.style.removeProperty('--home-h')")
             page.locator('[data-act="mode"][data-v="mimes"]').click()
             assert icon_sizes()==original, "Changer de jeu ne doit pas redimensionner les icônes"
+            after=tiles()
+            clean(after)
+            for prev,cur in zip(before,after):
+                for prop in ("x","y","w","h"):
+                    assert abs(prev[prop]-cur[prop])<0.2, f"Vignette déplacée/agrandie après sélection : {prop}, {prev} -> {cur}"
+            assert page.locator('.seg.games button.on[data-v="mimes"]').count()==1
+            assert page.locator('.seg.games button[aria-pressed="true"]').count()==1
             page.reload(wait_until="load")
             assert icon_sizes()==original, "Les icônes changent de taille à la réouverture"
             page.locator('[data-act="tab"][data-tab="join"]').click()
