@@ -116,8 +116,12 @@ jobs:
           cp vendor/supabase.js _site/vendor/supabase.js
           cp sw.js manifest.webmanifest logo.svg favicon-32.png icon-180.png icon-192.png icon-512.png _site/
           cp -r games _site/games
-          cp -r css js dico _site/
+          cp -r css js dico design-studio _site/
           test -s _site/dico/index.json || { echo 'manquant dans _site : dico/index.json'; exit 1; }
+          # Les ressources de la maquette 2 doivent être publiées avec le CSS.
+          for f in logo-officiel.webp parchment.webp plum-painted.webp; do
+            test -s "_site/design-studio/$f" || { echo "manquant dans _site : design-studio/$f"; exit 1; }
+          done
           grep -q './vendor/supabase.js' _site/index.html
           for f in sw.js manifest.webmanifest logo.svg favicon-32.png icon-180.png icon-192.png icon-512.png; do
             test -s "_site/$f" || { echo "manquant dans _site : $f"; exit 1; }
