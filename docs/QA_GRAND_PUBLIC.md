@@ -24,6 +24,8 @@
 | Dilemme | propositions cachées, refus du vote sur soi / ID dupliqué, modification du vote avant clôture, score | SQL transactionnel **avec migration correctrice en attente** |
 | Les 8 jeux | départ sous le nombre minimum, ancien jeton refusé, retour salon, reconnexion | SQL transactionnel exécuté |
 | Les 8 jeux | délai expiré, participant silencieux, score non compté deux fois, phase finale | SQL transactionnel exécuté |
+| Les 8 jeux | sept salons complets à 12 participants, refus du 13e, Petit Bac limité à 2 | SQL transactionnel exécuté |
+| Mr White | tailles 3 à 12 : rôle civil/intrus, au plus un Mr White et répartition sans erreur | SQL transactionnel exécuté |
 | 8 clients simulés | lectures désordonnées, huit actions, clic répété, session remplacée, erreur réseau et reprise | Node VM automatisé dans CI |
 
 **Limite importante :** les SQL utilisent les vraies fonctions du backend avec plusieurs jetons, mais leurs requêtes s'exécutent séquentiellement dans une transaction. Le test Node contrôle plusieurs contextes JavaScript et simule les réponses ; il ne reproduit ni huit appareils physiques ni une véritable congestion réseau Supabase. Il ne certifie pas non plus le rendu visuel.
