@@ -426,7 +426,9 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
   }
   .home .pitch {
     display: block;
-    min-height: 0;
+    /* Hauteur identique quelle que soit la longueur de la présentation :
+       évite de déplacer la grille quand on sélectionne un autre jeu. */
+    min-height: 5em;
     font-size: 14px;
     line-height: 1.25;
     margin: 6px 0 0;
