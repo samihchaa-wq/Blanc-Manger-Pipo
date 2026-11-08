@@ -22,6 +22,8 @@ begin
   alice_id := (a->>'player_id')::uuid;
   bob_id := (b->>'player_id')::uuid;
   select id into v_room_id from public.rooms where code=code_salon;
+  -- Le stub de création ne renseigne pas l'hôte : le comportement réel, lui, le fait.
+  update public.rooms set host_id=(h->>'player_id')::uuid where id=v_room_id;
 
   insert into public.players(room_id,name,seat,is_bot)
   values(v_room_id,'Bot temporaire',3,true)
