@@ -88,8 +88,8 @@ begin
   if r.status<>'reveal' then raise exception 'Priorités : résultats non dévoilés'; end if;
   select count(*) into n from public.rankings where room_id=rid and round=1;
   if n<>3 then raise exception 'Priorités : nombre de votes incorrect'; end if;
-  if exists(select 1 from public.players p join public.rankings k on k.player_id=p.id and k.room_id=rid and k.round=1
-     where p.score is distinct from k.points) then
+  if exists(select 1 from public.players pp join public.rankings k on k.player_id=pp.id and k.room_id=rid and k.round=1
+     where pp.score is distinct from k.points) then
     raise exception 'Priorités : incohérence points/classements';
   end if;
   begin
