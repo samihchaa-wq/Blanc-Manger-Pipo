@@ -52,7 +52,7 @@ begin
   perform public.dico_vote(c,tz,d_a);
   select * into r from public.rooms where id=rid;
   if r.status<>'reveal' then raise exception 'Dico : non révélé à 4 joueurs'; end if;
-  if (select score from public.players where id=ra)<>1
+  if (select score from public.players where id=ra)<>3
      or (select score from public.players where id=rb)<>2 then
     raise exception 'Dico : scores erronés après vote';
   end if;
