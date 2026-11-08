@@ -292,7 +292,8 @@ def run(browser, base):
 
     # Exercices complets de boutons : les véritables écouteurs JS déclenchent
     # les RPC mockés, dont on inspecte la charge utile exacte.
-    for game,phase,role,do in [
+    for game,phase,role,do,width in [
+        (g,p,r,k,w) for (g,p,r,k) in [
         ("phrases","answering","guest","phrases"),
         ("priorites","ranking","guest","priorites"),
         ("ondes","guessing","guest","ondes"),
@@ -301,8 +302,9 @@ def run(browser, base):
         ("dico","dico_vote","guest","dico"),
         ("dilemme","dilemme_vote","guest","dilemme"),
         ("white","white_vote","guest","white"),
+        ] for w in (320,430)
     ]:
-        ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
+        ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase,width=width)
         try:
             if do=="phrases":
                 page.locator('[data-act="select"]').first.click()
@@ -357,11 +359,11 @@ def run(browser, base):
             if do=="dilemme":
                 assert args["p_buts"]==["b1","b3"] and args["p_yes"]==[True,False],args
             if do=="white": assert args["p_target"]=="p0",args
-            no_horizontal_overflow(page,game+"-"+phase+"-interactif")
-            no_errors(page,errors,game+"-"+phase+"-interactif")
+            no_horizontal_overflow(page,game+"-"+phase+"-"+str(width)+"-interactif")
+            no_errors(page,errors,game+"-"+phase+"-"+str(width)+"-interactif")
             checks+=1
         except Exception:
-            page.screenshot(path=str(OUT/(game+"-"+phase+"-interactif.png")),full_page=True)
+            page.screenshot(path=str(OUT/(game+"-"+phase+"-"+str(width)+"-interactif.png")),full_page=True)
             raise
         finally:ctx.close()
 
