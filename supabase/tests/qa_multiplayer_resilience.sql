@@ -78,13 +78,10 @@ begin
     perform public.get_state(c,t_host);
     raise exception 'QA_ECHEC : l’ancien hôte conserve l’accès';
   exception when others then if sqlerrm like 'QA_ECHEC%' then raise; end if; end;
-  begin
-    perform public.join_room(c,'QA Intrus');
-    raise exception 'QA_ECHEC : arrivée permise après le début';
-  exception when others then
-    if sqlerrm like 'QA_ECHEC%' then raise; end if;
-    -- join_room retourne désormais un refus JSON, et non une erreur SQL.
-  end;
+  state_new:=public.join_room(c,'QA Intrus');
+  if state_new->>'error_code' <> 'JOIN_REJECTED' then
+    raise exception 'QA_ECHEC : arrivée permise après le début : %',state_new;
+  end if;
   raise notice 'QA PASS : transfert d’hôte, démarrage et session invalidée';
 end $qa_host$;
 
