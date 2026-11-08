@@ -274,7 +274,38 @@ def run(browser, base):
         no_errors(page,errors,"offline-online")
         checks+=1
     finally:ctx.close()
-    print(f"CHROMIUM QA OK : {checks} parcours navigateur, 8 jeux, 5 tailles, rôles, invitation, vote, panne réseau.")
+
+    # Vrai cache PWA : pas de SDK mocké, vraies ressources statiques locales.
+    # Premier chargement installe le service worker, le suivant peuple le cache.
+    pwa_ctx=browser.new_context(viewport={"width":375,"height":812},
+                                service_workers="allow",reduced_motion="reduce")
+    pwa=pwa_ctx.new_page()
+    pwa_errors=[]
+    pwa.on("pageerror", lambda e:pwa_errors.append(str(e)))
+    try:
+        pwa.goto(base+"/",wait_until="load",timeout=15000)
+        pwa.wait_for_function("() => !!navigator.serviceWorker?.controller",timeout=15000)
+        pwa.reload(wait_until="load",timeout=15000)
+        pwa.wait_for_function("""async () => {
+          const c=await caches.open('soulieteur');
+          const urls=(await c.keys()).map(k=>new URL(k.url).pathname);
+          return ['/js/core.js','/js/actions.js','/vendor/supabase.js'].every(
+            path=>urls.some(url=>url.endsWith(path)));
+        }""",timeout=15000)
+        pwa_ctx.set_offline(True)
+        pwa.goto(base+"/",wait_until="domcontentloaded",timeout=15000)
+        pwa.locator("#pane-create").wait_for(timeout=5000)
+        assert pwa.locator(".seg.games button").count()==8,"Accueil hors ligne incomplet"
+        no_horizontal_overflow(pwa,"pwa-demarrage-hors-ligne")
+        no_errors(pwa,pwa_errors,"pwa-demarrage-hors-ligne")
+        pwa_ctx.set_offline(False)
+        checks+=1
+    except Exception:
+        pwa.screenshot(path=str(OUT/"pwa-demarrage-hors-ligne.png"),full_page=True)
+        raise
+    finally:
+        pwa_ctx.close()
+    print(f"CHROMIUM QA OK : {checks} parcours navigateur, 8 jeux, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
 
 def main():
     handler=functools.partial(QuietHandler,directory=str(ROOT))
