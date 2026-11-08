@@ -79,6 +79,7 @@ function inverseClue(){
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Envoyer ma réponse</button></div>`;
 }
 
+let waveCustomEditing = false, waveLeftDraft = '', waveRightDraft = '';
 function clue(){
   const r = state.room, w = state.wave || {};
   if (isInverse()) return inverseClue();
@@ -86,10 +87,25 @@ function clue(){
     <p class="role"><b>${nameOf(r.reader_id)}</b> est le médium.</p>
     ${dial()}
     <p class="muted" style="margin-top:22px;text-align:center"><span class="pulse"></span>Il cherche un indice…</p>${scoreStrip()}`;
+  if (waveCustomEditing) return `
+    <p class="role"><b>Invente ton Baromètre.</b> Définis deux extrêmes opposés. La cible reste tirée au hasard.</p>
+    <section class="panel customchallenge">
+      <label class="field"><span>Extrême gauche</span><input id="custom-wave-left" maxlength="40" autocomplete="off"
+        value="${esc(waveLeftDraft || w.left || '')}" placeholder="Le pire joueur de foot"></label>
+      <label class="field"><span>Extrême droite</span><input id="custom-wave-right" maxlength="40" autocomplete="off"
+        value="${esc(waveRightDraft || w.right || '')}" placeholder="Le meilleur joueur de foot"></label>
+    </section>
+    <div class="dock">
+      <button class="btn" data-act="custom-wave-send" ${dis()}>Valider mes extrêmes</button>
+      <button class="btn ghost" data-act="custom-wave-cancel">Annuler</button>
+    </div>`;
   return `
     <p class="role"><b>Tu es le médium.</b></p>
     ${dial({ target: w.target })}
-    <label style="margin-top:22px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
+    <button type="button" class="btn ghost small custom-choice" data-act="custom-wave-open">
+      ${w.custom ? 'Modifier mes extrêmes' : 'Inventer mon Baromètre'}
+    </button>
+    <label style="margin-top:16px"><span>Ton indice</span><input id="w-clue" maxlength="60" autocomplete="off" placeholder="Un mot, un nom, une idée…" value="${esc(clueDraft)}"></label>
     <div class="dock"><button class="btn" data-act="clue" ${dis()}>Donner l’indice</button></div>`;
 }
 
@@ -165,6 +181,20 @@ document.addEventListener('pointerup', endDial);
 document.addEventListener('pointercancel', endDial);
 
 /* ---------- Actions ---------- */
+surAction('custom-wave-open', () => {
+  waveLeftDraft = state.wave?.left || ''; waveRightDraft = state.wave?.right || '';
+  waveCustomEditing = true; render();
+}, { marque:false });
+surAction('custom-wave-cancel', () => { waveCustomEditing = false; render() }, { marque:false });
+surAction('custom-wave-send', async () => {
+  const l = (document.getElementById('custom-wave-left')?.value || '').trim();
+  const r = (document.getElementById('custom-wave-right')?.value || '').trim();
+  if (l.length < 2 || r.length < 2 || l.toLowerCase() === r.toLowerCase())
+    return toast('Écris deux extrêmes différents.');
+  if (await act('choose_custom_wave', {p_left:l,p_right:r})) {
+    waveCustomEditing = false; waveLeftDraft = ''; waveRightDraft = '';
+  }
+});
 surAction('clue', () => {
   const t = (document.getElementById('w-clue')?.value || '').trim();
   if (!t) return toast(isInverse() ? 'Écris ta réponse.' : 'Écris un indice.');
@@ -177,6 +207,8 @@ surAction('theme', async () => {
   if (await act('submit_theme', { p_theme: t })) themeDraft = '';
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'custom-wave-left') waveLeftDraft = e.target.value;
+  if (e.target.id === 'custom-wave-right') waveRightDraft = e.target.value;
   if (e.target.id === 'w-clue') clueDraft = e.target.value;
   if (e.target.id === 'w-theme') themeDraft = e.target.value;
 });
