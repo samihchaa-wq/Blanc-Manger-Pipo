@@ -450,3 +450,15 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
  * évite un bref manque de contraste sur le fond jaune actif. */
 .home .tabs .tab { transition: background .18s ease, transform .18s ease; }
 .home .tabs .tab.on { color: #251520; }
+
+/* Défis temporaires : mêmes matières et proportions que les autres formulaires
+   du Soulièteur, sans modifier les écrans existants. */
+.customchallenge{margin:14px 0 8px;padding:16px;background:var(--studio-paper);
+  border:1px solid #c79c6b;box-shadow:0 4px 0 #916342,0 10px 22px -14px #000}
+.customchallenge .field{margin-bottom:12px}
+.customchallenge .field:last-child{margin-bottom:0}
+.customchallenge .field>span{color:#583e50;font-weight:800}
+.customchallenge .field input,.customchallenge .field textarea{
+  color:#f9e7ee;background:#301b35;border-color:#927086}
+.customchallenge .hint{font-size:13px;line-height:1.35;color:#61475a}
+.custom-choice{display:block;width:100%;margin:12px auto 18px;text-align:center}
