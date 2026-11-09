@@ -223,6 +223,7 @@ surAction('start', () => act('lancer_partie'));
 surAction('kick', (el, id) => act('kick_player',{ p_player_id:id }));
 surAction('set-game', async el => {
   const m = el.dataset.v, r = state.room;
+  if (m === 'qcm') return ouvrirGrintaQuiz();
   if (!GAMES[m] || m === r.mode) { gamePick = false; return render() }
   // le brouillon des réglages visait l'ancien jeu
   clearTimeout(optTimer); optTimer = null; optDraft = {};

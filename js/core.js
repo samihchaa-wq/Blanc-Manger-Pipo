@@ -51,13 +51,13 @@ const GAMES = {
     desc:["Le meneur choisit le début d’un dilemme.","Chacun le complète après « mais » pour atteindre sa cible secrète de votes Oui.","Répondez Oui ou Non aux dilemmes des autres."] },
   dico:      { name:'Le Dico', cat:'ecrire', pitch:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
     desc:["Le meneur choisit un mot du dictionnaire et le lit à voix haute.","Les autres inventent chacun une définition.","Le meneur lit toutes les définitions, mélangées à la vraie.","Votez pour celle que vous pensez correcte."] },
-  qcm:       { name:'QCM', cat:'ambiance', pitch:'Ton quiz, tes questions : tout le monde répond en même temps.',
-    desc:["L’animateur prépare son quiz : ses questions, 2 à 4 réponses, la bonne.","La même question s’affiche sur tous les téléphones : touchez votre réponse.","Bonne réponse, qui a répondu quoi, points : l’animateur passe ensuite à la question suivante."] },
+  qcm:       { name:'QCM', cat:'ambiance', pitch:'Grand Quiz AS Grinta 2026 : deux mi-temps sur ton téléphone.',
+    desc:["Un seul quiz pour la soirée AS Grinta.","Code Admin+ demandé à l'entrée.","Deux mi-temps, scores et podium automatiques."] },
 };
 // Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
 const CATEGORIES = [['cartes','Cartes'],['ecrire','À l’écrit'],['table','Autour de la table'],['ambiance','Ambiance']];
 // Dernier jeu choisi sur ce téléphone : une nouvelle partie le reprend.
-const dernierJeu = () => { try { const j = localStorage.getItem('pdcat-jeu'); return GAMES[j] ? j : 'phrases' } catch { return 'phrases' } };
+const dernierJeu = () => { try { const j = localStorage.getItem('pdcat-jeu'); return GAMES[j] && j !== 'qcm' ? j : 'phrases' } catch { return 'phrases' } };
 const retenirJeu = j => { try { localStorage.setItem('pdcat-jeu', j) } catch {} };
 
 // Les boutons portent data-act : chaque écran déclare ses actions ici, et un

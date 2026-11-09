@@ -4,14 +4,14 @@ A **single-use**, smartphone-only quiz. No show control panel, no separate spect
 
 ## Session
 
-1. A guest opens `/grinta-quiz/` and provides the code shown at the event + a nickname.
+1. A player taps **QCM** in Le Soulieteur, or opens `/grinta-quiz/`. The creator chooses **Créer**, enters their nickname and the **existing Admin+ password**, and receives a **cryptographically generated 8-digit room code**. Teammates choose **Rejoindre**, enter their nickname and that room code, or follow the invitation link. Guests never need Admin+.
 2. The event stays safely in its lobby until both halves contain 10–20 validated real questions **and** the event has been armed in the restricted database before the evening. Once armed, the second guest starts a 2-minute automatic lobby countdown.
 3. A 7-second kickoff intro plays, then the first half begins.
 4. The server advances every 25-second question to a 9-second answer reveal and awards points exactly once.
 5. At the boundary between half 1 and half 2, a 40-second halftime/rankings screen appears.
 6. The second half finishes with a scoreboard and podium. Every phone independently polls the same server state.
 
-The backend computes deadlines from **database time**. Every status read advances the event under a row lock, so no phone acts as a master. The final code and future questions are never shipped in the frontend; answer keys and question database are in a non-exposed schema with RLS enabled.
+The backend computes deadlines from **database time**. Every status read advances the event under a row lock, so no phone acts as a master. The Admin+ password and future questions are never shipped in the frontend; answer keys and question database are in a non-exposed schema with RLS enabled. Admin+ is checked only at **room creation** by the existing private `_is_admin_plus` routine and never stored by the client. Guests use the 8-digit code, protected by server-side attempt limits. The obsolete invitation-code and Admin+-to-join RPCs are not publicly executable.
 
 ## Files
 
@@ -24,11 +24,7 @@ The page uses the *publishable* Supabase key and the already-installed `../vendo
 
 ## Before the event
 
-The SQL migration seeds **four clearly marked technical placeholders only** (two per half) and generates a random one-night entry code. Replace these test questions with 10–20 real questions per half **before** using the real invitation code. Never put the code in this repository or any browser asset. An authorized maintainer retrieves the generated code with the Supabase SQL editor:
-
-```sql
-select plaintext_code from asgq_private.invitation where event_id = 1;
-```
+The SQL migration seeds **four clearly marked technical placeholders only** (two per half). Replace these test questions with 10–20 real questions per half before arming the event. Admin+ is required only for the initial creation. Players join with the 8-digit room code and can invite others from the locker room; there is no quiz catalogue.
 
 To load the final 2 halves, replace the placeholder rows from a restricted SQL editor while the event is still in `lobby`, maintaining an increasing `position` and consistent halves; the first 10–20 positions should have `half = 1`, followed by 10–20 with `half = 2`.
 
@@ -37,7 +33,7 @@ To load the final 2 halves, replace the placeholder rows from a restricted SQL e
 1. Replace the four technical example questions with 10–20 actual questions for each half using the restricted database SQL editor. Use consecutive positions `1..N`, put all AS Grinta questions first (`half = 1`) and all football-general questions afterward (`half = 2`).
 2. Verify `select asgq_private.ready_for_kickoff();` returns `true`.
 3. Arm the prepared event **once, before the evening** (not during play): `update asgq_private.event set armed = true where id = 1 and phase = 'lobby';`
-4. Invite everyone using the secret code. Once two participants enter, countdown and the entire game run without an operator.
+4. One person opens **Créer**, enters Admin+, then gives the displayed 8-digit code (or invitation link) to the rest. Players open **Rejoindre** without Admin+. Once two participants enter, countdown and the entire game run without an operator.
 
 The client shows a preparation message before arming; no admin UI or game controls are visible to the players.
 
@@ -48,11 +44,11 @@ There is **no restart / reset control in the player UI**. Test with a transactio
 ## Checks before release
 
 - Several devices join the same room and receive the same phase countdown.
-- Incorrect event code cannot join; upcoming questions and correct answers are not available from network responses.
+- An incorrect Admin+ password cannot create a room; wrong 8-digit guest codes cannot join; the server never returns the password or upcoming questions/answers.
 - A selected answer can change while the question is open, but cannot change after the deadline.
 - Disconnect and reconnect preserve the same token and score.
 - With an existing answer, late/duplicate polls never award points twice.
 - After the last first-half question the halftime screen appears, then the next half, then the final podium.
 - Test with 15–30 simultaneous phones, iOS Safari and Android Chrome, including background/foreground restoration.
 
-**Current status:** V1 implemented, automated front-end and SQL full-game tests green; the public quiz is deliberately locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Avoid distributing the invitation code until the full end-to-end test has passed.
+**Current status:** V1 implemented. The public quiz remains locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Do not share the Admin+ password with teammates: share only the 8-digit room code. The host plays like everyone else; there is no regie.

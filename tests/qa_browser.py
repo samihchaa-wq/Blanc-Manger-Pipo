@@ -56,7 +56,7 @@ window.supabase = {
 };
 """
 
-GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme", "qcm"]
+GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme"]
 SIZES = [320, 360, 375, 390, 430]
 SAMPLE_NAMES = ["Aïcha", "Bastien", "Camille", "Dylan"]
 
@@ -161,7 +161,8 @@ def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
               width=375, height=812, invite=False):
     context=browser.new_context(viewport={"width":width,"height":height},
                                 device_scale_factor=1,
-                                reduced_motion="reduce")
+                                reduced_motion="reduce",
+                                service_workers="block")
     page=context.new_page()
     errors=[]
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -215,7 +216,7 @@ def run(browser, base):
     for width in SIZES:
         ctx,page,errors=open_page(browser,base,width=width)
         try:
-            assert page.locator(".seg.games button").count()==len(GAMES)
+            assert page.locator(".seg.games button").count()==len(GAMES)+1
             # Les barres mobiles font varier la hauteur accordée à l'accueil.
             # Les images des jeux restent exactement de même taille en y revenant.
             def icon_sizes():
@@ -224,7 +225,7 @@ def run(browser, base):
                     "(els) => els.map(el => parseFloat(getComputedStyle(el).width))"
                 )
             original=icon_sizes()
-            assert len(original)==len(GAMES) and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
+            assert len(original)==len(GAMES)+1 and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
             # Les illustrations doivent être à nu : aucun cartouche papier, padding,
             # bordure ou ombre, même pour le jeu sélectionné.
             def tiles():
@@ -251,7 +252,7 @@ def run(browser, base):
             assert icon_sizes()==original, "Changer de jeu ne doit pas redimensionner les icônes"
             # Vérifier chaque jeu, y compris les descriptions les plus longues :
             # aucun changement de hauteur du descriptif ne doit déplacer la grille.
-            for mode in GAMES:
+            for mode in (g for g in GAMES if g != 'qcm'):
                 page.locator(f'[data-act="mode"][data-v="{mode}"]').click()
                 after=tiles()
                 clean(after)
@@ -264,7 +265,13 @@ def run(browser, base):
                 assert page.locator('.seg.games button[aria-pressed="true"]').count()==1
             page.locator('[data-act="mode"][data-v="mimes"]').click()
             page.reload(wait_until="load")
-            assert icon_sizes()==original, "Les icônes changent de taille à la réouverture"
+            page.evaluate("document.fonts.ready")
+            page.wait_for_function("""expected => {
+              const actual=[...document.querySelectorAll('.seg.games img')]
+                .map(el=>parseFloat(getComputedStyle(el).width));
+              return actual.length===expected.length &&
+                actual.every((size,i)=>Math.abs(size-expected[i])<0.2);
+            }""",arg=original,timeout=7000)
             page.locator('[data-act="tab"][data-tab="join"]').click()
             assert page.locator("#pane-join").is_visible()
             page.locator("#j-code").fill("00123456")
@@ -273,6 +280,90 @@ def run(browser, base):
             no_errors(page,errors,f"accueil-{width}")
             checks+=1
         finally:ctx.close()
+
+    # Le QCM est désormais un événement unique : choix direct, sans salon ni catalogue.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
+        assert "ADMIN+" in page.locator("main").inner_text()
+        page.locator('[data-entry-mode="join"]').click()
+        assert page.locator('#admin-password').count()==0
+        assert page.locator('#room-code[inputmode="numeric"]').count()==1
+        page.locator('#room-code').fill('12345678')
+        page.locator('#player-name').fill('Alban')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_join_room') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_join_room').args")
+        assert args=={"p_code":"12345678","p_name":"Alban"},args
+        assert page.locator('[data-act="qcm-new"]').count()==0
+        no_errors(page,errors,"qcm-acces-as-grinta")
+        checks+=1
+    finally:ctx.close()
+
+    # La création est distincte de la participation et utilise l'Admin+.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.locator('#player-name').fill('Alban')
+        page.locator('#admin-password').fill('SECRET-TEST')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_create') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_create').args")
+        assert args=={"p_password":"SECRET-TEST","p_name":"Alban"},args
+        no_errors(page,errors,"qcm-creation-admin")
+        checks+=1
+    finally:ctx.close()
+
+    # Changer de jeu depuis un salon ne crée pas non plus de QCM générique.
+    ctx,page,errors=open_page(browser,base,game="phrases")
+    try:
+        page.locator('[data-act="game-pick"]').click()
+        page.locator('[data-act="set-game"][data-v="qcm"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
+        no_errors(page,errors,"qcm-depuis-salon")
+        checks+=1
+    finally:ctx.close()
+
+    # Un ancien salon QCM déjà ouvert est redirigé à la nouvelle porte d'entrée.
+    legacy, _ = fixture("qcm")
+    ctx = browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    page.add_init_script("if (!location.pathname.includes('/grinta-quiz/')) localStorage.setItem('pdcat'," +
+                         json.dumps(json.dumps({"code":"00123456","token":"host-token"})) + ");")
+    page.add_init_script("window.__qaState = "+json.dumps(legacy,ensure_ascii=False)+";window.__qaWhite = null;")
+    try:
+        page.goto(base+"/",wait_until="load",timeout=20000)
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
+        assert page.evaluate("localStorage.getItem('pdcat')") is None
+        no_errors(page,errors,"qcm-ancien-salon")
+        checks+=1
+    finally:ctx.close()
+
+    # Un lien d'invitation sélectionne « Rejoindre » et pré-remplit le code.
+    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e:errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/?code=00012345",wait_until="load",timeout=20000)
+        assert page.locator('#room-code').input_value()=="00012345"
+        assert page.locator('#admin-password').count()==0
+        no_errors(page,errors,"qcm-invitation-code")
+        checks+=1
+    finally:ctx.close()
 
     # Sur tous les jeux, affichage vrai CSS et DOM du salon (hôte et invité).
     for game in GAMES:
@@ -505,107 +596,6 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
-    # QCM : sans quiz, pas de lancement ; l'hôte peut en créer un.
-    ctx,page,errors=open_page(browser,base,game="qcm",role="host")
-    try:
-        page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
-        page.locator('[data-act="qcm-new"]').wait_for()
-        assert page.locator('[data-act="start"]').is_disabled()
-        assert "Choisis d’abord un quiz" in page.locator('[data-act="start"]').inner_text()
-        no_errors(page,errors,"qcm-sans-quiz")
-        checks+=1
-    finally:ctx.close()
-
-    # QCM : question, révélation et suite, avec les vrais boutons, aux deux largeurs.
-    for width in (320,430):
-        # Un joueur touche une réponse : la bonne réponse ne lui est jamais montrée avant.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="qcm_question",width=width)
-        try:
-            assert page.locator('[data-act="qcm-answer"]').count()==4
-            assert page.locator('.qcm-c.ok').count()==0,"Bonne réponse visible par un joueur"
-            assert page.locator('[data-act="qcm-reveal"]').count()==0
-            page.locator('[data-act="qcm-answer"][data-i="2"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_answer')")
-            calls=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_answer')")
-            assert calls[-1]["args"]["p_choice"]==2,calls
-            no_horizontal_overflow(page,f"qcm-question-joueur-{width}")
-            no_errors(page,errors,f"qcm-question-joueur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-        # L'animateur voit la bonne réponse cochée et peut révéler sans attendre.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="host",phase="qcm_question",width=width)
-        try:
-            assert page.locator('[data-act="qcm-answer"]').count()==0,"L'animateur ne répond pas"
-            assert page.locator('.qcm-c.ok').inner_text().startswith("C")
-            page.locator('[data-act="qcm-reveal"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_reveal')")
-            no_horizontal_overflow(page,f"qcm-question-animateur-{width}")
-            no_errors(page,errors,f"qcm-question-animateur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-        # Révélation : qui a répondu quoi, le bonus, et seul l'animateur passe à la suite.
-        for role in ("host","guest"):
-            ctx,page,errors=open_page(browser,base,game="qcm",role=role,phase="reveal",width=width)
-            try:
-                assert page.locator('.qcm-c.ok').count()==1
-                assert "Bastien" in page.locator('.qcm-choices').inner_text()
-                assert page.locator('.qcm-bonus').count()==1
-                assert "Théo : 14 buts !" in page.locator('.qcm-note').inner_text()
-                # l'animateur (Aïcha) n'apparaît pas au classement
-                assert "Aïcha" not in page.locator('ol.rank').inner_text()
-                if role=="host":
-                    page.locator('[data-act="qcm-next"]').click()
-                    page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_next')")
-                else:
-                    assert page.locator('[data-act="qcm-next"]').count()==0
-                no_horizontal_overflow(page,f"qcm-revelation-{role}-{width}")
-                no_errors(page,errors,f"qcm-revelation-{role}-{width}")
-                checks+=1
-            finally:ctx.close()
-
-        # Éditeur : créer un quiz, écrire une question complète, l'enregistrer.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="host",width=width)
-        try:
-            page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
-            page.locator('[data-act="qcm-new"]').click()
-            page.locator('#qe-text').wait_for()
-            assert "ABCD-EFGH-JKMN" in page.locator('.qe-key').inner_text()
-            page.locator('#qe-text').fill('Qui a marqué le plus de buts cette saison ?')
-            page.locator('[data-act="qe-vf"]').click()
-            assert page.locator('#qe-c0').input_value()=="Vrai" and page.locator('#qe-c1').input_value()=="Faux"
-            page.locator('#qe-c0').fill('Karim')
-            page.locator('#qe-c1').fill('Yanis')
-            page.locator('#qe-c3').fill('Théo')
-            page.locator('[data-act="qe-correct"][data-k="3"]').click()
-            page.locator('[data-act="qe-points"][data-v="3"]').click()
-            page.locator('#qe-note').fill('14 buts !')
-            page.locator('[data-act="qe-save"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_quiz_save')")
-            args=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_quiz_save').at(-1).args")
-            q=args["p_questions"][0]
-            # la réponse C laissée vide disparaît : la bonne réponse (D) devient la 3e
-            assert q["choices"]==["Karim","Yanis","Théo"] and q["correct"]==2 and q["points"]==3,q
-            assert q["note"]=="14 buts !" and args["p_key"]=="ABCD-EFGH-JKMN",args
-            page.locator('.qe-item').wait_for()
-            no_horizontal_overflow(page,f"qcm-editeur-{width}")
-            no_errors(page,errors,f"qcm-editeur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-    # QCM : fin de partie sans l'animateur sur le podium.
-    ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="reveal")
-    try:
-        page.evaluate("""() => { const s = window.__qaState; s.room.status = 'finished';
-          s.players[1].score = 7; s.players[2].score = 4; s.room.winner_id = 'p1'; refresh(true) }""")
-        page.locator('.bigwin').wait_for()
-        assert "Aïcha" not in page.locator('.podium').inner_text(),"L'animateur ne doit pas être sur le podium"
-        assert "Toi" in page.locator('.podium').inner_text() and "Camille" in page.locator('.podium').inner_text()
-        no_errors(page,errors,"qcm-fin")
-        checks+=1
-    finally:ctx.close()
-
     # Injection HTML malveillante : le contenu de joueurs et cartes doit
     # être affiché en texte et jamais interprété comme du code.
     payload='<img src="x" onerror="window.__qaInjected=true">'
@@ -613,7 +603,6 @@ def run(browser, base):
         ("phrases","lobby","player",".plist"),
         ("phrases","answering","card",".hand"),
         ("dico","dico_vote","definition",".ddefs"),
-        ("qcm","qcm_question","quiz",".qcm-choices"),
     ]:
         role="guest" if phase!="lobby" else "host"
         ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
@@ -666,7 +655,7 @@ def run(browser, base):
         pwa_ctx.set_offline(True)
         pwa.goto(base+"/",wait_until="domcontentloaded",timeout=15000)
         pwa.locator("#pane-create").wait_for(timeout=5000)
-        assert pwa.locator(".seg.games button").count()==len(GAMES),"Accueil hors ligne incomplet"
+        assert pwa.locator(".seg.games button").count()==len(GAMES)+1,"Accueil hors ligne incomplet (QCM AS Grinta compris)"
         no_horizontal_overflow(pwa,"pwa-demarrage-hors-ligne")
         no_errors(pwa,pwa_errors,"pwa-demarrage-hors-ligne")
         pwa_ctx.set_offline(False)
@@ -676,7 +665,7 @@ def run(browser, base):
         raise
     finally:
         pwa_ctx.close()
-    print(f"CHROMIUM QA OK : {checks} parcours navigateur, {len(GAMES)} jeux, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
+    print(f"CHROMIUM QA OK : {checks} parcours navigateur, {len(GAMES)} jeux classiques + QCM AS Grinta, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
 
 def main():
     handler=functools.partial(QuietHandler,directory=str(ROOT))

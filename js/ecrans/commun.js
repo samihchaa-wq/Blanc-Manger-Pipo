@@ -12,6 +12,12 @@ function qcard(tag, html, cls = '', foot = ''){
 // brouillon gardé en mémoire, le curseur est remis à sa place.
 const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|custom-phrase|custom-wave-left|custom-wave-right|custom-mime-action|custom-mime-low|custom-mime-high|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|qcm-key|qe-(title|text|note|c[0-3])|[ae]-(text|left|right|act))$/;
 function render(){
+  // Un ancien salon QCM ne doit plus afficher l'éditeur générique : accès direct à AS Grinta.
+  if (session && state?.room?.mode === 'qcm' && !adminOpen) {
+    save(null); // évite de retourner sans fin dans l'ancien salon en revenant aux mini-jeux
+    ouvrirGrintaQuiz(true);
+    return;
+  }
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
   document.body.classList.toggle('is-home', !session && !adminOpen);

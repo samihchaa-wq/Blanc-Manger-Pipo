@@ -104,6 +104,13 @@ async function enter(call, name){
   } catch (e) { busy = false; toast(e.message) }
 }
 
+// Le QCM n'est plus un salon du Soulieteur : c'est l'événement AS Grinta unique.
+function ouvrirGrintaQuiz(remplacer = false){
+  const url = new URL('./grinta-quiz/', location.href).href;
+  if (remplacer) location.replace(url);
+  else location.assign(url);
+}
+
 /* ---------- Actions ---------- */
 let logoTaps = [];
 surAction('logo', () => {
@@ -125,6 +132,7 @@ surAction('tab', el => {
 }, { marque:false });
 // Une vignette touchée s'allume et l'accroche suit, sans redessiner (la saisie du pseudo reste).
 surAction('mode', el => {
+  if (el.dataset.v === 'qcm') return ouvrirGrintaQuiz();
   const box = document.getElementById('c-mode');
   if (box) box.value = el.dataset.v;
   el.parentElement.querySelectorAll('.seg-b').forEach(b => {
@@ -135,6 +143,7 @@ surAction('mode', el => {
 surAction('create', () => {
   const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
   const jeu = GAMES[val('c-mode')] ? val('c-mode') : dernierJeu();
+  if (jeu === 'qcm') return ouvrirGrintaQuiz();
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
 });
