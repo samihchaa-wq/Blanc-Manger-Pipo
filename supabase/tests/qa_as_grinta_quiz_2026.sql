@@ -24,7 +24,7 @@ begin
   end;
 
   -- An even armed event must never start on the four example questions.
-  update asgq_private.event set armed=true where id=1;
+  update asgq_private.event set armed=true, created=true, room_code='12345678' where id=1;
   alpha := public.asgq_join(invite,'Alpha');
   beta := public.asgq_join(invite,'Bravo');
   ta := (alpha->>'token')::uuid; tb := (beta->>'token')::uuid;
