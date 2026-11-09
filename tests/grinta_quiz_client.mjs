@@ -120,4 +120,12 @@ assert.match(style, /safe-area-inset-top/, 'iPhone notch and upper controls must
 assert.match(style, /stage-head/, 'Full-body presenter stage layout is required');
 assert.match(style, /presenter-welcome/, 'Presenter positions should match the actual transparent image');
 assert.match(script, /question-topline/, 'Place the cut-out presenter beside question metadata');
+const lobbyMarkup=script.split('function renderLobby(s) {')[1]?.split('function renderIntro(s) {')[0];
+assert.ok(lobbyMarkup, 'Lobby screen missing');
+assert.doesNotMatch(lobbyMarkup, /class="avatar"/, 'No circular letter icon in the lobby player list');
+assert.match(lobbyMarkup, /class="host-label"/, 'Keep the master-of-game badge');
+assert.match(lobbyMarkup, /data-remove-bot/, 'Bot removal must remain usable');
+assert.doesNotMatch(script, /RETOUR AUX JEUX/, 'Redundant return-to-games text must be removed from quiz screens');
+assert.match(page, /class="brand-back"/, 'Keep the header exit X when removing text links');
+assert.match(style, /\.brand\{[^}]*background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none/, 'Header must not have a contrasting color bar or blur');
 console.log('ASGQ frontend / preflight checks OK');
