@@ -105,10 +105,12 @@ async function enter(call, name){
 }
 
 // Le QCM n'est plus un salon du Soulieteur : c'est l'événement AS Grinta unique.
-function ouvrirGrintaQuiz(remplacer = false){
-  const url = new URL('./grinta-quiz/', location.href).href;
-  if (remplacer) location.replace(url);
-  else location.assign(url);
+function ouvrirGrintaQuiz(remplacer = false, onglet = 'create'){
+  // Comme les autres jeux : la vignette ne lance rien. Seul « Créer la partie » ouvre le QCM.
+  const url = new URL('./grinta-quiz/', location.href);
+  url.searchParams.set('action', onglet === 'join' ? 'join' : 'create');
+  if (remplacer) location.replace(url.href);
+  else location.assign(url.href);
 }
 
 /* ---------- Actions ---------- */
@@ -132,7 +134,6 @@ surAction('tab', el => {
 }, { marque:false });
 // Une vignette touchée s'allume et l'accroche suit, sans redessiner (la saisie du pseudo reste).
 surAction('mode', el => {
-  if (el.dataset.v === 'qcm') return ouvrirGrintaQuiz();
   const box = document.getElementById('c-mode');
   if (box) box.value = el.dataset.v;
   el.parentElement.querySelectorAll('.seg-b').forEach(b => {
@@ -143,7 +144,11 @@ surAction('mode', el => {
 surAction('create', () => {
   const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
   const jeu = GAMES[val('c-mode')] ? val('c-mode') : dernierJeu();
-  if (jeu === 'qcm') return ouvrirGrintaQuiz();
+  if (jeu === 'qcm') {
+    try { localStorage.setItem('pdcat-name', n) } catch {}
+    retenirJeu(jeu);
+    return ouvrirGrintaQuiz(false, 'create');
+  }
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
 });
