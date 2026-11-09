@@ -77,3 +77,9 @@ background-repeat:no-repeat;background-size:400% 200%;box-shadow:0 8px 25px #000
 .add-bot:disabled,.start-quiz:disabled{opacity:.52;cursor:default}
 .start-quiz{margin-bottom:15px}
 .bot-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(233,191,103,.19);color:var(--gold-2);font-size:9px;font-weight:800;letter-spacing:.08em;vertical-align:middle}
+
+
+/* Kick / remove bots before manual kickoff, as in the other mini-games. */
+.roster .remove-bot{margin-left:auto;flex:none;width:31px;height:31px;border-radius:50%;border:1px solid rgba(233,191,103,.65);background:#223950;color:#fff;font-size:23px;line-height:28px;cursor:pointer}
+.roster .remove-bot:disabled{opacity:.5;cursor:default}
+.roster .remove-bot:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
