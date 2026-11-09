@@ -18,7 +18,7 @@ assert.match(serverBots, /bot_order/, 'Server-side bot participant marker missin
 assert.match(serverBots, /insert into asgq_rehearsal_private\.answers\(/, 'Bots must submit stored real answers');
 assert.match(serverBots, /as(g)?q_rehearsal_private\.tick\(\)/, 'Rehearsal must use the real timer state machine');
 assert.match(script, /repetition/, 'Rehearsal launcher missing');
-assert.match(script, /CRÉER UNE PARTIE AVEC BOTS/, 'Link to real bot testing missing');
+assert.match(script, /TESTER AVEC DES BOTS/, 'Link to real bot testing missing');
 assert.match(script, /p_bots:0/, 'Bot rooms must start empty, ready to add bots one by one');
 assert.match(script, /data-add-bot/, 'No add-bot lobby button');
 assert.match(script, /data-start-quiz/, 'No manual kickoff');
