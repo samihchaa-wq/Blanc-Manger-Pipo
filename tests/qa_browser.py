@@ -279,10 +279,34 @@ def run(browser, base):
     try:
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         page.wait_for_url("**/grinta-quiz/",timeout=10000)
-        assert page.locator('#access-code[type="password"]').count()==1
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
         assert "ADMIN+" in page.locator("main").inner_text()
+        page.locator('[data-entry-mode="join"]').click()
+        assert page.locator('#admin-password').count()==0
+        assert page.locator('#room-code[inputmode="numeric"]').count()==1
+        page.locator('#room-code').fill('12345678')
+        page.locator('#player-name').fill('Alban')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='asgq_join_room')")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_join_room').args")
+        assert args=={"p_code":"12345678","p_name":"Alban"},args
         assert page.locator('[data-act="qcm-new"]').count()==0
         no_errors(page,errors,"qcm-acces-as-grinta")
+        checks+=1
+    finally:ctx.close()
+
+    # La création est distincte de la participation et utilise l'Admin+.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.locator('#player-name').fill('Alban')
+        page.locator('#admin-password').fill('SECRET-TEST')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='asgq_create')")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_create').args")
+        assert args=={"p_password":"SECRET-TEST","p_name":"Alban"},args
+        no_errors(page,errors,"qcm-creation-admin")
         checks+=1
     finally:ctx.close()
 
@@ -292,7 +316,8 @@ def run(browser, base):
         page.locator('[data-act="game-pick"]').click()
         page.locator('[data-act="set-game"][data-v="qcm"]').click()
         page.wait_for_url("**/grinta-quiz/",timeout=10000)
-        assert page.locator('#access-code[type="password"]').count()==1
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
         no_errors(page,errors,"qcm-depuis-salon")
         checks+=1
     finally:ctx.close()
@@ -311,9 +336,25 @@ def run(browser, base):
     try:
         page.goto(base+"/",wait_until="load",timeout=20000)
         page.wait_for_url("**/grinta-quiz/",timeout=10000)
-        assert page.locator('#access-code[type="password"]').count()==1
+        assert page.locator('#admin-password[type="password"]').count()==1
+        assert page.locator('#room-code').count()==0
         assert page.evaluate("localStorage.getItem('pdcat')") is None
         no_errors(page,errors,"qcm-ancien-salon")
+        checks+=1
+    finally:ctx.close()
+
+    # Un lien d'invitation sélectionne « Rejoindre » et pré-remplit le code.
+    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e:errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/?code=00012345",wait_until="load",timeout=20000)
+        assert page.locator('#room-code').input_value()=="00012345"
+        assert page.locator('#admin-password').count()==0
+        no_errors(page,errors,"qcm-invitation-code")
         checks+=1
     finally:ctx.close()
 
