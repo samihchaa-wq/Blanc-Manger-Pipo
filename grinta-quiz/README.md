@@ -2,6 +2,16 @@
 
 A **single-use**, smartphone-only quiz. No show control panel, no separate spectator screen, no quiz catalogue or question editor. Built as a separate `/grinta-quiz/` page of the Soulieteur repository and a separate `asgq_private` database schema to avoid changes to the existing games.
 
+## Démonstration jouable (sans déverrouiller l'événement)
+
+Depuis l'écran « Créer / Rejoindre », le bouton **ESSAYER LA DÉMO** ouvre `/grinta-quiz/demo.html`.
+Elle montre le vestiaire fictif, le compte à rebours, les questions, les réponses, la mi-temps, le classement et le podium. Le bouton « Passer » permet de parcourir rapidement les étapes.
+
+- Quatre questions exemples sont **écrites uniquement dans `demo.js`**, sans lien avec les questions réelles.
+- Scores et joueurs simulés **en mémoire locale**, sans création de salon, accès Supabase, mot de passe ou stockage de résultats.
+- Le vrai événement reste verrouillé tant que les 20 à 40 questions finales ne sont pas prêtes : on peut l'inspecter sans lancer la soirée.
+- La démo n'est **pas** un test multijoueur : pour valider la synchronisation réseau, une répétition distincte reste nécessaire.
+
 ## Session
 
 1. A player taps **QCM** in Le Soulieteur, or opens `/grinta-quiz/`. The creator chooses **Créer**, enters their nickname and the **existing Admin+ password**, and receives a **cryptographically generated 8-digit room code**. Teammates choose **Rejoindre**, enter their nickname and that room code, or follow the invitation link. Guests never need Admin+.
