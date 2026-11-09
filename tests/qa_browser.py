@@ -372,6 +372,10 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         page.locator('[data-add-bot]').wait_for(state='visible')
+        assert page.locator('.roster .avatar').count()==0, "Les joueurs ne doivent plus avoir d'icône ronde"
+        assert page.locator('main a.quiet-link').count()==0, "Le lien RETOUR AUX JEUX ne doit plus être affiché"
+        assert page.locator('a.brand-back').is_visible(), "La croix de sortie doit rester accessible"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.brand')).backgroundColor === 'rgba(0, 0, 0, 0)'"), "Le bandeau supérieur ne doit plus avoir de couleur différente"
         assert page.locator('[data-start-quiz]').is_disabled()
         page.locator('[data-add-bot]').click()
         page.locator('.roster .bot-label').first.wait_for(state='visible')
