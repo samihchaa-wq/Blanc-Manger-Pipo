@@ -53,10 +53,21 @@ assert.doesNotMatch(style, /data:image\/webp;base64|\.presenter-photo\{[^}]*back
 for (const pose of ['thinking','excited','surprised','confident','puzzled','facepalm','victory','question']) {
   assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
 }
-assert.match(script, /presenter\(success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
+assert.match(script, /presenter\(s\.is_host\?'confident':success\?'excited'/, 'Presenter should react to player results');
 assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
+const manual=read('supabase/migrations/20261122210000_asgq_manual_host_no_timer.sql');
+assert.match(manual, /function public\.asgq_advance\(p_token uuid,p_expected_phase text,p_expected_position integer\)/, 'Host advance RPC missing');
+assert.match(manual, /ev\.host_token_hash is distinct from player_row\.token_hash/, 'Server must verify host token');
+assert.match(manual, /phase='reveal'/, 'Host must reveal answers');
+assert.match(manual, /phase='halftime'/, 'Host must control half-time');
+assert.match(script, /data-advance-quiz/, 'Host advance control missing');
+assert.match(script, /RÉVÉLER LA RÉPONSE/, 'Manual reveal button missing');
+assert.match(script, /LANCER LA 2E MI-TEMPS/, 'Manual halftime button missing');
+assert.match(script, /s\.is_host/, 'Host-only button guard missing');
+assert.doesNotMatch(script, /timerLine|timeRemaining|updateClocks|TEMPS RESTANT|TEMPS ÉCOULÉ|SUITE DANS|REPRISE DANS|DÉPART DANS/, 'No clock or deadline may remain');
+assert.doesNotMatch(style, /\.timer-line|\.big-timer/, 'Timer visuals must be removed');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
 assert.match(page, /\.\/app\.js/, 'Dedicated script missing');
 assert.match(page, /\.\.\/vendor\/supabase\.js/, 'Use the existing pinned Supabase client');

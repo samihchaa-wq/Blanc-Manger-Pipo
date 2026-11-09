@@ -1,6 +1,6 @@
 /* Grand Quiz AS Grinta 2026 — mobile-only, single event.
  * Adapted from the Soulieteur QCM's synchronized answering / scoring model.
- * The server owns time, scoring, transitions and secret answers. No host or regie.
+ * The server owns scoring and answers; only the authenticated host advances phases.
  */
 'use strict';
 
@@ -15,7 +15,6 @@ const notice = document.getElementById('notice');
 const letters = ['A','B','C','D'];
 let token = null;
 let state = null;
-let serverDelta = 0;
 let signature = '';
 let requesting = false;
 let sendingAnswer = false;
@@ -29,12 +28,6 @@ let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const firstLetter = name => safe((name || 'G').trim().slice(0,1).toUpperCase());
-const date = value => value ? Date.parse(value) : null;
-const now = () => Date.now() + serverDelta;
-const deadline = () => date(state?.phase === 'lobby' ? state.starts_at : state?.phase_until);
-const timeRemaining = () => Math.max(0,(deadline() ?? now()) - now());
-const sec = ms => Math.ceil(ms / 1000);
-const waitText = seconds => seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2,'0')}`;
 const topText = n => n === 1 ? '1RE MI-TEMPS' : '2E MI-TEMPS';
 const halfNum = s => s.position - (s.half === 2 ? s.first_half_count : 0);
 const totalHalf = s => s.half === 2 ? s.second_half_count : s.first_half_count;
@@ -47,7 +40,7 @@ function toast(message) {
 }
 function fmtError(error) {
   const message=String(error?.message || '');
-  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
+  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Seul le maître du jeu|Ajoute au moins un joueur|Ajoute au moins un bot|Les deux mi-temps ne sont pas prêtes|Cette étape a déjà changé|Les réponses sont fermées|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
   if (/DELETE requires a WHERE clause|SQL|PostgREST|PGRST\d|syntax error|permission denied|relation .* does not exist|violates .* constraint/i.test(message)) return 'Impossible de terminer cette action. Réessaie.';
   return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
@@ -58,13 +51,9 @@ const presenter = (pose, message='') =>
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
-function timerLine(label) {
-  return `<div class="timer-line"><div class="eyebrow">${label}</div><div class="big-timer" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div>`;
-}
 function shell(html, key) {
   const practiceTag=isRehearsal ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
-  updateClocks();
 }
 function renderJoin() {
   signature = 'join-' + entryMode;
@@ -89,9 +78,12 @@ function renderJoin() {
     ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
 }
+function hostAction(label, action) {
+  return `<button type="button" class="primary host-control" data-${action}>${label}</button>`;
+}
 function renderLobby(s) {
   const count=s.players.length;
-  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_host ? ' <span class="bot-label">MAÎTRE DU JEU</span>' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
     <div class="hero hero-compact"><h2>VESTIAIRE</h2></div>
     ${presenter('confident')}
@@ -100,12 +92,10 @@ function renderLobby(s) {
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
       <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
       <ul class="roster">${players}</ul>
-      ${s.starts_at ? timerLine('DÉPART DANS') : isRehearsal
-        ? s.is_host
-          ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>
-            <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'AJOUTE UN JOUEUR' : 'LANCER LA PARTIE'}</button>`
-          : '<p class="muted center">En attente du créateur…</p>'
-        : '<p class="muted center">En attente du coup d’envoi…</p>'}
+      ${s.is_host
+        ? `${isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
+           <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>${count < 2 ? 'AJOUTE UN JOUEUR' : !s.ready ? 'QUESTIONS NON PRÊTES' : 'LANCER LA PARTIE'}</button>`
+        : '<p class="muted center">En attente du maître du jeu…</p>'}
     </div>
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>
   `, 'lobby');
@@ -113,18 +103,19 @@ function renderLobby(s) {
 function renderIntro(s) {
   shell(`<div class="hero hero-compact"><h2>1RE MI-TEMPS</h2></div>
     ${presenter('cheer')}
-    <div class="panel center"><div class="metric"><div class="number" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
+    ${s.is_host ? hostAction('AFFICHER LA QUESTION','advance-quiz') : '<p class="muted center">En attente du maître du jeu…</p>'}`, 'intro');
 }
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
-  const choices=(q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const choices=s.is_host ? '' : (q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${timerLine('TEMPS RESTANT')}
     ${presenter('question')}
     <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
-    <p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`, 'question');
+    ${s.is_host
+      ? `<p class="response-note" aria-live="polite">RÉPONSES : <strong id="answer-counter">${q.answered_count || 0}</strong> / ${q.player_count || 0}</p>${hostAction('RÉVÉLER LA RÉPONSE','advance-quiz')}`
+      : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
@@ -133,20 +124,20 @@ function renderReveal(s) {
   const q=s.question || {};
   const success=q.my_choice === q.correct;
   const answered=q.my_choice !== null && q.my_choice !== undefined;
-  const verdict=success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'TEMPS ÉCOULÉ';
+  const verdict=success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${presenter(success?'excited':answered?'facepalm':'surprised')}
-    <div class="result-status ${success?'good':'bad'}">${verdict}</div>
-    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong><b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b></div>
+    ${presenter(s.is_host?'confident':success?'excited':answered?'facepalm':'surprised')}
+    ${s.is_host ? '' : `<div class="result-status ${success?'good':'bad'}">${verdict}</div>`}
+    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host ? '' : `<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
-    ${timerLine('SUITE DANS')}`, 'reveal');
+    ${s.is_host ? hostAction(s.position>=s.total?'VOIR LE PODIUM':'QUESTION SUIVANTE','advance-quiz') : ''}`, 'reveal');
 }
 function renderHalftime(s) {
   shell(`<div class="hero hero-compact"><h2>MI-TEMPS</h2></div>
     ${presenter('puzzled')}
-    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol>
-      ${timerLine('REPRISE DANS')}</div>`, 'halftime');
+    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
+    ${s.is_host ? hostAction('LANCER LA 2E MI-TEMPS','advance-quiz') : ''}`, 'halftime');
 }
 function renderFinished(s) {
   const top=(s.standings||[]).slice(0,3);
@@ -162,25 +153,8 @@ function renderFinished(s) {
     <div class="podium">${podium}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
+    ${isRehearsal && s.is_host ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>`, 'finished');
-}
-function updateClocks() {
-  if (!state) return;
-  const t = deadline();
-  if (!t) return;
-  const remaining = Math.max(0,t-now());
-  const clock = document.getElementById('clock');
-  if (clock) {
-    clock.textContent = waitText(sec(remaining));
-    clock.classList.toggle('urgent',remaining <= 5000 && remaining > 0);
-  }
-  const start = date(state.phase_started_at);
-  const total = t - (start || now());
-  const pct = total>0 ? Math.max(0,Math.min(100,remaining/total*100)) : 0;
-  const progress = document.getElementById('time-progress');
-  if (progress) progress.style.width = `${pct}%`;
-  // The normal 1.8 s polling interval advances expired phases without RPC storms.
 }
 function renderState(force=false) {
   if (!state) return;
@@ -213,8 +187,6 @@ async function fetchState() {
     const {data,error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_state' : 'asgq_state',{p_token:token});
     if (error) throw error;
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
-    const atReceive=Date.now();
-    serverDelta=date(data.now)-atReceive;
     state=data;
     lastConnectionError=false;
     renderState();
@@ -265,7 +237,7 @@ async function join(event) {
   }
 }
 async function lobbyCommand(rpcName, botId=null) {
-  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || state.starts_at || lobbyActionBusy) return;
+  if (!state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
   lobbyActionBusy=true;
   const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':rpcName==='asgq_rehearsal_start'?'[data-start-quiz]':null;
   const button=selector?document.querySelector(selector):Array.from(document.querySelectorAll('[data-remove-bot]')).find(el=>el.dataset.removeBot===botId);
@@ -283,6 +255,25 @@ async function lobbyCommand(rpcName, botId=null) {
   } finally { lobbyActionBusy=false; }
 }
 
+async function advanceQuiz() {
+  if (!state?.is_host || !['intro','question','reveal','halftime'].includes(state.phase) || lobbyActionBusy) return;
+  lobbyActionBusy=true;
+  const button=document.querySelector('[data-advance-quiz]');
+  if(button) button.disabled=true;
+  try {
+    const rpcName=isRehearsal ? 'asgq_rehearsal_advance' : 'asgq_advance';
+    const {error}=await api.rpc(rpcName,{
+      p_token:token,p_expected_phase:state.phase,p_expected_position:state.position
+    });
+    if(error) throw error;
+    signature='';
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+    if(button?.isConnected) button.disabled=false;
+    void fetchState();
+  } finally {lobbyActionBusy=false}
+}
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -303,7 +294,7 @@ async function shareRoom() {
   }
 }
 async function answer(index) {
-  if(!state || state.phase!=='question' || sendingAnswer || timeRemaining()<=0) return;
+  if(!state || state.is_host || state.phase!=='question' || sendingAnswer) return;
   const previous=state.question.my_choice;
   chosenOptimistically=index;
   sendingAnswer=true;
@@ -345,7 +336,8 @@ app.addEventListener('click',e=>{
   const removeBot=e.target.closest('[data-remove-bot]');
   if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
   if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
-  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand('asgq_rehearsal_start');return}
+  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand(isRehearsal ? 'asgq_rehearsal_start' : 'asgq_start');return}
+  if(e.target.closest('[data-advance-quiz]')) {void advanceQuiz();return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
@@ -354,6 +346,5 @@ app.addEventListener('input',e=>{
   if(e.target.id==='room-code') e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,8);
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
-setInterval(updateClocks,200);
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
 if(token) void fetchState(); else renderJoin();
