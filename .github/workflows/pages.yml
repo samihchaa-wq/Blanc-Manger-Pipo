@@ -72,7 +72,9 @@ jobs:
             test -s "_site/grinta-quiz/$f" || { echo "manquant dans _site : grinta-quiz/$f"; exit 1; }
           done
           # Fail the deployment when the tested Grinta changes are absent.
-          grep -q "data:image/webp;base64" _site/grinta-quiz/style.css
+          grep -q "presenter-atlas.png" _site/grinta-quiz/style.css
+          test -s _site/grinta-quiz/presenter-atlas.png
+          ! grep -q "data:image/webp;base64" _site/grinta-quiz/style.css
           grep -q "presenter-shot" _site/grinta-quiz/app.js
           grep -q "asgq_rehearsal_add_bot" _site/grinta-quiz/app.js
           test -s _site/dico/index.json || { echo 'manquant dans _site : dico/index.json'; exit 1; }
