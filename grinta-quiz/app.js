@@ -1,6 +1,6 @@
 /* Grand Quiz AS Grinta 2026 — mobile-only, single event.
  * Adapted from the Soulieteur QCM's synchronized answering / scoring model.
- * The server protects scoring and secret answers; the master of the game controls every transition.
+ * The server owns scores and secret answers. Only the authenticated host advances phases.
  */
 'use strict';
 
@@ -22,13 +22,13 @@ let chosenOptimistically = null;
 let noticeTimer = null;
 let lastConnectionError = false;
 let lobbyActionBusy = false;
+let advanceBusy = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
 let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const firstLetter = name => safe((name || 'G').trim().slice(0,1).toUpperCase());
-
 const topText = n => n === 1 ? '1RE MI-TEMPS' : '2E MI-TEMPS';
 const halfNum = s => s.position - (s.half === 2 ? s.first_half_count : 0);
 const totalHalf = s => s.half === 2 ? s.second_half_count : s.first_half_count;
@@ -41,20 +41,19 @@ function toast(message) {
 }
 function fmtError(error) {
   const message=String(error?.message || '');
-  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Seul le maître du jeu|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé|Les deux mi-temps ne sont pas prêtes/i.test(message)) return message;
+  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
   if (/DELETE requires a WHERE clause|SQL|PostgREST|PGRST\d|syntax error|permission denied|relation .* does not exist|violates .* constraint/i.test(message)) return 'Impossible de terminer cette action. Réessaie.';
   return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
 // Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
 const presenter = pose =>
   `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Maître du jeu AS Grinta"></div></div>`;
-const stage = (title,pose,kind='') =>
-  `<div class="stage-head stage-${safe(kind)}"><div class="stage-copy">${title}</div>${presenter(pose)}</div>`;
+const stage = (heading,pose,kind='') =>
+  `<div class="stage-head stage-${safe(kind)}"><div class="stage-copy">${heading}</div>${presenter(pose)}</div>`;
 
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
-
 function shell(html, key) {
   const practiceTag=isRehearsal ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
@@ -65,7 +64,7 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>', 'welcome', 'welcome')}
+    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>','welcome','welcome')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -81,65 +80,63 @@ function renderJoin() {
     ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
 }
-function hostAction(s, label, action='next') {
-  return s.is_host ? `<button type="button" class="primary start-quiz" data-host-action="${action}">${label}</button>`
-    : '<p class="muted center">En attente du maître du jeu…</p>';
+function hostControl(s, label) {
+  return s.is_host ? `<button type="button" class="primary host-next" data-next-phase>${label}</button>` : '';
 }
 function renderLobby(s) {
   const count=s.players.length;
-  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.id === s.me.id && s.is_host ? ' · MAÎTRE DU JEU' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
-  const canStart=count >= 2 && s.ready;
+  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_host ? ' <span class="host-label">MAÎTRE DU JEU</span>' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
-    ${stage('<h2>VESTIAIRE</h2>', 'confident', 'lobby')}
+    ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
     <div class="panel lobby-panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
-      <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
+      <div class="section-title"><span class="eyebrow">JOUEURS (${count-1})</span></div>
       <ul class="roster">${players}</ul>
-      ${isRehearsal && s.is_host ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
-      ${s.is_host ? `<button type="button" class="primary start-quiz" data-host-action="start" ${canStart?'':'disabled'}>${!s.ready?'QUIZ NON PRÊT':count<2?'EN ATTENTE DE JOUEURS':'LANCER LA PARTIE'}</button>`
-          : '<p class="muted center">En attente du maître du jeu…</p>'}
+      ${s.is_host
+        ? `${isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
+           <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>`
+        : '<p class="muted center">En attente du maître du jeu…</p>'}
     </div>
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>
   `, 'lobby');
 }
 function renderIntro(s) {
-  shell(`${stage('<h2>1RE MI-TEMPS</h2>', 'cheer', 'intro')}
-    <div class="panel center">${hostAction(s,'COMMENCER LES QUESTIONS')}</div>`, 'intro');
+  shell(`${stage('<h2>1RE MI-TEMPS</h2>','cheer','intro')}
+    ${hostControl(s,'AFFICHER LA QUESTION')}`, 'intro');
 }
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
-  const choices=(q.choices || []).map((answer,i) => s.is_host
-    ? `<div class="choice host-choice"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
-    : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer?'disabled':''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const choices=(q.choices || []).map((answer,i)=> s.is_host
+    ? `<div class="choice readonly"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
+    : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const playerCount=s.players.filter(p=>!p.is_host).length;
   shell(`<div class="question-topline"><div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>${presenter('question')}</div>
     <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
-    ${s.is_host ? hostAction(s,'RÉVÉLER LA RÉPONSE') : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
+    ${s.is_host ? `<p class="response-note" id="answer-counter">${q.answered_count || 0} / ${playerCount} réponses</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
+      : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
 }
 function renderReveal(s) {
   const q=s.question || {};
-  const success=q.my_choice === q.correct;
+  const success=q.my_choice === q.correct && !s.is_host;
   const answered=q.my_choice !== null && q.my_choice !== undefined;
-  const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'SANS RÉPONSE';
-  const lastQuestion=s.position===s.first_half_count+s.second_half_count;
-  const lastOfFirst=s.half===1 && s.position===s.first_half_count;
-  const nextLabel=lastQuestion?'VOIR LE PODIUM':lastOfFirst?'MI-TEMPS':'QUESTION SUIVANTE';
+  const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${stage(`<div class="result-status ${success?'good':'bad'}">${verdict}</div>`,s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
+    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
     <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
-    ${hostAction(s,nextLabel)}`, 'reveal');
+    ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`${stage('<h2>MI-TEMPS</h2>', 'puzzled', 'halftime')}
+  shell(`${stage('<h2>MI-TEMPS</h2>','puzzled','halftime')}
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    ${hostAction(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
+    ${hostControl(s,'REPRENDRE LE QUIZ')}`, 'halftime');
 }
 function renderFinished(s) {
   const top=(s.standings||[]).slice(0,3);
@@ -149,7 +146,7 @@ function renderFinished(s) {
     const tier=position===1?'first':position===3?'third':'';
     return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
   }).join('');
-  shell(`${stage('<h2>PODIUM</h2>', 'victory', 'podium')}
+  shell(`${stage('<h2>PODIUM</h2>','victory','podium')}
     <h2 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h2>
     <div class="podium">${podium}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
@@ -157,7 +154,6 @@ function renderFinished(s) {
     ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>`, 'finished');
 }
-
 function renderState(force=false) {
   if (!state) return;
   const {now: serverNow, ...stable} = state;
@@ -168,7 +164,7 @@ function renderState(force=false) {
   const next=JSON.stringify(stable);
   if (!force && next===signature) {
     const counter=document.getElementById('answer-counter');
-    if(counter) counter.textContent=String(state.question?.answered_count || 0);
+    if(counter) counter.textContent=`${state.question?.answered_count || 0} / ${state.players.filter(p=>!p.is_host).length} réponses`;
     return;
   }
   signature=next;
@@ -239,9 +235,10 @@ async function join(event) {
   }
 }
 async function lobbyCommand(rpcName, botId=null) {
-  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
+  if (!state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
+  if (!isRehearsal && rpcName!=='asgq_start') return;
   lobbyActionBusy=true;
-  const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':null;
+  const selector=rpcName.endsWith('_add_bot')?'[data-add-bot]':rpcName.endsWith('_start')?'[data-start-quiz]':null;
   const button=selector?document.querySelector(selector):Array.from(document.querySelectorAll('[data-remove-bot]')).find(el=>el.dataset.removeBot===botId);
   if (button) button.disabled=true;
   try {
@@ -256,31 +253,24 @@ async function lobbyCommand(rpcName, botId=null) {
     if (button?.isConnected) button.disabled=false;
   } finally { lobbyActionBusy=false; }
 }
-
-let hostActionBusy = false;
-async function masterCommand(action) {
-  if (!state?.is_host || hostActionBusy) return;
-  if (action==='start' && state.phase!=='lobby') return;
-  if (action==='next' && !['intro','question','reveal','halftime'].includes(state.phase)) return;
-  hostActionBusy=true;
-  const button=document.querySelector('[data-host-action]');
-  if(button) button.disabled=true;
+async function advancePhase() {
+  if (!state?.is_host || !['intro','question','reveal','halftime'].includes(state.phase) || advanceBusy) return;
+  advanceBusy=true;
+  const button=document.querySelector('[data-next-phase]');
+  if (button) button.disabled=true;
   try {
-    const rpcName=isRehearsal ? (action==='start'?'asgq_rehearsal_start':'asgq_rehearsal_advance')
-      : (action==='start'?'asgq_start':'asgq_advance');
-    const args=action==='start' ? {p_token:token}
-      : {p_token:token,p_expected_phase:state.phase,p_expected_position:state.position};
-    const {error}=await api.rpc(rpcName,args);
-    if(error) throw error;
+    const {error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_advance' : 'asgq_advance',{
+      p_token:token,p_expected_phase:state.phase,p_expected_position:state.position
+    });
+    if (error) throw error;
     signature='';
     await fetchState();
   } catch(error) {
     toast(fmtError(error));
-    if(button?.isConnected)button.disabled=false;
-  } finally {
-    hostActionBusy=false;
-  }
+    if(button?.isConnected) button.disabled=false;
+  } finally { advanceBusy=false; }
 }
+
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -301,7 +291,7 @@ async function shareRoom() {
   }
 }
 async function answer(index) {
-  if(!state || state.is_host || state.phase!=='question' || sendingAnswer) return;
+  if(!state || state.phase!=='question' || state.is_host || sendingAnswer) return;
   const previous=state.question.my_choice;
   chosenOptimistically=index;
   sendingAnswer=true;
@@ -343,8 +333,8 @@ app.addEventListener('click',e=>{
   const removeBot=e.target.closest('[data-remove-bot]');
   if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
   if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
-  const master=e.target.closest('[data-host-action]');
-  if(master) {void masterCommand(master.dataset.hostAction);return}
+  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand(isRehearsal?'asgq_rehearsal_start':'asgq_start');return}
+  if(e.target.closest('[data-next-phase]')) {void advancePhase();return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));

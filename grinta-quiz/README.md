@@ -1,70 +1,44 @@
-# Grand Quiz AS Grinta 2026 — V1
+# Grand Quiz AS Grinta 2026 — maître du jeu
 
-A **single-use**, smartphone-only quiz. No show control panel, no separate spectator screen, no quiz catalogue or question editor. Built as a separate `/grinta-quiz/` page of the Soulieteur repository and a separate `asgq_private` database schema to avoid changes to the existing games.
+Le Grand Quiz est une page mobile indépendante du Soulieteur, avec un événement officiel à usage unique (`asgq_private`) et un espace de répétition distinct (`asgq_rehearsal_private`). Les questions, les réponses correctes et les scores restent côté serveur, dans des schémas privés protégés par RLS.
 
-## Répétitions en conditions réelles avec bots
+## Créer / rejoindre
 
-Depuis **l’accueil du Soulieteur**, sélectionner QCM puis appuyer sur **Créer la partie**. Cela ouvre directement la partie d'essai avec le véritable moteur du quiz, sans consommer l’événement final. Il s'agit d'une **véritable partie multijoueur côté serveur**, pas d'une simulation d'écrans :
+- **Créer** : prénom et mot de passe Admin+ habituel. Le serveur crée le code de salon à huit chiffres et associe **le jeton du créateur** au rôle de maître du jeu. Ce jeton est conservé sur son appareil pour retrouver sa session. Le mot de passe n'est pas conservé.
+- **Rejoindre** : prénom et code de salon à huit chiffres, sans Admin+. Le code peut être partagé par lien. Les tentatives de code erroné sont limitées côté serveur.
+- Le maître du jeu est visible dans le vestiaire, mais **ne répond pas et n'apparaît jamais dans le classement ni sur le podium**.
+- Une partie officielle n'est lançable que lorsque les deux mi-temps sont préparées (10 à 20 questions chacune) et que l'événement a été armé dans la base privée. Les quatre questions techniques d'origine ne peuvent pas lancer la soirée.
 
-- **Créer** : prénom + mot de passe Admin+ habituel, puis accès au vestiaire avec le code à huit chiffres.
-- **Rejoindre** : code de salon à huit chiffres, comme les autres jeux. Un coéquipier peut également rejoindre la répétition sur son propre téléphone.
-- Le créateur peut **ajouter jusqu’à 20 bots un par un, en retirer**, puis appuyer lui-même sur **Lancer la partie**. Le jeu ne démarre pas tout seul dès qu'un bot est ajouté.
-- Les bots sont des joueurs dans une **base privée dédiée** (`asgq_rehearsal_private`), répondent après des délais répartis sur les 25 secondes de chaque question et gagnent des points avec exactement les mêmes calculs que les humains.
-- Les deux mi-temps comportent **20 questions provisoires au total (10 + 10)**, modifiables plus tard, réservées à la répétition. Elles **ne proviennent pas** du questionnaire officiel : le contenu définitif reste secret.
-- Même moteur de synchronisation, bonnes réponses et scores côté serveur, 25 secondes de réponse, 9 secondes de révélation, pause de 40 secondes et podium. Après **Lancer la partie**, un compte à rebours initial de 30 secondes précède l'introduction.
-- Une fois la répétition terminée, le bouton **NOUVELLE RÉPÉTITION** permet d'en recréer une après vérification Admin+. Les scores précédents et les bots sont alors réinitialisés dans la base de répétition.
-- Les **huit portraits fournis de l'animateur** sont intégrés directement dans la feuille de style et apparaissent suivant la phase et le résultat (réflexion, surprise, célébration, déception, finale).
-- Un indicateur « RÉPÉTITION AVEC BOTS · SCORES DE TEST » reste visible à l'écran. Aucune répétition n'arme ou ne modifie la vraie partie (`asgq_private`).
+## Déroulement intégralement manuel
 
-Tests automatisés : `supabase/tests/qa_as_grinta_real_bots.sql` est exécuté dans une transaction PostgreSQL isolée, avec 20 questions, 5 bots, un invité humain, les scores, les deux mi-temps, le podium et une remise à zéro.
+**Aucun chronomètre, compte à rebours, délai de réponse ou transition automatique.** Le serveur ne fait progresser aucune phase au cours des lectures d'état. Les réponses restent modifiables jusqu'au clic de révélation du maître du jeu.
 
-## Session
+| Écran | Action réservée au maître du jeu |
+| --- | --- |
+| Vestiaire | **LANCER LA PARTIE** |
+| Présentation | **AFFICHER LA QUESTION** |
+| Question | **RÉVÉLER LA RÉPONSE** (verrouille les choix et attribue les points une seule fois) |
+| Résultat | **QUESTION SUIVANTE** (ou pause / podium à la fin d'une mi-temps) |
+| Mi-temps | **REPRENDRE LE QUIZ** |
+| Podium | Classement final, aucune action de progression |
 
-1. A player taps **QCM** in Le Soulieteur, or opens `/grinta-quiz/`. The creator chooses **Créer**, enters their nickname and the **existing Admin+ password**, and receives a **cryptographically generated 8-digit room code**. Teammates choose **Rejoindre**, enter their nickname and that room code, or follow the invitation link. Guests never need Admin+.
-2. The event stays safely in its lobby until both halves contain 10–20 validated real questions **and** the event has been armed in the restricted database before the evening. Once armed, the second guest starts a 2-minute automatic lobby countdown.
-3. A 7-second kickoff intro plays, then the first half begins.
-4. The server advances every 25-second question to a 9-second answer reveal and awards points exactly once.
-5. At the boundary between half 1 and half 2, a 40-second halftime/rankings screen appears.
-6. The second half finishes with a scoreboard and podium. Every phone independently polls the same server state.
+Ces actions sont protégées **côté serveur** par le jeton du créateur, pas seulement par un bouton caché. Chaque appel de progression transmet la phase et la position attendues pour empêcher qu'un double clic ou un appel réseau retardé fasse sauter une étape. Le score est attribué seulement lors de la transition question → révélation. Les joueurs voient uniquement les réponses autorisées pour la phase courante.
 
-The backend computes deadlines from **database time**. Every status read advances the event under a row lock, so no phone acts as a master. The Admin+ password and future questions are never shipped in the frontend; answer keys and question database are in a non-exposed schema with RLS enabled. Admin+ is checked only at **room creation** by the existing private `_is_admin_plus` routine and never stored by the client. Guests use the 8-digit code, protected by server-side attempt limits. The obsolete invitation-code and Admin+-to-join RPCs are not publicly executable.
+## Répétition avec bots
 
-## Files
+Depuis le Soulieteur, sélectionner QCM puis Créer la partie pour accéder à la répétition. Le créateur peut ajouter ou retirer jusqu'à 20 bots avant de lancer, et un autre téléphone peut rejoindre la salle par son code. Les bots sont de vrais participants en base privée ; ils répondent **lorsque le maître du jeu révèle la réponse**, sans délai artificiel. La répétition contient 20 questions provisoires (10 + 10), séparées de celles de la soirée. Après le podium, une nouvelle répétition peut être créée avec Admin+ sans toucher à la partie officielle.
 
-- `index.html`: standalone entry point and branded shell.
-- `style.css`: lightweight AS Grinta navy-and-gold mobile visual system.
-- `app.js`: session/resume, polling, display, answer selection and timer.
-- `../supabase/migrations/20261122120000_as_grinta_quiz_2026.sql`: isolated data model and public authenticated RPCs.
+## Avant la soirée officielle
 
-The page uses the *publishable* Supabase key and the already-installed `../vendor/supabase.js`. It does not import or modify `js/core.js`, `js/jeux/qcm.js`, or the Soulieteur's tables.
+1. Dans l'éditeur SQL restreint de Supabase, remplacer les quatre questions techniques par 10–20 questions AS Grinta (mi-temps 1), puis 10–20 questions de football général (mi-temps 2), avec des positions consécutives.
+2. Vérifier `select asgq_private.ready_for_kickoff();` → `true`.
+3. Armer une fois l'événement en vestiaire : `update asgq_private.event set armed=true where id=1 and phase='lobby';`.
+4. Le créateur conserve son appareil et sa session de maître du jeu. Il lance la partie quand les joueurs sont prêts, puis gère chaque révélation et chaque changement d'écran.
 
-## Before the event
+**Ne pas réinitialiser l'événement officiel ni ses joueurs en production.** Les modifications de la répétition restent isolées.
 
-The SQL migration seeds **four clearly marked technical placeholders only** (two per half). Replace these test questions with 10–20 real questions per half before arming the event. Admin+ is required only for the initial creation. Players join with the 8-digit room code and can invite others from the locker room; there is no quiz catalogue.
+## Tests
 
-To load the final 2 halves, replace the placeholder rows from a restricted SQL editor while the event is still in `lobby`, maintaining an increasing `position` and consistent halves; the first 10–20 positions should have `half = 1`, followed by 10–20 with `half = 2`.
-
-**The current placeholder data is NOT launchable.** Before sharing the invitation code:
-
-1. Replace the four technical example questions with 10–20 actual questions for each half using the restricted database SQL editor. Use consecutive positions `1..N`, put all AS Grinta questions first (`half = 1`) and all football-general questions afterward (`half = 2`).
-2. Verify `select asgq_private.ready_for_kickoff();` returns `true`.
-3. Arm the prepared event **once, before the evening** (not during play): `update asgq_private.event set armed = true where id = 1 and phase = 'lobby';`
-4. One person opens **Créer**, enters Admin+, then gives the displayed 8-digit code (or invitation link) to the rest. Players open **Rejoindre** without Admin+. Once two participants enter, countdown and the entire game run without an operator.
-
-The client shows a preparation message before arming; no admin UI or game controls are visible to the players.
-
-**Continuous regression checks:** `node tests/grinta_quiz_client.mjs` plus `bash tests/sql/grinta_quiz_schema.sh <postgres-container-id>`, both executed in GitHub CI. The PostgreSQL QA script creates fake participants and 20 fake questions inside a transaction that is rolled back, so no rehearsal data remains.
-
-There is **no restart / reset control in the player UI**. Test with a transactional database rollback or a separate test environment before announcing the real code; after a full rehearsal, reset the event and test participants in a restricted SQL session. Do not reset an active real game.
-
-## Checks before release
-
-- Several devices join the same room and receive the same phase countdown.
-- An incorrect Admin+ password cannot create a room; wrong 8-digit guest codes cannot join; the server never returns the password or upcoming questions/answers.
-- A selected answer can change while the question is open, but cannot change after the deadline.
-- Disconnect and reconnect preserve the same token and score.
-- With an existing answer, late/duplicate polls never award points twice.
-- After the last first-half question the halftime screen appears, then the next half, then the final podium.
-- Test with 15–30 simultaneous phones, iOS Safari and Android Chrome, including background/foreground restoration.
-
-**Current status:** V1 implemented. The public quiz remains locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Do not share the Admin+ password with teammates: share only the 8-digit room code. The host plays like everyone else; there is no regie.
+- `node tests/grinta_quiz_client.mjs` vérifie l'interface, les boutons du maître du jeu, l'absence de chronomètre et les contrôles de sécurité attendus.
+- `bash tests/sql/grinta_quiz_schema.sh <postgres-container-id>` rejoue les migrations et les scénarios transactionnels des deux schémas : autorisations, réponses modifiables, révélation, points uniques, 20 questions, mi-temps, bots et podium. Les données de test sont annulées par `ROLLBACK`.
+- Une validation sur téléphones iOS et Android, avec plusieurs participants, reste nécessaire avant la soirée.

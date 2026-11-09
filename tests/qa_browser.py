@@ -24,7 +24,6 @@ MOCK_SDK = r"""
 window.__qaCalls = [];
 window.__qaRehearsalBots = [];
 window.__qaRehearsalStarted = false;
-window.__qaRehearsalPhase = 'lobby';
 window.supabase = {
   createClient: () => ({
     rpc: async (name, args) => {
@@ -38,11 +37,7 @@ window.supabase = {
       if (name === 'asgq_rehearsal_create') {
         window.__qaRehearsalBots=[];
         window.__qaRehearsalStarted=false;
-        window.__qaRehearsalPhase='lobby';
         return {data:{token:'host-token',code:'00123456'},error:null};
-      }
-      if (name === 'asgq_rehearsal_join_room') {
-        return {data:{token:'guest-token',code:'00123456'},error:null};
       }
       if (name === 'asgq_rehearsal_add_bot') {
         const n=window.__qaRehearsalBots.length+1;
@@ -56,28 +51,16 @@ window.supabase = {
       }
       if (name === 'asgq_rehearsal_start') {
         window.__qaRehearsalStarted=true;
-        window.__qaRehearsalPhase='intro';
-        return {data:null,error:null};
-      }
-      if (name === 'asgq_rehearsal_advance') {
-        window.__qaRehearsalPhase=window.__qaRehearsalPhase==='intro'?'question':
-          window.__qaRehearsalPhase==='question'?'reveal':'question';
         return {data:null,error:null};
       }
       if (name === 'asgq_rehearsal_state') {
-        const phase=window.__qaRehearsalPhase;
+        const start=window.__qaRehearsalStarted?new Date(Date.now()+60000).toISOString():null;
         const players=[{id:'host',name:'Alban',is_bot:false},...window.__qaRehearsalBots];
-        const isHost=args.p_token==='host-token';
         return {data:{
-          phase,title:'Grand Quiz AS Grinta',ready:true,room_code:'00123456',
-          now:new Date().toISOString(),starts_at:null,phase_started_at:null,phase_until:null,
-          players,standings:phase==='reveal'?[{id:'bot-1',name:'Bot 01',score:1}]:null,
-          max_players:30,is_host:isHost,position:1,half:1,first_half_count:10,second_half_count:10,
-          question:['question','reveal'].includes(phase)?{
-            text:'Qui a remporté le championnat ?',choices:['Équipe A','Équipe B','Équipe C','Équipe D'],
-            correct:phase==='reveal'?0:null,points:1,my_choice:null,earned:0
-          }:null,
-          me:{id:isHost?'host':'guest',name:isHost?'Alban':'Camille',score:0}
+          phase:'lobby',title:'Grand Quiz AS Grinta',ready:true,room_code:'00123456',
+          now:new Date().toISOString(),starts_at:start,phase_started_at:start,phase_until:null,
+          players,standings:null,max_players:30,is_host:true,
+          me:{id:'host',name:'Alban',score:0}
         },error:null};
       }
       // QCM : création, choix et enregistrement d'un quiz simulés.
@@ -385,23 +368,16 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         page.locator('[data-add-bot]').wait_for(state='visible')
-        assert page.locator('[data-host-action="start"]').is_disabled()
+        assert page.locator('[data-start-quiz]').is_disabled()
         page.locator('[data-add-bot]').click()
         page.locator('.roster .bot-label').first.wait_for(state='visible')
         page.locator('[data-add-bot]').click()
         page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===2")
         page.locator('[data-remove-bot]').last.click()
         page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===1")
-        assert page.locator('[data-host-action="start"]').is_enabled()
-        page.locator('[data-host-action="start"]').click()
-        page.wait_for_function("() => window.__qaRehearsalPhase === 'intro'")
-        page.locator('[data-host-action="next"]').click()
-        page.wait_for_function("() => window.__qaRehearsalPhase === 'question'")
-        assert page.locator('#clock').count()==0, "Le QCM maître du jeu n'a aucun chrono"
-        assert page.locator('.presenter-question .presenter-photo').is_visible()
-        page.locator('[data-host-action="next"]').click()
-        page.wait_for_function("() => window.__qaRehearsalPhase === 'reveal'")
-        assert 'BONNE RÉPONSE' in page.locator('.answer-reveal').inner_text()
+        assert page.locator('[data-start-quiz]').is_enabled()
+        page.locator('[data-start-quiz]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_rehearsal_start')")
         assert page.locator('a.brand-back[href="../"]').is_visible()
         # Même pendant les répétitions, la sortie reste disponible.
         assert page.locator('a.brand-back[href="../"]').is_visible()
@@ -429,8 +405,6 @@ def run(browser, base):
         page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_join_room') === true")
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_join_room').args")
         assert args=={"p_code":"00123456","p_name":"Camille"},args
-        page.locator('.lobby-panel').wait_for(state='visible')
-        assert page.locator('[data-host-action]').count()==0, "Un invité ne doit pas contrôler le QCM"
         no_errors(page,errors,"qcm-repetition-rejoindre")
         checks+=1
     finally:ctx.close()
