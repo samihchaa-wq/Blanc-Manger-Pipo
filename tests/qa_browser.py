@@ -22,6 +22,8 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 MOCK_SDK = r"""
 window.__qaCalls = [];
+window.__qaRehearsalBots = [];
+window.__qaRehearsalStarted = false;
 window.supabase = {
   createClient: () => ({
     rpc: async (name, args) => {
@@ -30,6 +32,36 @@ window.supabase = {
         return {data:{state:JSON.parse(JSON.stringify(window.__qaState)),
                       white:window.__qaWhite || null,pun:null,
                       qcm:window.__qaState.qcm ? JSON.parse(JSON.stringify(window.__qaState.qcm)) : null},error:null};
+      }
+      // QCM Grinta: the browser sees the REAL UI; mocked server drives a host lobby.
+      if (name === 'asgq_rehearsal_create') {
+        window.__qaRehearsalBots=[];
+        window.__qaRehearsalStarted=false;
+        return {data:{token:'host-token',code:'00123456'},error:null};
+      }
+      if (name === 'asgq_rehearsal_add_bot') {
+        const n=window.__qaRehearsalBots.length+1;
+        const bot={id:'bot-'+n,name:'Bot '+String(n).padStart(2,'0'),is_bot:true};
+        window.__qaRehearsalBots.push(bot);
+        return {data:{name:bot.name,bots:n},error:null};
+      }
+      if (name === 'asgq_rehearsal_remove_bot') {
+        window.__qaRehearsalBots=window.__qaRehearsalBots.filter(bot=>bot.id!==args.p_bot_id);
+        return {data:{removed:args.p_bot_id},error:null};
+      }
+      if (name === 'asgq_rehearsal_start') {
+        window.__qaRehearsalStarted=true;
+        return {data:null,error:null};
+      }
+      if (name === 'asgq_rehearsal_state') {
+        const start=window.__qaRehearsalStarted?new Date(Date.now()+60000).toISOString():null;
+        const players=[{id:'host',name:'Alban',is_bot:false},...window.__qaRehearsalBots];
+        return {data:{
+          phase:'lobby',title:'Grand Quiz AS Grinta',ready:true,room_code:'00123456',
+          now:new Date().toISOString(),starts_at:start,phase_started_at:start,phase_until:null,
+          players,standings:null,max_players:30,is_host:true,
+          me:{id:'host',name:'Alban',score:0}
+        },error:null};
       }
       // QCM : création, choix et enregistrement d'un quiz simulés.
       if (name === 'qcm_quiz_create') return {data:{id:'quiz-neuf',key:'ABCD-EFGH-JKMN',title:args.p_title,questions:[]},error:null};
@@ -335,7 +367,18 @@ def run(browser, base):
         page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_create') === true")
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
-        assert page.locator('.rehearsal-note').count()==1
+        page.locator('[data-add-bot]').wait_for(state='visible')
+        assert page.locator('[data-start-quiz]').is_disabled()
+        page.locator('[data-add-bot]').click()
+        page.locator('.roster .bot-label').first.wait_for(state='visible')
+        page.locator('[data-add-bot]').click()
+        page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===2")
+        page.locator('[data-remove-bot]').last.click()
+        page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===1")
+        assert page.locator('[data-start-quiz]').is_enabled()
+        page.locator('[data-start-quiz]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_rehearsal_start')")
+        assert page.locator('a.brand-back[href="../"]').is_visible()
         # Même pendant les répétitions, la sortie reste disponible.
         assert page.locator('a.brand-back[href="../"]').is_visible()
         page.locator('a.brand-back').click()
