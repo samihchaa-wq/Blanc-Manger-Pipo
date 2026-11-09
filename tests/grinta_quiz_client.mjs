@@ -34,6 +34,16 @@ assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to serve
 assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
 assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
 
+const presenterImage = style.match(/data:image\\/webp;base64,([A-Za-z0-9+/=]+)/);
+assert.ok(presenterImage, 'Uploaded presenter photos are not embedded in the game');
+assert.ok(presenterImage[1].length > 7500 && presenterImage[1].length % 4 === 0, 'Presenter atlas truncated');
+for (const pose of ['thinking','excited','surprised','confident','puzzled','facepalm','victory','question']) {
+  assert.match(style, new RegExp('\\\\.presenter-' + pose), 'Presenter pose missing: '+pose);
+}
+assert.match(script, /presenter\(success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
+assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
+assert.match(script, /data-add-bot/, 'Host cannot add bots');
+assert.match(script, /data-start-quiz/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
 assert.match(page, /\.\/app\.js/, 'Dedicated script missing');
 assert.match(page, /\.\.\/vendor\/supabase\.js/, 'Use the existing pinned Supabase client');
