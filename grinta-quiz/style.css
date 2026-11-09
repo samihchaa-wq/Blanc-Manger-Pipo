@@ -39,3 +39,10 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .rehearsal-note .rehearsal-link{display:inline-flex;justify-content:center;align-items:center;width:100%;min-height:49px;border:1px solid var(--gold);border-radius:12px;background:rgba(233,191,103,.13);text-decoration:none;font-family:'Barlow Condensed',sans-serif;font-size:19px;letter-spacing:.04em}
 .field select{appearance:auto;width:100%;min-height:57px;border-radius:12px;border:1px solid #496584;background:#081d36;color:#fff;padding:0 16px;font:700 17px 'DM Sans',sans-serif}
 .practice-again{margin-top:20px}
+
+
+/* Same close/back affordance as other Soulieteur mini-games, on every phase. */
+.brand-back{margin-left:auto;flex:none;display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(233,191,103,.55);border-radius:50%;background:#17314c;color:var(--gold-2);text-decoration:none;cursor:pointer}
+.brand-back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.brand-back:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.brand-back:active{transform:scale(.96)}

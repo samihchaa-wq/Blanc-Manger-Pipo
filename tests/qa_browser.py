@@ -281,11 +281,21 @@ def run(browser, base):
             checks+=1
         finally:ctx.close()
 
-    # Le QCM est désormais un événement unique : choix direct, sans salon ni catalogue.
+    # Le QCM est désormais un événement unique, mais la vignette reste un choix
+    # de jeu comme les autres : elle n'ouvre pas encore de nouvelle page.
     ctx,page,errors=open_page(browser,base)
     try:
+        page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
-        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.url==base+'/', "La vignette QCM ne doit jamais ouvrir le quiz"
+        assert page.locator('#c-mode').input_value()=='qcm'
+        assert page.locator('.seg.games button.on[data-v="qcm"]').count()==1
+        assert 'QCM' in page.locator('#c-pitch').inner_text()
+        assert page.locator('[data-act="create"]').is_visible()
+        # Ce n'est que l'appui sur « Créer la partie » qui ouvre l'écran Grinta.
+        page.locator('[data-act="create"]').click()
+        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
+        assert page.locator('#player-name').input_value()=='Alban'
         assert page.locator('#admin-password[type="password"]').count()==1
         assert page.locator('#room-code').count()==0
         assert "ADMIN+" in page.locator("main").inner_text()
@@ -299,6 +309,12 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_join_room').args")
         assert args=={"p_code":"12345678","p_name":"Alban"},args
         assert page.locator('[data-act="qcm-new"]').count()==0
+        # Le bouton X est accessible depuis la page de connexion, sans commencer la partie.
+        page.locator('a.brand-back').click()
+        page.wait_for_url(base+'/',timeout=10000)
+        assert page.locator('#c-mode').input_value()=='qcm'
+        assert page.locator('.seg.games button.on[data-v="qcm"]').count()==1
+        assert page.locator('[data-act="create"]').is_visible()
         no_errors(page,errors,"qcm-acces-as-grinta")
         checks+=1
     finally:ctx.close()
@@ -306,7 +322,10 @@ def run(browser, base):
     # Répétition réelle : création Admin+ avec choix des bots, sans créer le quiz officiel.
     ctx,page,errors=open_page(browser,base)
     try:
+        page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.locator('[data-act="create"]').click()
+        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
         page.locator('a.rehearsal-link').click()
         page.wait_for_url("**/grinta-quiz/?repetition=1",timeout=10000)
         assert page.locator(".rehearsal-banner").count()==1
@@ -319,6 +338,11 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":10,"p_password":"SECRET-TEST","p_name":"Alban"},args
         assert page.locator('.rehearsal-note').count()==1
+        # Même pendant les répétitions, la sortie reste disponible.
+        assert page.locator('a.brand-back[href="../"]').is_visible()
+        page.locator('a.brand-back').click()
+        page.wait_for_url(base+'/',timeout=10000)
+        assert page.locator('#pane-create').is_visible()
         no_errors(page,errors,"qcm-repetition-bots-creer")
         checks+=1
     finally:ctx.close()
@@ -347,7 +371,11 @@ def run(browser, base):
     # La création est distincte de la participation et utilise l'Admin+.
     ctx,page,errors=open_page(browser,base)
     try:
+        page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
+        assert page.locator('[data-act="create"]').is_visible()
+        page.locator('[data-act="create"]').click()
+        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
         page.locator('#player-name').fill('Alban')
         page.locator('#admin-password').fill('SECRET-TEST')
         page.locator('#join-button').click()
