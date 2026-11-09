@@ -80,7 +80,12 @@ function renderJoin() {
       <p class="muted center" style="margin:20px 0 0">${isCreate
         ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
         : 'Demande le code de salon au créateur. Aucun mot de passe Admin+ nécessaire.'}</p>
-    </form>`, 'join');
+    </form>
+    <div class="preview-panel">
+      <p>Tu veux découvrir le jeu avant la soirée ?</p>
+      <a class="preview-button" href="./demo.html">ESSAYER LA DÉMO</a>
+      <small>4 questions fictives · aucun score enregistré · aucune partie créée.</small>
+    </div>`, 'join');
 }
 function renderLobby(s) {
   const count = s.players.length;
