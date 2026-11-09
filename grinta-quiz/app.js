@@ -49,6 +49,10 @@ function fmtError(error) {
   const e = error?.message || 'Connexion impossible.';
   return e.replace(/^JSON object requested, multiple \(or no\) rows returned.*/,'Session introuvable.');
 }
+// Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
+const presenter = (pose, message='') =>
+  `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Animateur AS Grinta"></div>${message ? `<div class="presenter-bubble">${safe(message)}</div>` : ''}</div>`;
+
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
@@ -69,6 +73,7 @@ function renderJoin() {
     <div class="hero"><div class="eyebrow">${isRehearsal?'RÉPÉTITION · BOTS RÉELS':'LA GRANDE SOIRÉE 2026'}</div>
       <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
       <p>${isRehearsal?'Teste le vrai moteur du quiz contre des bots. Chronomètre, réponses, classement et podium synchronisés côté serveur.':'Deux mi-temps. Une seule équipe. Un seul champion.'}</p></div>
+    ${presenter('thinking','Prêt pour le coup d’envoi ?')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -94,6 +99,7 @@ function renderLobby(s) {
   const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span></li>`).join('');
   shell(`
     ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', isRehearsal ? 'Ajoute des bots et lance la partie lorsque tout le monde est prêt.' : 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
+    ${presenter('confident','Le vestiaire se remplit !')}
     <div class="panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
@@ -105,6 +111,7 @@ function renderLobby(s) {
 }
 function renderIntro(s) {
   shell(`${headerText('ÇA COMMENCE', 'PREMIÈRE <span class="gold">MI-TEMPS</span>', 'AS Grinta. Prépare ton meilleur niveau.')}
+    ${presenter('cheer','C’est parti !')}
     <div class="panel center"><div class="metric"><span>COUP D’ENVOI DANS</span><div class="number" id="clock">--</div><span>La première question arrive automatiquement.</span></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
 }
 function renderQuestion(s) {
@@ -113,6 +120,7 @@ function renderQuestion(s) {
   const choices = (q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
     ${timerLine('TEMPS RESTANT')}
+    ${presenter('question','À toi de jouer !')}
     <div class="question-card" style="margin-top:22px"><div class="number">${q.points || 1} POINT${q.points > 1?'S':''} EN JEU</div><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
     <div class="response-note">${choice === null || choice === undefined ? 'Choisis ta réponse avant la fin du chrono.' : 'Réponse enregistrée. Tu peux encore changer d’avis.'}</div>
@@ -135,6 +143,7 @@ function renderReveal(s) {
   const outcome = `<div class="result-status ${success?'good':'bad'}">${verdict}</div>
     <div class="score-gain">+${q.earned ?? 0} POINT${q.earned === 1?'':'S'}</div>`;
   shell(`<div class="kicker"><span>RÉSULTAT · ${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
+    ${presenter(success?'excited':answered?'facepalm':'surprised', success?'Bien joué !':answered?'On fera mieux !':'Trop tard !')}
     <div class="panel center" style="margin-bottom:16px">${outcome}<p class="muted">${safe(q.text)}</p></div>
     <div class="choices" role="list" style="margin-top:0">${choices}</div>
     ${q.explanation ? `<p class="muted">${safe(q.explanation)}</p>` : ''}
@@ -144,6 +153,7 @@ function renderReveal(s) {
 }
 function renderHalftime(s) {
   shell(`${headerText('45 MINUTES · MI-TEMPS', 'PAUSE <span class="gold">VESTIAIRE</span>', 'Place au classement de la première partie.')}
+    ${presenter('puzzled','Qui sera champion ?')}
     <div class="panel"><span class="eyebrow">LE CLASSEMENT À LA PAUSE</span><ol class="small-list" style="margin-top:16px">${rankingRows(s,30)}</ol>
     ${timerLine('REPRISE DANS')}</div>
     <p class="muted center">La deuxième mi-temps portera sur le football en général.</p>`, 'halftime');
@@ -157,6 +167,7 @@ function renderFinished(s) {
     return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
   }).join('');
   shell(`${headerText('COUP DE SIFFLET FINAL', 'LE GRAND <span class="gold">VAINQUEUR</span>', 'Le quiz est terminé. Voici le verdict du vestiaire.')}
+    ${presenter('victory','Quel match !')}
     <div class="panel center"><div class="eyebrow">CHAMPION DU GRAND QUIZ 2026</div>
       <h2 class="display" style="font-size:clamp(42px,12vw,69px);color:var(--gold);margin:13px 0">${safe(top[0]?.name || 'AS Grinta')}</h2>
       <div class="podium">${podium}</div>
