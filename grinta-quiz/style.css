@@ -112,3 +112,5 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 /* Host-only manual control: no timer or progress UI. */
 .choice.readonly{cursor:default;user-select:text}
 .host-next{margin-top:18px}
+
+.host-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(80,211,161,.14);color:var(--green);font-size:9px;font-weight:800;letter-spacing:.04em;vertical-align:middle}
