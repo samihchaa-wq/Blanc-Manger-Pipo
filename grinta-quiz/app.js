@@ -265,7 +265,7 @@ async function advancePhase() {
   if (button) button.disabled=true;
   try {
     const {error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_advance' : 'asgq_advance',{
-      p_token:token,p_phase:state.phase,p_position:state.position
+      p_token:token,p_expected_phase:state.phase,p_expected_position:state.position
     });
     if (error) throw error;
     signature='';
