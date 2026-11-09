@@ -303,6 +303,44 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # Démo autonome : la vraie base ne doit jamais être appelée.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        requests=[]
+        page.on("request",lambda req:requests.append(req.url) if "/rest/v1/" in req.url else None)
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        page.locator('a.preview-button[href="./demo.html"]').click()
+        page.wait_for_url("**/grinta-quiz/demo.html",timeout=10000)
+        assert page.locator('[data-demo-start]').count()==1
+        assert "DÉMO" in page.locator(".demo-banner").inner_text()
+        assert page.evaluate("typeof window.supabase")=="undefined"
+        page.locator('[data-demo-start]').click()
+        assert "VESTIAIRE" in page.locator("main").inner_text()
+        page.locator('[data-demo-next]').click() # intro
+        assert "MI-TEMPS" in page.locator("main").inner_text()
+        page.locator('[data-demo-next]').click() # first question
+        assert page.locator('[data-demo-answer]').count()==4
+        page.locator('[data-demo-answer="0"]').click()
+        page.locator('[data-demo-next]').click() # reveal
+        assert "BIEN JOUÉ" in page.locator("main").inner_text()
+        page.locator('[data-demo-next]').click() # question 2
+        page.locator('[data-demo-next]').click() # reveal 2
+        page.locator('[data-demo-next]').click() # halftime
+        assert "CLASSEMENT À LA PAUSE" in page.locator("main").inner_text()
+        page.locator('[data-demo-next]').click() # question 3
+        page.locator('[data-demo-next]').click() # reveal 3
+        page.locator('[data-demo-next]').click() # question 4
+        page.locator('[data-demo-next]').click() # reveal 4
+        page.locator('[data-demo-next]').click() # podium
+        assert page.locator(".podium .pod").count()==3
+        assert page.locator('[data-demo-restart]').count()==1
+        assert requests==[], "La démo a contacté la vraie base : "+str(requests)
+        no_horizontal_overflow(page,"asgq-demo-mobile")
+        no_errors(page,errors,"asgq-demo-mobile")
+        checks+=1
+    finally:ctx.close()
+
     # La création est distincte de la participation et utilise l'Admin+.
     ctx,page,errors=open_page(browser,base)
     try:
