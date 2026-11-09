@@ -68,7 +68,7 @@ for (const pose of ['thinking','excited','surprised','confident','puzzled','face
   assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
 }
 assert.match(script, /success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
-assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
+assert.match(script, /stage\('<h2>PODIUM<\/h2>','victory'/, 'Presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
@@ -113,4 +113,11 @@ assert.match(db, /second_half between 10 and 20/, 'Missing second half gate');
 assert.match(db, /ev\.armed and asgq_private\.ready_for_kickoff\(\)/, 'Cannot arm a test-only quiz');
 assert.doesNotMatch(page+script+style, /sb_secret_|service_role|private[_-]?key/i, 'Never expose privileged secrets');
 assert.doesNotMatch(page+script+style, /QUESTION DE TEST|Réponse A \(test\)/i, 'Do not ship test questions to browsers');
+assert.ok(fs.statSync(path.join(root,'grinta-quiz/as-grinta-crest.webp')).size>10000, 'AS Grinta official crest is missing');
+assert.match(page, /as-grinta-crest\.webp/, 'Show the real club crest on every screen');
+assert.doesNotMatch(page, /<span>AG<\/span>/, 'Fake AG club badge must be removed');
+assert.match(style, /safe-area-inset-top/, 'iPhone notch and upper controls must remain reachable');
+assert.match(style, /stage-head/, 'Full-body presenter stage layout is required');
+assert.match(style, /presenter-welcome/, 'Presenter positions should match the actual transparent image');
+assert.match(script, /question-topline/, 'Place the cut-out presenter beside question metadata');
 console.log('ASGQ frontend / preflight checks OK');
