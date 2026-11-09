@@ -283,6 +283,15 @@ assert.match(dicoMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration en une seule
 // (page, scripts, styles) à celui qu'il fait tourner, et se recharge.
 const pagesWorkflow = fs.readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
 assert.match(pagesWorkflow, /\?v=\$V/, 'Scripts et feuilles de style versionnés à la mise en ligne');
+assert.match(pagesWorkflow, /grinta-quiz\/index\.html[\s\S]*?app\.js\?v=\$V/, 'Grinta JS doit être versionné au déploiement');
+assert.match(pagesWorkflow, /style\.css\?v=\$V/, 'Grinta CSS doit être versionné au déploiement');
+assert.match(pagesWorkflow, /release-info\.json/, 'Dépôt : version publiée vérifiable');
+assert.match(pagesWorkflow, /Check that the new version is actually served/, 'Vérifier Pages après déploiement, pas seulement la PR');
+assert.doesNotMatch(pagesWorkflow, /git push/, 'Le déploiement Pages ne doit pas s’annuler par son propre push');
+const newSW=fs.readFileSync(new URL('../sw.js', import.meta.url),'utf8');
+assert.match(newSW, /soulieteur-grinta-2026-v2/, 'Anciennes ressources PWA doivent être invalidées');
+assert.match(scripts[0], /updateViaCache:'none'/, 'Le service worker doit chercher les mises à jour à chaque ouverture');
+
 assert.match(scripts[0], /headers: etag \? \{ 'If-None-Match': etag \}/, 'Vérification légère tant que rien n’a changé');
 assert.match(scripts[0], /enLigne\.texte !== connu\.texte/, 'Comparaison du contenu, pas de la date de mise en ligne');
 assert.match(scripts[0], /const sansVersion = t => t\.replace\(\/\\\?v=/, 'Les ?v=… de la mise en ligne ne comptent pas');
