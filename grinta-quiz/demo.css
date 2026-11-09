@@ -1,0 +1,9 @@
+.demo-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 11px;margin:0 0 10px;border:1px solid rgba(233,191,103,.45);border-radius:12px;background:rgba(30,48,72,.85);color:var(--gold-2);font-weight:800;font-size:10px;letter-spacing:.08em}
+.demo-controls{display:flex;align-items:center;gap:7px}
+.demo-controls a,.demo-controls button{display:inline-flex;align-items:center;min-height:31px;padding:6px 10px;border:1px solid rgba(233,191,103,.45);border-radius:8px;background:rgba(233,191,103,.08);font:700 12px 'DM Sans',sans-serif;color:var(--text);text-decoration:none;cursor:pointer}
+.demo-controls a:focus-visible,.demo-controls button:focus-visible{outline:2px solid var(--gold)}
+.demo-title{color:var(--gold-2);font:900 clamp(30px,8vw,46px)/1.1 'Barlow Condensed',sans-serif;margin:20px 0}
+.demo-winner{font-size:clamp(42px,12vw,69px);color:var(--gold);margin:13px 0}
+#demo-app .panel.center .primary{margin-top:20px}
+#demo-app .scene>.primary{margin:18px 0}
+#demo-app .muted{overflow-wrap:anywhere}
