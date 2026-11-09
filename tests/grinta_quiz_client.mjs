@@ -53,7 +53,14 @@ assert.match(room, /and ev\.created and ev\.armed/, 'Countdown must not start be
 assert.match(entry, /revoke execute on function public\.asgq_join\(text,text,uuid\)/, 'Close the old invite-code entrance');
 assert.doesNotMatch(room+script, /admin_plus_hash\s*=|password\s*=\s*['"][^'"]+['"]/i, 'Never embed Admin+ secret in source');
 assert.doesNotMatch(script, /api\.rpc\('asgq_join_admin_plus'/, 'Guests must never be asked for Admin+');
-assert.match(home, /if \(el\.dataset\.v === 'qcm'\) return ouvrirGrintaQuiz\(\)/, 'Selecting QCM must bypass generic editor');
+const tileAction = home.split("surAction('mode', el => {")[1]?.split("}, { marque:false });")[0];
+assert.ok(tileAction, 'Game thumbnail handler missing');
+assert.doesNotMatch(tileAction, /ouvrirGrintaQuiz/, 'QCM thumbnail must only select game, not open quiz');
+assert.match(tileAction, /box\.value = el\.dataset\.v/, 'QCM should update selected hidden game like other tiles');
+assert.match(home, /if \(jeu === 'qcm'\)[\s\S]*?ouvrirGrintaQuiz\(false, 'create'\)/,
+  'QCM should open only after clicking Créer la partie');
+assert.match(page, /class="brand-back" href="\.\.\//, 'All Grinta screens need a back-to-home control');
+assert.match(style, /\.brand-back\{/, 'Back button styling missing');
 assert.match(salon, /if \(m === 'qcm'\) return ouvrirGrintaQuiz\(\)/, 'Game picker must bypass generic QCM');
 assert.match(commun, /state\?\.room\?\.mode === 'qcm'/, 'Existing QCM rooms must also redirect');
 assert.match(db, /first_half between 10 and 20/, 'Missing real question count gate');
