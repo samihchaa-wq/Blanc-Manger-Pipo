@@ -59,7 +59,7 @@ window.supabase = {
         window.__qaRehearsalPhase='intro';
         return {data:null,error:null};
       }
-      if (name === 'asgq_rehearsal_next') {
+      if (name === 'asgq_rehearsal_advance') {
         window.__qaRehearsalPhase=window.__qaRehearsalPhase==='intro'?'question':
           window.__qaRehearsalPhase==='question'?'reveal':'question';
         return {data:null,error:null};
