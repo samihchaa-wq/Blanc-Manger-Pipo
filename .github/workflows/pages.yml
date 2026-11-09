@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -47,17 +47,12 @@ jobs:
               -o vendor/supabase.js
           fi
           test -s vendor/supabase.js
-      - name: Make branch deployment self-contained
+      - name: Prepare self-contained site without modifying main
         run: |
+          # A push from inside the Pages job retriggers the workflow and may
+          # cancel the deployment before the new files reach the live site.
           sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js#./vendor/supabase.js#g' index.html
           grep -q './vendor/supabase.js' index.html
-          if ! git diff --quiet -- index.html vendor/supabase.js || ! git ls-files --error-unmatch vendor/supabase.js >/dev/null 2>&1; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add index.html vendor/supabase.js
-            git commit -m 'Use local Supabase client on published site'
-            git push
-          fi
       - name: Build self-contained site
         run: |
           mkdir -p _site/vendor
