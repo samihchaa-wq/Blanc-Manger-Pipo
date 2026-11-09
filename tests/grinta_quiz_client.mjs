@@ -28,7 +28,7 @@ const lobbyMigration=read('supabase/migrations/20261122190000_as_grinta_manual_l
 assert.match(lobbyMigration, /ev\.manual_started and ev\.created/, 'Do not auto-start with bots');
 assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_add_bot/, 'Secure add bot RPC missing');
 assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_start/, 'Secure manual kickoff RPC missing');
-assert.match(home, /repetition.*'1'/, 'The normal QCM create path must be a repeatable test until finalized');
+assert.match(read('js/ecrans/accueil.js'), /repetition.*'1'/, 'The normal QCM create path must be repeatable until finalized');
 assert.match(script, /asgq_rehearsal_state/, 'Test must read server-side state');
 assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to server');
 assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
