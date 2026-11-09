@@ -13,6 +13,7 @@ const suites = [
   ['qa_multiplayer_capacity.sql', ['phrases','priorites','ondes','bac','white','mimes','dico','dilemme']],
   ['qa_white_distribution_full.sql', ['white']],
   ['qa_white_shared_victory.sql', ['white']],
+  ['qa_qcm_scenario.sql', ['qcm']],
 ];
 for (const [filename, games] of suites) {
   const s=readFileSync(new URL('../supabase/tests/'+filename,import.meta.url),'utf8');
@@ -33,4 +34,4 @@ const dico=readFileSync(new URL('../js/jeux/dico.js',import.meta.url),'utf8');
 const dil=readFileSync(new URL('../js/jeux/dilemme.js',import.meta.url),'utf8');
 assert.match(dico,/Tu peux encore changer d’avis/);
 assert.match(dil,/Tu peux encore changer d’avis/);
-console.log('QA : 9 suites transactionnelles, capacités maximales et répartition Mr White.');
+console.log(`QA : ${suites.length} suites transactionnelles, capacités maximales, répartition Mr White et QCM.`);

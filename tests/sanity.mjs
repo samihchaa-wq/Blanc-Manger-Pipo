@@ -105,9 +105,10 @@ assert.match(scripts[0], /surAction\('bac-next', \(\) => act\('next_round'\)\)/,
 assert.match(scripts[0], /rpc\('reap_idle'/, 'Expiration traitée côté serveur');
 assert.doesNotMatch(scripts[0], /bacTick|bac-cd/, 'Pas de minuteur autonome Petit Bac');
 
-// Petit bac : deux joueurs exactement, comme côté serveur (_max_players).
-assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : 12/,
-  'Le Petit bac doit rester limité à deux joueurs');
+// Petit bac : deux joueurs exactement ; QCM : jusqu'à trente (une équipe
+// entière) ; douze ailleurs. Comme côté serveur (_max_players).
+assert.match(scripts[0], /const maxPlayers = mode => mode === 'bac' \? 2 : mode === 'qcm' \? 30 : 12/,
+  'Le Petit bac doit rester limité à deux joueurs, le QCM à trente, les autres jeux à douze');
 // La grille ne doit pas passer par act() : son refresh() redessinerait les
 // champs et fermerait le clavier à chaque enregistrement automatique.
 assert.match(scripts[0], /rpc\('bac_save', \{ p_code:session\.code, p_token:session\.token, p_answers:bacDraft, p_done:false \}\)/,
@@ -304,7 +305,7 @@ assert.ok(!css.includes('container-type:size'), 'Ne plus redimensionner par la h
 assert.match(scripts.join('\n'), /<div class="gamesbox" style="--rows:/, 'Nombre de rangées transmis au CSS');
 assert.match(scripts[0], /logoTaps\.length >= 5\) \{ logoTaps = \[\]; ouvrirAdmin\(\) \}/, 'Cinq appuis sur le logo ouvrent l’admin');
 assert.match(scripts[0], /const CATEGORIES = \[/, 'Familles de jeux pour la liste « Changer de jeu »');
-for (const k of ['phrases','priorites','dilemme','dico','bac','white','mimes','ondes'])
+for (const k of ['phrases','priorites','dilemme','dico','bac','white','mimes','ondes','qcm'])
   assert.match(scripts[0], new RegExp(`${k}:\\s*\\{ name:'[^']+', cat:'[a-z]+', pitch:'`), `Famille et accroche du jeu ${k}`);
 
 // Actions : un seul écouteur de clics, chaque écran déclare les siennes.
@@ -359,3 +360,34 @@ assert.match(whiteDistribution, /intruders := case when n>=6 then 2 else 1 end;/
   'Mr White : deux imposteurs dès six joueurs');
 assert.match(whiteDistribution, /^begin;$[\s\S]*^commit;$/m,
   'Migration Mr White transactionnelle');
+
+// QCM : jeu déclaré, phases branchées, bonne réponse cachée jusqu'à la
+// révélation, animateur hors classement, quiz protégé par un code secret.
+assert.match(scripts[0], /qcm:\s*\{ name:'QCM'/, 'Jeu QCM présent');
+assert.match(scripts[0], /qcm_question:qcmQuestion/, 'Phase de question du QCM déclarée');
+assert.match(scripts[0], /if \(isQcm\(\)\) return qcmReveal\(\);/, 'Révélation du QCM');
+assert.match(scripts[0], /act\('qcm_answer', \{ p_choice: \+el\.dataset\.i \}\)/, 'Réponse envoyée au serveur');
+assert.match(scripts[0], /act\('qcm_reveal'\)/, 'L’animateur peut révéler la réponse');
+assert.match(scripts[0], /act\('qcm_next'\)/, 'L’animateur passe à la question suivante');
+assert.match(scripts[0], /act\('set_qcm_variant', \{ p_variant: el\.dataset\.v \}\)/, 'Choix du mode Classique ou Rapidité');
+for (const fn of ['qcm_quiz_create','qcm_quiz_get','qcm_quiz_save','qcm_quiz_delete','qcm_select'])
+  assert.match(scripts[0], new RegExp(`'${fn}'`), `Le QCM appelle ${fn}`);
+assert.match(scripts[0], /'qcm_bot_step'/, 'Bots du QCM');
+assert.match(scripts[0], /if \(d\.qcm\) \{ s\.qcm = d\.qcm;/, 'L’état du QCM arrive avec get_full_state');
+assert.match(scripts[0], /const classes = \(\) => isQcm\(\) \? state\.players\.filter\(p => p\.id !== state\.room\.reader_id\)/,
+  'L’animateur du QCM n’est pas classé');
+assert.match(scripts[0], /\(qcmEnDirect\(\) \? 5000 : \(rtOk \? 30000 : 4000\)\)/,
+  'Pendant les questions du QCM, la relecture de secours passe à 5 s');
+assert.ok(fs.statSync(new URL('../games/qcm.webp', import.meta.url)).size > 5000, 'Vignette du QCM présente');
+const qcmMigration = fs.readFileSync(new URL('../supabase/migrations/20261121120000_qcm.sql', import.meta.url), 'utf8');
+assert.match(qcmMigration, /^begin;$[\s\S]*^commit;$/m, 'Migration QCM en une seule transaction');
+assert.match(qcmMigration, /'correct', case when fin or anim then q\.correct end/, 'Bonne réponse cachée aux joueurs jusqu’à la révélation');
+assert.match(qcmMigration, /'note', case when fin or anim then q\.note end/, 'Commentaire caché jusqu’à la révélation');
+assert.match(qcmMigration, /key_hash text not null unique/, 'Seule l’empreinte du code du quiz est stockée');
+assert.match(qcmMigration, /revoke all on public\.qcm_quizzes, public\.qcm_questions, public\.qcm_room_questions, public\.qcm_answers\s+from public, anon, authenticated;/,
+  'Tables du QCM fermées à la lecture directe');
+assert.match(qcmMigration, /if r\.reader_id = me\.id then raise exception 'Tu animes le quiz : tu ne réponds pas\.'/, 'L’animateur ne répond pas');
+assert.match(qcmMigration, /not \(r\.mode = 'qcm' and p\.id is not distinct from r\.reader_id\)/, 'L’animateur n’est jamais désigné perdant');
+assert.match(qcmMigration, /when p_room\.mode='qcm' and p_room\.status='qcm_question'/, 'Minuteur des questions');
+assert.match(qcmMigration, /if r\.qcm_variant = 'rapidite' then/, 'Bonus de rapidité');
+console.log('QCM : vérifications de l’interface et de la migration réussies.');

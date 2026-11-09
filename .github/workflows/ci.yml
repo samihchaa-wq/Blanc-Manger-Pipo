@@ -33,7 +33,7 @@ jobs:
         run: node tests/reseau.mjs
       - name: Huit clients réseau indépendants
         run: node tests/reseau-multiclient.mjs
-      - name: Couverture QA des huit jeux
+      - name: Couverture QA des neuf jeux
         run: node tests/qa-suites.mjs
       - name: Victoire commune Mr White et Imposteur
         run: node tests/white-alliance.mjs
@@ -69,12 +69,14 @@ jobs:
         run: |
           cat tests/sql/concurrency_fixtures.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           bash tests/sql/check_concurrency.sh "${{ job.services.postgres.id }}"
+      - name: QCM de bout en bout et non-régression des autres jeux (PostgreSQL)
+        run: bash tests/sql/qcm_schema.sh "${{ job.services.postgres.id }}"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Installer le navigateur de test
         run: python -m pip install playwright==1.56.0
-      - name: Parcours Chromium sur les huit jeux
+      - name: Parcours Chromium sur les neuf jeux
         run: python tests/qa_browser.py
       - uses: actions/upload-artifact@v4
         if: failure()

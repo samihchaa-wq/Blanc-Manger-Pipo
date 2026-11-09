@@ -472,3 +472,19 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
   color:#f9e7ee;background:#301b35;border-color:#927086}
 .customchallenge .hint{font-size:13px;line-height:1.35;color:#61475a}
 .custom-choice{display:block;width:100%;margin:12px auto 18px;text-align:center}
+
+/* QCM : réponses, encart du salon et éditeur dans les matières du Soulièteur. */
+.qcm-c{background:var(--studio-paper);color:#29171f}
+.qcmbox{border-top-color:#d1a777}
+.qcmbox .qcm-titre{color:#28171e}
+.gamebox .qcm-pick{background:#fff3dc;border-color:#d1a777;color:#28171e}
+.gamebox .qcm-pick small{color:#70515a}
+.gamebox .qcm-pick.on{border-color:#ffb52c;box-shadow:0 0 0 2px #ffb52c}
+.gamebox .qcm-code .field>span{color:#5e3d4b}
+.qe-item{background:var(--studio-paper);border-color:#c59a6e;color:#2b1a25;box-shadow:0 3px 0 #926744,0 9px 17px -13px rgba(0,0,0,.65)}
+.qe-t small{color:#694c58}
+.qe-acts button{background:#ead2b4;color:#4a2c3c}
+.qe-form .qe-lab,.qe-form .rrow>span{color:#583e50}
+.qe-form .qe-lab small{color:#61475a}
+.qe-form .field>span small{color:#61475a}
+.gamebox .qcmbox .eyebrow{color:#a72853;font-weight:800}

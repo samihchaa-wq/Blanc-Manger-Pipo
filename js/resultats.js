@@ -8,7 +8,7 @@ function result(){
     w ? `<span class="by">${esc(w.author)}</span>` : '');
 }
 function rank(){
-  return `<ol class="rank">${[...state.players].sort((a,b) => b.score - a.score).map((p,i) => `<li>
+  return `<ol class="rank">${[...classes()].sort((a,b) => b.score - a.score).map((p,i) => `<li>
     <span class="pos">${i + 1}</span>
     <span class="nm"><span class="who">${esc(p.name)}</span>${isMe(p.id) ? '<span class="tag">toi</span>' : ''}</span>
     <b>${p.score}</b></li>`).join('')}</ol>`;
@@ -17,7 +17,7 @@ function rank(){
 // Mini-classement des écrans d'attente : pastille et score, le nom pour les
 // lecteurs d'écran. Rien avant la première manche jouée.
 function scoreStrip(align = ''){
-  const ps = state.players.filter(p => p.active !== false).sort((a, b) => b.score - a.score);
+  const ps = classes().filter(p => p.active !== false).sort((a, b) => b.score - a.score);
   if (!state.room.round || !ps.some(p => p.score)) return '';
   return `<p class="eyebrow striphead${align ? ' ' + align : ''}">Scores</p><div class="strip${align ? ' ' + align : ''}">${ps.map(p =>
     `<span class="chip${isMe(p.id) ? ' me' : ''}">${esc(p.name)}<b>${p.score}</b></span>`).join('')}</div>`;
@@ -25,9 +25,9 @@ function scoreStrip(align = ''){
 
 // Fin de partie : les trois premiers sur un podium (à égalité, même marche).
 function podium(){
-  const top = [...state.players].sort((a, b) => b.score - a.score).slice(0, 3);
+  const top = [...classes()].sort((a, b) => b.score - a.score).slice(0, 3);
   if (top.length < 2) return '';
-  const place = p => 1 + state.players.filter(q => q.score > p.score).length;
+  const place = p => 1 + classes().filter(q => q.score > p.score).length;
   const order = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
   return `<div class="podium" style="grid-template-columns:repeat(${order.length},1fr)">${order.map(p => {
     const k = Math.min(3, place(p));
@@ -73,6 +73,7 @@ function reveal(){
   if (isMime()) return mimeReveal();
   if (isDico()) return dicoReveal() + sharedRoundNext();
   if (isDilemme()) return dilemmeReveal() + sharedRoundNext();
+  if (isQcm()) return qcmReveal();
   const r = state.room;
   return `
     <p class="role">Point pour <b>${isMe(r.winner_id) ? 'toi' : nameOf(r.winner_id)}</b> !</p>
@@ -84,8 +85,8 @@ function reveal(){
 function finished(){
   const r = state.room;
   // Priorités et Baromètre se jouent en manches comptées : plusieurs joueurs peuvent finir à égalité.
-  const top = Math.max(...state.players.map(p => p.score));
-  const best = isCounted() ? state.players.filter(p => p.score === top) : [];
+  const top = Math.max(...classes().map(p => p.score));
+  const best = isCounted() ? classes().filter(p => p.score === top) : [];
   const title = best.length > 1 ? 'Égalité !' : isMe(r.winner_id) ? 'Tu gagnes !' : nameOf(r.winner_id) + ' gagne !';
   return `
     <p class="eyebrow">Partie terminée</p>
@@ -95,7 +96,7 @@ function finished(){
       ? (best.length > 1 ? `<p class="role">${best.map(p => `<b>${isMe(p.id) ? 'Toi' : esc(p.name)}</b>`).join(', ').replace(/, ([^,]*)$/, ' et $1')} avec ${top} points.</p>` : '')
       : result()}
     ${punSection()}
-    ${state.players.length > 3 ? `<h3 class="sec">Classement final</h3>${rank()}` : ''}
+    ${classes().length > 3 ? `<h3 class="sec">Classement final</h3>${rank()}` : ''}
     ${state.me.continue_requested ? waiting(state.players.filter(p => p.active !== false && !p.continue_requested), 'C’est reparti…') : ''}
     <div class="dock">
       <button class="btn" data-act="continue" ${dis(state.me.continue_requested)}>${state.me.continue_requested ? 'En attente des autres…' : 'Refaire une partie'}</button>
