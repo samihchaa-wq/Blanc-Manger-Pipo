@@ -1,43 +1,84 @@
--- Test d'intégration du mot de passe Admin+ sur une base PostgreSQL de CI.
--- Le véritable mot de passe Admin+ n'est jamais lu, utilisé ou exposé.
+-- Separate transactional verification of AS Grinta create vs join.
+-- The Admin+ password below exists only in the isolated CI fixture.
 begin;
 do $qa$
 declare
-  joined jsonb;
-  player_token uuid;
+  creator jsonb;
+  guest jsonb;
+  rejected jsonb;
+  token_one uuid;
+  token_two uuid;
+  room_code text;
 begin
-  if has_function_privilege('anon','public.asgq_join(text,text,uuid)','EXECUTE') then
-    raise exception 'ASGQ_ADMIN_QA: old invite code still publicly executable';
+  if has_function_privilege('anon','public.asgq_join_admin_plus(text,text)','EXECUTE')
+     or has_function_privilege('anon','public.asgq_join(text,text,uuid)','EXECUTE') then
+    raise exception 'ASGQ_ADMIN_QA: obsolete entry methods remain public';
   end if;
-  if not has_function_privilege('anon','public.asgq_join_admin_plus(text,text)','EXECUTE') then
-    raise exception 'ASGQ_ADMIN_QA: Admin+ entry inaccessible';
+  if not has_function_privilege('anon','public.asgq_create(text,text)','EXECUTE')
+     or not has_function_privilege('anon','public.asgq_join_room(text,text)','EXECUTE') then
+    raise exception 'ASGQ_ADMIN_QA: expected create/join RPC permissions missing';
   end if;
-  if not (select count(*)=0 from asgq_private.players) then
-    raise exception 'ASGQ_ADMIN_QA: test base not empty';
+  if (select count(*) from asgq_private.players) <> 0 then
+    raise exception 'ASGQ_ADMIN_QA: existing players in CI fixture';
+  end if;
+
+  -- Nobody can join until an authorized host creates the only room.
+  rejected := public.asgq_join_room('00000000','Avant');
+  if rejected->>'error' not like '%pas encore été créée%' then
+    raise exception 'ASGQ_ADMIN_QA: allowed join before creation: %',rejected;
   end if;
   begin
-    perform public.asgq_join_admin_plus('BAD-TEST-PASSWORD', 'Intrus');
-    raise exception 'ASGQ_ADMIN_QA: invalid password admitted';
+    perform public.asgq_create('WRONG-PASSWORD','Intrus');
+    raise exception 'ASGQ_ADMIN_QA: wrong Admin+ password admitted';
   exception when others then
     if sqlerrm like 'ASGQ_ADMIN_QA:%' then raise; end if;
     if sqlerrm not like '%Mot de passe Admin+ incorrect%' then
-      raise exception 'ASGQ_ADMIN_QA: unexpected invalid-password error: %', sqlerrm;
+      raise exception 'ASGQ_ADMIN_QA: unexpected error: %',sqlerrm;
     end if;
   end;
   if (select count(*) from asgq_private.players) <> 0 then
-    raise exception 'ASGQ_ADMIN_QA: invalid password created a player';
+    raise exception 'ASGQ_ADMIN_QA: wrong Admin+ password created a player';
   end if;
-  joined := public.asgq_join_admin_plus('CI-TEST-ONLY-PASSWORD', 'Alban');
-  player_token := (joined->>'token')::uuid;
-  if player_token is null then
-    raise exception 'ASGQ_ADMIN_QA: valid password did not yield a token';
+
+  creator := public.asgq_create('CI-TEST-ONLY-PASSWORD','Alban');
+  room_code := creator->>'code';
+  token_one := (creator->>'token')::uuid;
+  if room_code !~ '^[0-9]{8}$' or token_one is null then
+    raise exception 'ASGQ_ADMIN_QA: invalid room creation result: %', creator;
   end if;
-  if (public.asgq_state(player_token)->'me'->>'name') <> 'Alban' then
-    raise exception 'ASGQ_ADMIN_QA: invalid session';
+  if (select count(*) from asgq_private.players)<>1 then
+    raise exception 'ASGQ_ADMIN_QA: host not part of the game';
   end if;
-  if (select count(*) from asgq_private.players) <> 1 then
-    raise exception 'ASGQ_ADMIN_QA: unexpected player count';
+  if (public.asgq_state(token_one)->>'room_code') <> room_code then
+    raise exception 'ASGQ_ADMIN_QA: room code not shared by server state';
   end if;
-  raise notice 'ASGQ_ADMIN_QA: OK (wrong password rejected, correct password joins, code unavailable)';
+  begin
+    perform public.asgq_create('CI-TEST-ONLY-PASSWORD','SecondHost');
+    raise exception 'ASGQ_ADMIN_QA: a second quiz was created';
+  exception when others then
+    if sqlerrm like 'ASGQ_ADMIN_QA:%' then raise; end if;
+    if sqlerrm not like '%existe déjà%' then
+      raise exception 'ASGQ_ADMIN_QA: second create error: %',sqlerrm;
+    end if;
+  end;
+  rejected := public.asgq_join_room('00000000','Intrus');
+  if rejected->>'error' not like '%Code de partie incorrect%' then
+    raise exception 'ASGQ_ADMIN_QA: wrong 8-digit code admitted';
+  end if;
+  guest := public.asgq_join_room(room_code,'Camille');
+  token_two := (guest->>'token')::uuid;
+  if token_two is null or guest->>'code' <> room_code then
+    raise exception 'ASGQ_ADMIN_QA: failed guest join without Admin+: %',guest;
+  end if;
+  if (public.asgq_state(token_two)->'me'->>'name') <> 'Camille' then
+    raise exception 'ASGQ_ADMIN_QA: second player state missing';
+  end if;
+  if (select count(*) from asgq_private.players)<>2 then
+    raise exception 'ASGQ_ADMIN_QA: expected exactly host + guest';
+  end if;
+  if (select starts_at is not null from asgq_private.event where id=1) then
+    raise exception 'ASGQ_ADMIN_QA: placeholder questions auto-started';
+  end if;
+  raise notice 'ASGQ_ADMIN_QA: OK (Admin+ creates once, guests join by 8-digit code, no early start)';
 end $qa$;
 rollback;
