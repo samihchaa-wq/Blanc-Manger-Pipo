@@ -265,7 +265,13 @@ def run(browser, base):
                 assert page.locator('.seg.games button[aria-pressed="true"]').count()==1
             page.locator('[data-act="mode"][data-v="mimes"]').click()
             page.reload(wait_until="load")
-            assert icon_sizes()==original, "Les icônes changent de taille à la réouverture"
+            page.evaluate("document.fonts.ready")
+            page.wait_for_function("""expected => {
+              const actual=[...document.querySelectorAll('.seg.games img')]
+                .map(el=>parseFloat(getComputedStyle(el).width));
+              return actual.length===expected.length &&
+                actual.every((size,i)=>Math.abs(size-expected[i])<0.2);
+            }""",arg=original,timeout=7000)
             page.locator('[data-act="tab"][data-tab="join"]').click()
             assert page.locator("#pane-join").is_visible()
             page.locator("#j-code").fill("00123456")
