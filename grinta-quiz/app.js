@@ -96,7 +96,7 @@ function renderJoin() {
 }
 function renderLobby(s) {
   const count = s.players.length;
-  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span></li>`).join('');
+  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
     ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', isRehearsal ? 'Ajoute des bots et lance la partie lorsque tout le monde est prêt.' : 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
     ${presenter('confident','Le vestiaire se remplit !')}
@@ -276,13 +276,15 @@ async function join(event) {
     if(button.isConnected) {button.disabled=false;button.textContent=creating?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}
   }
 }
-async function lobbyCommand(rpcName) {
+async function lobbyCommand(rpcName, botId=null) {
   if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || state.starts_at || lobbyActionBusy) return;
   lobbyActionBusy=true;
-  const button=document.querySelector(rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':'[data-start-quiz]');
+  const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':rpcName==='asgq_rehearsal_start'?'[data-start-quiz]':null;
+  const button=selector?document.querySelector(selector):Array.from(document.querySelectorAll('[data-remove-bot]')).find(el=>el.dataset.removeBot===botId);
   if (button) button.disabled=true;
   try {
-    const {data,error}=await api.rpc(rpcName,{p_token:token});
+    const args={p_token:token,...(botId?{p_bot_id:botId}:{})};
+    const {data,error}=await api.rpc(rpcName,args);
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
     signature='';
@@ -352,6 +354,8 @@ app.addEventListener('click',e=>{
     renderJoin();
     return;
   }
+  const removeBot=e.target.closest('[data-remove-bot]');
+  if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
   if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
   if(e.target.closest('[data-start-quiz]')) {void lobbyCommand('asgq_rehearsal_start');return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
