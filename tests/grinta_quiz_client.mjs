@@ -7,6 +7,7 @@ const read = p => fs.readFileSync(path.join(root,p),'utf8');
 const page=read('grinta-quiz/index.html');
 const script=read('grinta-quiz/app.js');
 const style=read('grinta-quiz/style.css');
+const home=read('js/ecrans/accueil.js');
 const db=read('supabase/migrations/20261122140000_as_grinta_quiz_preflight_guard.sql');
 
 new Function(script);
@@ -60,7 +61,6 @@ assert.match(script, /setInterval\(\(\)=>\{if\(token && !requesting\)/, 'Automat
 assert.match(script, /renderHalftime/, 'Second-half separation missing');
 assert.match(script, /renderFinished/, 'Podium missing');
 const entry=read('supabase/migrations/20261122160000_grinta_quiz_admin_plus_entry.sql');
-const home=read('js/ecrans/accueil.js');
 const salon=read('js/ecrans/salon.js');
 const commun=read('js/ecrans/commun.js');
 const room=read('supabase/migrations/20261122170000_grinta_quiz_create_and_join.sql');
