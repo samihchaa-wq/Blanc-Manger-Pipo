@@ -360,7 +360,7 @@ def run(browser, base):
         page.wait_for_url("**/grinta-quiz/?repetition=1&action=create",timeout=10000)
         assert page.locator(".rehearsal-banner").count()==1
         assert page.locator('#bots-count').count()==0
-        assert 'vestiaire' in page.locator('#join-form').inner_text().lower()
+        assert 'CRÉER LA PARTIE' in page.locator('#join-form').inner_text()
         page.locator('#player-name').fill('Alban')
         page.locator('#admin-password').fill('SECRET-TEST')
         page.locator('#join-button').click()
