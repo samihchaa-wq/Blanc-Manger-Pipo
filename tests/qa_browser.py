@@ -322,6 +322,7 @@ def run(browser, base):
     # Répétition réelle : création Admin+ avec choix des bots, sans créer le quiz officiel.
     ctx,page,errors=open_page(browser,base)
     try:
+        page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         page.locator('[data-act="create"]').click()
         page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
@@ -370,6 +371,7 @@ def run(browser, base):
     # La création est distincte de la participation et utilise l'Admin+.
     ctx,page,errors=open_page(browser,base)
     try:
+        page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         assert page.locator('[data-act="create"]').is_visible()
         page.locator('[data-act="create"]').click()
