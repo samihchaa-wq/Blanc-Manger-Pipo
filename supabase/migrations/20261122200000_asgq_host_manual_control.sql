@@ -70,7 +70,7 @@ begin
 end $fn$;
 
 -- One guarded press moves exactly one phase; stale/double requests cannot skip a question.
-create or replace function public.asgq_advance(p_token uuid,p_phase text,p_position integer)
+create or replace function public.asgq_advance(p_token uuid,p_expected_phase text,p_expected_position integer)
 returns void language plpgsql security definer set search_path = '' as $fn$
 declare
   ev asgq_private.event%rowtype;
@@ -83,7 +83,7 @@ begin
   if host_player.id is null or ev.host_token_hash is distinct from host_player.token_hash then
     raise exception 'Seul le maître du jeu peut faire avancer le quiz.';
   end if;
-  if ev.phase is distinct from p_phase or ev.current_position is distinct from p_position then return; end if;
+  if ev.phase is distinct from p_expected_phase or ev.current_position is distinct from p_expected_position then return; end if;
   if ev.phase='intro' then
     select * into q from asgq_private.questions order by position limit 1;
     if q.id is null then raise exception 'Aucune question configurée.'; end if;
@@ -229,7 +229,7 @@ begin
 end $fn$;
 
 -- One guarded press moves exactly one phase; stale/double requests cannot skip a question.
-create or replace function public.asgq_rehearsal_advance(p_token uuid,p_phase text,p_position integer)
+create or replace function public.asgq_rehearsal_advance(p_token uuid,p_expected_phase text,p_expected_position integer)
 returns void language plpgsql security definer set search_path = '' as $fn$
 declare
   ev asgq_rehearsal_private.event%rowtype;
@@ -242,7 +242,7 @@ begin
   if host_player.id is null or ev.host_token_hash is distinct from host_player.token_hash then
     raise exception 'Seul le maître du jeu peut faire avancer le quiz.';
   end if;
-  if ev.phase is distinct from p_phase or ev.current_position is distinct from p_position then return; end if;
+  if ev.phase is distinct from p_expected_phase or ev.current_position is distinct from p_expected_position then return; end if;
   if ev.phase='intro' then
     select * into q from asgq_rehearsal_private.questions order by position limit 1;
     if q.id is null then raise exception 'Aucune question configurée.'; end if;
