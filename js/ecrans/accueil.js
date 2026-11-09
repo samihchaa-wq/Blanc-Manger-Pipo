@@ -94,6 +94,19 @@ async function enter(call, name){
     const d = await call();
     // Les refus de connexion sont des réponses JSON (et non des exceptions SQL)
     // afin que le serveur puisse conserver les compteurs d'essais échoués.
+    if (d?.grinta && d?.token && d?.code) {
+      try {
+        localStorage.setItem('asgq-2026-rehearsal-participant', d.token);
+        localStorage.setItem('pdcat-name', name);
+      } catch {}
+      const url = new URL('./grinta-quiz/', location.href);
+      url.searchParams.set('repetition','1');
+      url.searchParams.set('action','join');
+      url.searchParams.set('code',d.code);
+      busy=false;
+      location.assign(url.href);
+      return;
+    }
     if (d && typeof d.error === 'string') throw Error(d.error);
     if (!d?.code || !d?.token) throw Error('Réponse du serveur invalide. Réessaie.');
     try { localStorage.setItem('pdcat-name', name) } catch {}
@@ -158,7 +171,23 @@ surAction('join', () => {
   const c = val('j-code').replace(/\D/g,''), n = val('j-name');
   if (c.length !== 4 && c.length !== 8) return toast('Le code fait 8 chiffres (ou 4 pour les anciens salons).');
   if (!n) return toast('Choisis un pseudo.');
-  return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
+  return enter(async () => {
+    let room;
+    try { room = await rpc('join_room',{ p_code:c, p_name:n }); }
+    catch (error) {
+      if (c.length !== 8) throw error;
+      room={error:error.message};
+    }
+    if (room?.code && room?.token) return room;
+    // Un code QCM à huit chiffres utilise la salle de répétition réelle.
+    // Ne l'essayer qu'après l'échec de la recherche parmi les autres mini-jeux.
+    if (c.length === 8) {
+      const quiz = await rpc('asgq_rehearsal_join_room',{p_code:c,p_name:n});
+      if (quiz?.token) return {grinta:true,code:c,token:quiz.token};
+      if (quiz?.error && quiz.error !== 'Code de partie incorrect.') return quiz;
+    }
+    return room;
+  }, n);
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'c-name' || e.target.id === 'j-name') homeName = e.target.value;
