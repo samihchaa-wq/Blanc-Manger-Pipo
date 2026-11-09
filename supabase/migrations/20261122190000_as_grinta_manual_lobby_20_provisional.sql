@@ -176,8 +176,8 @@ begin
   select * into ev from asgq_rehearsal_private.event where id=1 for update;
   if not found then raise exception 'Répétition indisponible.'; end if;
   if ev.phase not in ('lobby','finished') then raise exception 'Une répétition est en cours.'; end if;
-  delete from asgq_rehearsal_private.players;
-  delete from asgq_rehearsal_private.join_attempts;
+  delete from asgq_rehearsal_private.players where event_id=1;
+  delete from asgq_rehearsal_private.join_attempts where client_hash is not null;
   public_code := asgq_rehearsal_private.new_room_code();
   update asgq_rehearsal_private.event
     set created=true,armed=true,room_code=public_code,
@@ -253,7 +253,7 @@ grant execute on function public.asgq_rehearsal_add_bot(uuid) to anon,authentica
 grant execute on function public.asgq_rehearsal_start(uuid) to anon,authenticated;
 
 -- 20 provisional questions, split 10 + 10. No official quiz changes.
-delete from asgq_rehearsal_private.questions;
+delete from asgq_rehearsal_private.questions where position between 1 and 20;
 insert into asgq_rehearsal_private.questions(position,half,prompt,choices,correct_index,points,explanation) values
 (1,1,'Quel pays a remporté la Coupe du Monde 2018 ?',ARRAY['Allemagne','France','Argentine','Croatie']::text[],1,1,'Question provisoire : contenu à personnaliser avant la soirée.'),
 (2,1,'Quel est le sport pratiqué par l’AS Grinta ?',ARRAY['Basket','Football','Rugby','Handball']::text[],1,1,'Question provisoire : contenu à personnaliser avant la soirée.'),
