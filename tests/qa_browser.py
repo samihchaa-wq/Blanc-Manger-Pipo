@@ -281,7 +281,7 @@ def run(browser, base):
             checks+=1
         finally:ctx.close()
 
-    # Le QCM est désormais un événement unique, mais la vignette reste un choix
+    # Le QCM est un jeu de test complet : la vignette reste un choix
     # de jeu comme les autres : elle n'ouvre pas encore de nouvelle page.
     ctx,page,errors=open_page(browser,base)
     try:
@@ -294,7 +294,7 @@ def run(browser, base):
         assert page.locator('[data-act="create"]').is_visible()
         # Ce n'est que l'appui sur « Créer la partie » qui ouvre l'écran Grinta.
         page.locator('[data-act="create"]').click()
-        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
+        page.wait_for_url("**/grinta-quiz/?repetition=1&action=create",timeout=10000)
         assert page.locator('#player-name').input_value()=='Alban'
         assert page.locator('#admin-password[type="password"]').count()==1
         assert page.locator('#room-code').count()==0
@@ -305,8 +305,8 @@ def run(browser, base):
         page.locator('#room-code').fill('12345678')
         page.locator('#player-name').fill('Alban')
         page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_join_room') === true")
-        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_join_room').args")
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_join_room') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_join_room').args")
         assert args=={"p_code":"12345678","p_name":"Alban"},args
         assert page.locator('[data-act="qcm-new"]').count()==0
         # Le bouton X est accessible depuis la page de connexion, sans commencer la partie.
@@ -319,24 +319,22 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
-    # Répétition réelle : création Admin+ avec choix des bots, sans créer le quiz officiel.
+    # Partie complète de test : création Admin+, puis bots ajoutés dans le salon.
     ctx,page,errors=open_page(browser,base)
     try:
         page.locator('#c-name').fill('Alban')
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         page.locator('[data-act="create"]').click()
-        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
-        page.locator('a.rehearsal-link').click()
-        page.wait_for_url("**/grinta-quiz/?repetition=1",timeout=10000)
+        page.wait_for_url("**/grinta-quiz/?repetition=1&action=create",timeout=10000)
         assert page.locator(".rehearsal-banner").count()==1
-        assert page.locator('#bots-count option').count()==4
+        assert page.locator('#bots-count').count()==0
+        assert 'vestiaire' in page.locator('#join-form').inner_text().lower()
         page.locator('#player-name').fill('Alban')
-        page.locator('#bots-count').select_option('10')
         page.locator('#admin-password').fill('SECRET-TEST')
         page.locator('#join-button').click()
         page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_create') === true")
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
-        assert args=={"p_bots":10,"p_password":"SECRET-TEST","p_name":"Alban"},args
+        assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         assert page.locator('.rehearsal-note').count()==1
         # Même pendant les répétitions, la sortie reste disponible.
         assert page.locator('a.brand-back[href="../"]').is_visible()
@@ -375,13 +373,13 @@ def run(browser, base):
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         assert page.locator('[data-act="create"]').is_visible()
         page.locator('[data-act="create"]').click()
-        page.wait_for_url("**/grinta-quiz/?action=create",timeout=10000)
+        page.wait_for_url("**/grinta-quiz/?repetition=1&action=create",timeout=10000)
         page.locator('#player-name').fill('Alban')
         page.locator('#admin-password').fill('SECRET-TEST')
         page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_create') === true")
-        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_create').args")
-        assert args=={"p_password":"SECRET-TEST","p_name":"Alban"},args
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_create') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
+        assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         no_errors(page,errors,"qcm-creation-admin")
         checks+=1
     finally:ctx.close()
