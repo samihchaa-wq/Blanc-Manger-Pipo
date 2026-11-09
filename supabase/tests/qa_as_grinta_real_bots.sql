@@ -9,6 +9,7 @@ declare
   t uuid;
   guest_token uuid;
   code text;
+  bot_id uuid;
   phase_name text;
   idx integer;
   bot_responses integer;
@@ -39,6 +40,23 @@ begin
   if code !~ '^[0-9]{8}$' or t is null then raise exception 'ASGQ_TEST: bad creator result %',creator; end if;
   if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>5 then
     raise exception 'ASGQ_TEST: 5 server-side bots missing';
+  end if;
+  select id into bot_id from asgq_rehearsal_private.players
+    where bot_order=5;
+  perform public.asgq_rehearsal_remove_bot(t,bot_id);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>4 then
+    raise exception 'ASGQ_TEST: host cannot remove bots';
+  end if;
+  begin
+    perform public.asgq_rehearsal_remove_bot(gen_random_uuid(),
+      (select id from asgq_rehearsal_private.players where bot_order=4));
+    raise exception 'ASGQ_TEST: outsider removed a bot';
+  exception when others then
+    if sqlerrm like 'ASGQ_TEST:%' then raise; end if;
+  end;
+  perform public.asgq_rehearsal_add_bot(t);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>5 then
+    raise exception 'ASGQ_TEST: host cannot re-add bot after removal';
   end if;
   if (select created from asgq_private.event where id=1) then
     raise exception 'ASGQ_TEST: official event created by rehearsal';
