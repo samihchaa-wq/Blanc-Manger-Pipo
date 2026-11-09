@@ -22,6 +22,7 @@ let sendingAnswer = false;
 let chosenOptimistically = null;
 let noticeTimer = null;
 let lastConnectionError = false;
+let lobbyActionBusy = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
 let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 
@@ -78,7 +79,7 @@ function renderJoin() {
       ${isCreate
         ? '<label class="field"><span>MOT DE PASSE ADMIN+ (CRÉATION UNIQUEMENT)</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
         : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="•••• ••••" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
-      ${isRehearsal && isCreate ? '<label class="field"><span>NOMBRE DE BOTS</span><select id="bots-count" aria-label="Nombre de bots"><option value="2">2 bots</option><option value="5" selected>5 bots</option><option value="10">10 bots</option><option value="20">20 bots</option></select></label>' : ''}
+      ${isRehearsal && isCreate ? '<p class="muted center">Ajoute tes bots dans le vestiaire, puis lance la partie quand tu es prêt.</p>' : ''}
       <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}</button>
       <p class="muted center" style="margin:20px 0 0">${isCreate
         ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
@@ -90,14 +91,14 @@ function renderJoin() {
 }
 function renderLobby(s) {
   const count = s.players.length;
-  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}</span></li>`).join('');
+  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span></li>`).join('');
   shell(`
-    ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
+    ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', isRehearsal ? 'Ajoute des bots et lance la partie lorsque tout le monde est prêt.' : 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
     <div class="panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
       <div class="timer-line"><span class="chip">${count} JOUEUR${count>1?'S':''} CONNECTÉ${count>1?'S':''}</span><span class="eyebrow">AS GRINTA</span></div>
-      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
+      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : isRehearsal ? `<p class="muted center">20 questions provisoires · 2 mi-temps · Aucun lancement automatique.</p>${s.is_host ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || count >= 21 ? 'disabled' : ''}>+ Ajouter un bot</button><button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'Il manque 1 joueur' : 'Lancer la partie'}</button>` : '<p class="muted center">Le créateur va lancer la partie.</p>'}` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
       <div class="section-title"><span class="eyebrow">DANS LE VESTIAIRE</span></div>
       <ul class="roster">${players}</ul>
     </div>`, 'lobby');
@@ -246,7 +247,7 @@ async function join(event) {
   button.textContent=creating ? 'CRÉATION EN COURS…' : 'ENTRÉE EN COURS…';
   try {
     const rpcName=creating ? (isRehearsal ? 'asgq_rehearsal_create' : 'asgq_create') : (isRehearsal ? 'asgq_rehearsal_join_room' : 'asgq_join_room');
-    const args=creating ? {...(isRehearsal?{p_bots:Number(form.querySelector('#bots-count')?.value || 5)}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
+    const args=creating ? {...(isRehearsal?{p_bots:0}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
     const {data,error}=await api.rpc(rpcName,args);
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
@@ -264,6 +265,23 @@ async function join(event) {
     if(button.isConnected) {button.disabled=false;button.textContent=creating?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}
   }
 }
+async function lobbyCommand(rpcName) {
+  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || state.starts_at || lobbyActionBusy) return;
+  lobbyActionBusy=true;
+  const button=document.querySelector(rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':'[data-start-quiz]');
+  if (button) button.disabled=true;
+  try {
+    const {data,error}=await api.rpc(rpcName,{p_token:token});
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    signature='';
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+    if (button?.isConnected) button.disabled=false;
+  } finally { lobbyActionBusy=false; }
+}
+
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -323,6 +341,8 @@ app.addEventListener('click',e=>{
     renderJoin();
     return;
   }
+  if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
+  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand('asgq_rehearsal_start');return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
