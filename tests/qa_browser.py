@@ -331,7 +331,7 @@ def run(browser, base):
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.route("**/vendor/supabase.js",
                lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
-    page.add_init_script("localStorage.setItem('pdcat'," +
+    page.add_init_script("if (!location.pathname.includes('/grinta-quiz/')) localStorage.setItem('pdcat'," +
                          json.dumps(json.dumps({"code":"00123456","token":"host-token"})) + ");")
     page.add_init_script("window.__qaState = "+json.dumps(legacy,ensure_ascii=False)+";window.__qaWhite = null;")
     try:
