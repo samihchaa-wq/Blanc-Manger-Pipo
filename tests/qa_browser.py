@@ -41,6 +41,9 @@ window.supabase = {
         window.__qaRehearsalPhase='lobby';
         return {data:{token:'host-token',code:'00123456'},error:null};
       }
+      if (name === 'asgq_rehearsal_join_room') {
+        return {data:{token:'guest-token',code:'00123456'},error:null};
+      }
       if (name === 'asgq_rehearsal_add_bot') {
         const n=window.__qaRehearsalBots.length+1;
         const bot={id:'bot-'+n,name:'Bot '+String(n).padStart(2,'0'),is_bot:true};
