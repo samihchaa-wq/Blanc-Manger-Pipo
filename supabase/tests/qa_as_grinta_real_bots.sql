@@ -77,12 +77,12 @@ begin
     raise exception 'ASGQ_TEST: no untimed manual kickoff intro';
   end if;
   begin
-    perform public.asgq_rehearsal_next(guest_token);
+    perform public.asgq_rehearsal_advance(guest_token,(select phase from asgq_rehearsal_private.event where id=1),(select current_position from asgq_rehearsal_private.event where id=1));
     raise exception 'ASGQ_TEST: guest advanced quiz';
   exception when others then
     if sqlerrm like 'ASGQ_TEST:%' then raise; end if;
   end;
-  perform public.asgq_rehearsal_next(t);
+  perform public.asgq_rehearsal_advance(t,(select phase from asgq_rehearsal_private.event where id=1),(select current_position from asgq_rehearsal_private.event where id=1));
   state:=public.asgq_rehearsal_state(guest_token);
   if state->>'phase'<>'question' or state->'question'->>'correct' is not null
     or state->>'phase_until' is not null then
@@ -90,7 +90,7 @@ begin
   end if;
   select count(*) into bot_responses from asgq_rehearsal_private.answers a
     join asgq_rehearsal_private.players p on p.id=a.player_id where p.bot_order is not null;
-  if bot_responses<>5 then raise exception 'ASGQ_TEST: bots must answer on manual question opening'; end if;
+  if bot_responses<>0 then raise exception 'ASGQ_TEST: bots must not answer before the host reveals'; end if;
   begin
     perform public.asgq_rehearsal_answer(t,0);
     raise exception 'ASGQ_TEST: master answered own quiz';
@@ -103,14 +103,17 @@ begin
   if state->>'phase'<>'question' or state->'question'->>'my_choice'<>'0' then
     raise exception 'ASGQ_TEST: untimed answer update failed';
   end if;
-  perform public.asgq_rehearsal_next(t);
+  perform public.asgq_rehearsal_advance(t,(select phase from asgq_rehearsal_private.event where id=1),(select current_position from asgq_rehearsal_private.event where id=1));
   state:=public.asgq_rehearsal_state(t);
+  select count(*) into bot_responses from asgq_rehearsal_private.answers a
+    join asgq_rehearsal_private.players p on p.id=a.player_id where p.bot_order is not null;
+  if bot_responses<>5 then raise exception 'ASGQ_TEST: bots did not answer during manual reveal'; end if;
   if state->>'phase'<>'reveal' or jsonb_array_length(state->'standings')<>6 then
     raise exception 'ASGQ_TEST: scoring or host exclusion failed';
   end if;
   for idx in 1..80 loop
     exit when (select phase from asgq_rehearsal_private.event where id=1)='finished';
-    perform public.asgq_rehearsal_next(t);
+    perform public.asgq_rehearsal_advance(t,(select phase from asgq_rehearsal_private.event where id=1),(select current_position from asgq_rehearsal_private.event where id=1));
     state:=public.asgq_rehearsal_state(t);
     if state->>'phase'='halftime' then saw_halftime:=true; end if;
     if state->>'phase'='finished' then saw_finished:=true; end if;
