@@ -17,7 +17,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+// Versioned cache cleanup and client claiming run in the activate handler above.
 
 self.addEventListener('fetch', e => {
   const req = e.request;
