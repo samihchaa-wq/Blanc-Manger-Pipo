@@ -288,7 +288,7 @@ def run(browser, base):
         page.locator('#room-code').fill('12345678')
         page.locator('#player-name').fill('Alban')
         page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='asgq_join_room')")
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_join_room') === true")
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_join_room').args")
         assert args=={"p_code":"12345678","p_name":"Alban"},args
         assert page.locator('[data-act="qcm-new"]').count()==0
@@ -303,7 +303,7 @@ def run(browser, base):
         page.locator('#player-name').fill('Alban')
         page.locator('#admin-password').fill('SECRET-TEST')
         page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='asgq_create')")
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_create') === true")
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_create').args")
         assert args=={"p_password":"SECRET-TEST","p_name":"Alban"},args
         no_errors(page,errors,"qcm-creation-admin")
