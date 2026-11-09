@@ -94,7 +94,7 @@ function renderQuestion(s) {
     <div class="question-card" style="margin-top:22px"><div class="number">${q.points || 1} POINT${q.points > 1?'S':''} EN JEU</div><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
     <div class="response-note">${choice === null || choice === undefined ? 'Choisis ta réponse avant la fin du chrono.' : 'Réponse enregistrée. Tu peux encore changer d’avis.'}</div>
-    <div class="center muted" style="margin-top:auto">${q.answered_count || 0} / ${s.players.length} réponses reçues</div>`, 'question');
+    <div class="center muted" style="margin-top:auto"><span id="answer-counter">${q.answered_count || 0}</span> / ${s.players.length} réponses reçues</div>`, 'question');
 }
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
@@ -158,14 +158,21 @@ function updateClocks() {
   const pct = total>0 ? Math.max(0,Math.min(100,remaining/total*100)) : 0;
   const progress = document.getElementById('time-progress');
   if (progress) progress.style.width = `${pct}%`;
-  // Recover promptly if a tab's countdown reached zero while the poll is delayed.
-  if (remaining===0 && !requesting) void fetchState();
+  // The normal 1.8 s polling interval advances expired phases without RPC storms.
 }
 function renderState(force=false) {
   if (!state) return;
   const {now: serverNow, ...stable} = state;
+  // Other players' answer counts should not restart the whole screen animation.
+  if (stable.phase==='question' && stable.question) {
+    stable.question={...stable.question,answered_count:null};
+  }
   const next=JSON.stringify(stable);
-  if (!force && next===signature) return;
+  if (!force && next===signature) {
+    const counter=document.getElementById('answer-counter');
+    if(counter) counter.textContent=String(state.question?.answered_count || 0);
+    return;
+  }
   signature=next;
   switch(state.phase) {
     case 'lobby': renderLobby(state);break;
