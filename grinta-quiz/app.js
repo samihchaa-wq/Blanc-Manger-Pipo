@@ -85,7 +85,7 @@ function hostControl(s, label) {
 }
 function renderLobby(s) {
   const count=s.players.length;
-  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_host ? ' <span class="host-label">MAÎTRE DU JEU</span>' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span>${safe(p.name)}${p.is_host ? ' <span class="host-label">MAÎTRE DU JEU</span>' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
     ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
     <div class="panel lobby-panel">
@@ -98,7 +98,7 @@ function renderLobby(s) {
            <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>`
         : '<p class="muted center">En attente du maître du jeu…</p>'}
     </div>
-    <a class="quiet-link" href="../">RETOUR AUX JEUX</a>
+
   `, 'lobby');
 }
 function renderIntro(s) {
@@ -152,7 +152,7 @@ function renderFinished(s) {
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
     ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
-    <a class="quiet-link" href="../">RETOUR AUX JEUX</a>`, 'finished');
+`, 'finished');
 }
 function renderState(force=false) {
   if (!state) return;
