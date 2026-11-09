@@ -47,10 +47,10 @@ assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
 assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
 
 const manual=read('supabase/migrations/20261122200000_asgq_host_manual_control.sql');
-assert.match(manual,/create or replace function public\.asgq_advance\(p_token uuid,p_phase text,p_position integer\)/, 'Official host advance RPC missing');
-assert.match(manual,/create or replace function public\.asgq_rehearsal_advance\(p_token uuid,p_phase text,p_position integer\)/, 'Rehearsal host advance RPC missing');
+assert.match(manual,/create or replace function public\.asgq_advance\(p_token uuid,p_expected_phase text,p_expected_position integer\)/, 'Official host advance RPC missing');
+assert.match(manual,/create or replace function public\.asgq_rehearsal_advance\(p_token uuid,p_expected_phase text,p_expected_position integer\)/, 'Rehearsal host advance RPC missing');
 assert.match(manual,/ev\.host_token_hash is distinct from host_player\.token_hash/g, 'Host authentication must be enforced on server');
-assert.match(manual,/ev\.phase is distinct from p_phase or ev\.current_position is distinct from p_position/, 'Duplicate presses must not skip phases');
+assert.match(manual,/ev\.phase is distinct from p_expected_phase or ev\.current_position is distinct from p_expected_position/, 'Duplicate presses must not skip phases');
 assert.match(manual,/ev\.phase<>'question'/, 'Answers must be phase-locked, not time-locked');
 assert.match(manual,/Bots answer when the host closes the question/, 'Bot answers must be host-triggered');
 assert.match(manual,/where p\.token_hash is distinct from ev\.host_token_hash/, 'Host must be excluded from standings');
