@@ -607,7 +607,7 @@ def run(browser, base):
         pwa_ctx.set_offline(True)
         pwa.goto(base+"/",wait_until="domcontentloaded",timeout=15000)
         pwa.locator("#pane-create").wait_for(timeout=5000)
-        assert pwa.locator(".seg.games button").count()==len(GAMES),"Accueil hors ligne incomplet"
+        assert pwa.locator(".seg.games button").count()==len(GAMES)+1,"Accueil hors ligne incomplet (QCM AS Grinta compris)"
         no_horizontal_overflow(pwa,"pwa-demarrage-hors-ligne")
         no_errors(pwa,pwa_errors,"pwa-demarrage-hors-ligne")
         pwa_ctx.set_offline(False)
@@ -617,7 +617,7 @@ def run(browser, base):
         raise
     finally:
         pwa_ctx.close()
-    print(f"CHROMIUM QA OK : {checks} parcours navigateur, {len(GAMES)} jeux, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
+    print(f"CHROMIUM QA OK : {checks} parcours navigateur, {len(GAMES)} jeux classiques + QCM AS Grinta, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
 
 def main():
     handler=functools.partial(QuietHandler,directory=str(ROOT))
