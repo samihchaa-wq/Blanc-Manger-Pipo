@@ -122,16 +122,21 @@ jobs:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           REVISION: ${{ github.sha }}
         run: |
-          # Pages sometimes needs a short propagation delay; don't mistake upload for publication.
+          # Pages may also publish a branch-based build without release-info.json.
+          # Compare actual public quiz JS and CSS byte-for-byte instead.
           BASE="${PAGE_URL%/}"
           for i in $(seq 1 15); do
-            BODY="$(curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'               "$BASE/release-info.json?revision=$REVISION&attempt=$i" 2>/dev/null || true)"
-            if printf '%s' "$BODY" | grep -Fq "\"revision\":\"$REVISION\""; then
-              echo "Verified live Pages revision $REVISION at $BASE"
+            if curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' \
+              "$BASE/grinta-quiz/app.js?revision=$REVISION&attempt=$i" -o "$RUNNER_TEMP/asgq-live-app.js" \
+              && curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' \
+              "$BASE/grinta-quiz/style.css?revision=$REVISION&attempt=$i" -o "$RUNNER_TEMP/asgq-live-style.css" \
+              && cmp -s _site/grinta-quiz/app.js "$RUNNER_TEMP/asgq-live-app.js" \
+              && cmp -s _site/grinta-quiz/style.css "$RUNNER_TEMP/asgq-live-style.css"; then
+              echo "Verified public Grinta quiz assets for $REVISION at $BASE"
               exit 0
             fi
-            echo "Attempt $i: live site has not yet published $REVISION"
+            echo "Attempt $i: public Grinta JS/CSS do not yet match $REVISION"
             sleep 5
           done
-          echo "::error::GitHub Pages did not serve the new version after deployment"
+          echo "::error::GitHub Pages did not serve the matching Grinta JS and CSS after deployment"
           exit 1
