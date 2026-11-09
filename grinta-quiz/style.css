@@ -108,3 +108,9 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .roster .remove-bot{margin-left:auto;flex:none;width:31px;height:31px;border-radius:50%;border:1px solid rgba(233,191,103,.65);background:#223950;color:#fff;font-size:23px;line-height:28px;cursor:pointer}
 .roster .remove-bot:disabled{opacity:.5;cursor:default}
 .roster .remove-bot:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
+
+/* Host-only manual control: no timer or progress UI. */
+.choice.readonly{cursor:default;user-select:text}
+.host-next{margin-top:18px}
+
+.host-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(80,211,161,.14);color:var(--green);font-size:9px;font-weight:800;letter-spacing:.04em;vertical-align:middle}
