@@ -5,10 +5,19 @@
 // Stratégie « réseau d'abord » : à chaque lancement la page est retéléchargée
 // (en contournant le cache HTTP, sinon les 10 minutes de cache de GitHub Pages
 // s'appliqueraient encore), et la copie locale ne sert que hors connexion.
-const CACHE = 'soulieteur';
+const CACHE = 'soulieteur-grinta-2026-v2';
+// After updating, clear only obsolete copies owned by this application's SW.
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name === 'soulieteur' || name.startsWith('soulieteur-grinta-2026-'))
+      .filter(name => name !== CACHE).map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
+});
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+// Versioned cache cleanup and client claiming run in the activate handler above.
 
 self.addEventListener('fetch', e => {
   const req = e.request;
