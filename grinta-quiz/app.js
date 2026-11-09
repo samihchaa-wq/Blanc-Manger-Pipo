@@ -21,6 +21,8 @@ let sendingAnswer = false;
 let chosenOptimistically = null;
 let noticeTimer = null;
 let lastConnectionError = false;
+const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
+let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -56,19 +58,28 @@ function shell(html, key) {
   updateClocks();
 }
 function renderJoin() {
-  signature = 'join';
+  signature = 'join-' + entryMode;
   let savedName = '';
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
+  const isCreate = entryMode === 'create';
   shell(`
     <div class="hero"><div class="eyebrow">LA GRANDE SOIRÉE 2026</div>
       <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
       <p>Deux mi-temps. Une seule équipe. Un seul champion.</p></div>
+    <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
+      <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
+      <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
+    </div>
     <form class="panel" id="join-form" autocomplete="off">
-      <div class="eyebrow" style="margin-bottom:22px">ENTRE DANS LE VESTIAIRE</div>
+      <div class="eyebrow" style="margin-bottom:22px">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LE VESTIAIRE'}</div>
       <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ex. : Alban" autocomplete="nickname" value="${safe(savedName)}"></label>
-      <label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="access-code" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>
-      <button type="submit" class="primary" id="join-button">REJOINDRE LE QUIZ</button>
-      <p class="muted center" style="margin:20px 0 0">Le contenu reste secret jusqu'au coup d'envoi.</p>
+      ${isCreate
+        ? '<label class="field"><span>MOT DE PASSE ADMIN+ (CRÉATION UNIQUEMENT)</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
+        : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="•••• ••••" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
+      <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}</button>
+      <p class="muted center" style="margin:20px 0 0">${isCreate
+        ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
+        : 'Demande le code de salon au créateur. Aucun mot de passe Admin+ nécessaire.'}</p>
     </form>`, 'join');
 }
 function renderLobby(s) {
@@ -77,6 +88,8 @@ function renderLobby(s) {
   shell(`
     ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
     <div class="panel">
+      <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
+        <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
       <div class="timer-line"><span class="chip">${count} JOUEUR${count>1?'S':''} CONNECTÉ${count>1?'S':''}</span><span class="eyebrow">AS GRINTA</span></div>
       ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
       <div class="section-title"><span class="eyebrow">DANS LE VESTIAIRE</span></div>
@@ -202,7 +215,7 @@ async function fetchState() {
     const message=fmtError(error);
     if (/Session expirée|Session introuvable|Session inconnue/i.test(message)) {
       token=null; state=null; try{localStorage.removeItem(storeKey)}catch(_){}
-      renderJoin(); toast('Ta session a expiré. Entre de nouveau le mot de passe Admin+.');
+      renderJoin(); toast('Ta session a expiré. Rejoins de nouveau la partie.');
     } else if(!lastConnectionError) {
       lastConnectionError=true;
       toast('Connexion momentanément indisponible. Nouvelle tentative automatique.');
@@ -214,24 +227,53 @@ async function join(event) {
   event.preventDefault();
   const form=event.currentTarget;
   const button=form.querySelector('button[type=submit]');
-  if (button.disabled) return;
+  if(button.disabled) return;
   const name=form.querySelector('#player-name').value.trim();
-  const password=form.querySelector('#access-code').value.trim();
-  if (!name || !password) return;
+  const creating=entryMode==='create';
+  const password=creating ? form.querySelector('#admin-password').value : '';
+  const roomCode=creating ? '' : form.querySelector('#room-code').value.replace(/[^0-9]/g,'');
+  if(name.length<2 || (creating && !password) || (!creating && roomCode.length!==8)) {
+    return toast(creating ? 'Entre ton prénom et le code Admin+.' : 'Entre ton prénom et le code de partie à 8 chiffres.');
+  }
   button.disabled=true;
-  button.textContent='ENTRÉE EN COURS…';
+  button.textContent=creating ? 'CRÉATION EN COURS…' : 'ENTRÉE EN COURS…';
   try {
-    const {data,error}=await api.rpc('asgq_join_admin_plus',{p_password:password,p_name:name});
+    const rpcName=creating ? 'asgq_create' : 'asgq_join_room';
+    const args=creating ? {p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
+    const {data,error}=await api.rpc(rpcName,args);
     if(error) throw error;
+    if(data?.error) throw new Error(data.error);
     token=data?.token;
     if(!token) throw new Error('Session manquante.');
-    try {localStorage.setItem(storeKey,token)}catch(_){}
+    try {
+      localStorage.setItem(storeKey,token);
+      localStorage.setItem('pdcat-name',name);
+    } catch(_){}
     signature='';
     await fetchState();
   } catch(error) {
     toast(fmtError(error));
   } finally {
-    if (button.isConnected) {button.disabled=false;button.textContent='REJOINDRE LE QUIZ'}
+    if(button.isConnected) {button.disabled=false;button.textContent=creating?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}
+  }
+}
+async function shareRoom() {
+  const code=state?.room_code;
+  if(!code) return;
+  const url=new URL(location.href);
+  url.searchParams.set('code',code);
+  const message='Rejoins le Grand Quiz AS Grinta 2026 ! Code : '+code;
+  try {
+    if(navigator.share) {
+      await navigator.share({title:'Grand Quiz AS Grinta',text:message,url:url.href});
+    } else if(navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(message+' '+url.href);
+      toast('Invitation copiée.');
+    } else {
+      toast('Code à partager : '+code);
+    }
+  } catch(error) {
+    if(error?.name!=='AbortError') toast('Code à partager : '+code);
   }
 }
 async function answer(index) {
@@ -260,8 +302,20 @@ async function answer(index) {
 
 app.addEventListener('submit',e=>{if(e.target.id==='join-form') void join(e)});
 app.addEventListener('click',e=>{
+  const mode=e.target.closest('[data-entry-mode]');
+  if(mode) {
+    const name=document.getElementById('player-name')?.value.trim();
+    if(name) try { localStorage.setItem('pdcat-name',name) } catch(_){}
+    entryMode=mode.dataset.entryMode==='join'?'join':'create';
+    renderJoin();
+    return;
+  }
+  if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
+});
+app.addEventListener('input',e=>{
+  if(e.target.id==='room-code') e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,8);
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
 setInterval(updateClocks,200);
