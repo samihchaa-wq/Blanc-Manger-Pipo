@@ -39,7 +39,7 @@ begin
     raise exception 'ASGQ_QA: incomplete event started';
   exception when others then
     if sqlerrm like 'ASGQ_QA:%' then raise; end if;
-    if sqlerrm not like '%deux mi-temps ne sont pas prêtes%' then raise exception 'ASGQ_QA: wrong preflight response: %',sqlerrm; end if;
+    if sqlerrm not like '%quiz n’est pas encore prêt%' then raise exception 'ASGQ_QA: wrong preflight response: %',sqlerrm; end if;
   end;
   delete from asgq_private.questions;
   insert into asgq_private.questions(position,half,prompt,choices,correct_index,points,explanation)
@@ -75,12 +75,12 @@ begin
     raise exception 'ASGQ_QA: master reconnection failed';
   end if;
   begin
-    perform public.asgq_next(tg);
+    perform public.asgq_advance(tg,(select phase from asgq_private.event where id=1),(select current_position from asgq_private.event where id=1));
     raise exception 'ASGQ_QA: guest advanced event';
   exception when others then
     if sqlerrm like 'ASGQ_QA:%' then raise; end if;
   end;
-  perform public.asgq_next(th);
+  perform public.asgq_advance(th,(select phase from asgq_private.event where id=1),(select current_position from asgq_private.event where id=1));
   s:=public.asgq_state(tg);
   if s->>'phase'<>'question' or s->'question'->>'correct' is not null
     or s->>'phase_until' is not null or s->>'standings' is not null then
@@ -98,7 +98,7 @@ begin
   if s->>'phase'<>'question' or s->'question'->>'my_choice'<>'0' then
     raise exception 'ASGQ_QA: question closed without host or answer edit failed';
   end if;
-  perform public.asgq_next(th);
+  perform public.asgq_advance(th,(select phase from asgq_private.event where id=1),(select current_position from asgq_private.event where id=1));
   s:=public.asgq_state(tg);
   other_state:=public.asgq_state(th);
   if s->>'phase'<>'reveal' or (s->'me'->>'score')::int<>1
@@ -114,7 +114,7 @@ begin
 
   for idx in 1..80 loop
     exit when (select phase from asgq_private.event where id=1)='finished';
-    perform public.asgq_next(th);
+    perform public.asgq_advance(th,(select phase from asgq_private.event where id=1),(select current_position from asgq_private.event where id=1));
     s:=public.asgq_state(tg);
     if s->>'phase'='halftime' then saw_halftime:=true; end if;
     if s->>'phase'='finished' then saw_finish:=true; end if;
