@@ -215,7 +215,7 @@ def run(browser, base):
     for width in SIZES:
         ctx,page,errors=open_page(browser,base,width=width)
         try:
-            assert page.locator(".seg.games button").count()==len(GAMES)
+            assert page.locator(".seg.games button").count()==len(GAMES)+1
             # Les barres mobiles font varier la hauteur accordée à l'accueil.
             # Les images des jeux restent exactement de même taille en y revenant.
             def icon_sizes():
@@ -224,7 +224,7 @@ def run(browser, base):
                     "(els) => els.map(el => parseFloat(getComputedStyle(el).width))"
                 )
             original=icon_sizes()
-            assert len(original)==len(GAMES) and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
+            assert len(original)==len(GAMES)+1 and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
             # Les illustrations doivent être à nu : aucun cartouche papier, padding,
             # bordure ou ombre, même pour le jeu sélectionné.
             def tiles():
