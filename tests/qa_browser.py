@@ -161,7 +161,8 @@ def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
               width=375, height=812, invite=False):
     context=browser.new_context(viewport={"width":width,"height":height},
                                 device_scale_factor=1,
-                                reduced_motion="reduce")
+                                reduced_motion="reduce",
+                                service_workers="block")
     page=context.new_page()
     errors=[]
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -324,7 +325,7 @@ def run(browser, base):
 
     # Un ancien salon QCM déjà ouvert est redirigé à la nouvelle porte d'entrée.
     legacy, _ = fixture("qcm")
-    ctx = browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce")
+    ctx = browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
     page = ctx.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -344,7 +345,7 @@ def run(browser, base):
     finally:ctx.close()
 
     # Un lien d'invitation sélectionne « Rejoindre » et pré-remplit le code.
-    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce")
+    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
     page=ctx.new_page()
     errors=[]
     page.on("pageerror",lambda e:errors.append(str(e)))
