@@ -105,10 +105,10 @@ async function enter(call, name){
 }
 
 // Le QCM n'est plus un salon du Soulieteur : c'est l'événement AS Grinta unique.
-function ouvrirGrintaQuiz(remplacer = false, onglet = 'create'){
+function ouvrirGrintaQuiz(remplacer = false, onglet = null){
   // Comme les autres jeux : la vignette ne lance rien. Seul « Créer la partie » ouvre le QCM.
   const url = new URL('./grinta-quiz/', location.href);
-  url.searchParams.set('action', onglet === 'join' ? 'join' : 'create');
+  if (onglet) url.searchParams.set('action', onglet === 'join' ? 'join' : 'create');
   if (remplacer) location.replace(url.href);
   else location.assign(url.href);
 }
