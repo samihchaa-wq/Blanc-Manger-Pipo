@@ -131,6 +131,18 @@ begin
      or (select count(*) from asgq_rehearsal_private.answers)<>0 then
     raise exception 'ASGQ_TEST: rehearsal reset failed';
   end if;
+  -- Roster test: 20 bots, removal of number 1, and successful re-addition.
+  for idx in 3..20 loop perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid); end loop;
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>20 then
+    raise exception 'ASGQ_TEST: could not reach 20 bots';
+  end if;
+  select id into bot_id from asgq_rehearsal_private.players where bot_order=1;
+  perform public.asgq_rehearsal_remove_bot((creator->>'token')::uuid,bot_id);
+  perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>20
+    or not exists (select 1 from asgq_rehearsal_private.players where bot_order=1) then
+    raise exception 'ASGQ_TEST: bot numbers were not reusable';
+  end if;
   if (select count(*) from asgq_private.players)<>0
      or (select armed from asgq_private.event where id=1) then
     raise exception 'ASGQ_TEST: production event modified by rehearsal';
