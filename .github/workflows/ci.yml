@@ -71,6 +71,8 @@ jobs:
           bash tests/sql/check_concurrency.sh "${{ job.services.postgres.id }}"
       - name: QCM de bout en bout et non-régression des autres jeux (PostgreSQL)
         run: bash tests/sql/qcm_schema.sh "${{ job.services.postgres.id }}"
+      - name: Grand Quiz AS Grinta — paquet privé de questions
+        run: node tests/asgq-question-pack.test.mjs
       - name: Grand Quiz AS Grinta — contrôles de l'interface
         run: node tests/grinta_quiz_client.mjs
       - name: Grand Quiz AS Grinta — deux mi-temps sur PostgreSQL

@@ -67,6 +67,8 @@ jobs:
         run: |
           cat tests/sql/concurrency_fixtures.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           bash tests/sql/check_concurrency.sh "${{ job.services.postgres.id }}"
+      - name: Grand Quiz AS Grinta — paquet privé de questions
+        run: node tests/asgq-question-pack.test.mjs
       - name: Grand Quiz AS Grinta — intégrité et confidentialité
         run: node tests/grinta_quiz_client.mjs
       - name: Grand Quiz AS Grinta — parcours complet PostgreSQL
