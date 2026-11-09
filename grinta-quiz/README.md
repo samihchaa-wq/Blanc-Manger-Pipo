@@ -5,7 +5,7 @@ A **single-use**, smartphone-only quiz. No show control panel, no separate spect
 ## Session
 
 1. A guest opens `/grinta-quiz/` and provides the code shown at the event + a nickname.
-2. After the second guest joins, a 2-minute automatic lobby countdown starts.
+2. The event stays safely in its lobby until both halves contain 10–20 validated real questions **and** the event has been armed in the restricted database before the evening. Once armed, the second guest starts a 2-minute automatic lobby countdown.
 3. A 7-second kickoff intro plays, then the first half begins.
 4. The server advances every 25-second question to a 9-second answer reveal and awards points exactly once.
 5. At the boundary between half 1 and half 2, a 40-second halftime/rankings screen appears.
@@ -32,6 +32,17 @@ select plaintext_code from asgq_private.invitation where event_id = 1;
 
 To load the final 2 halves, replace the placeholder rows from a restricted SQL editor while the event is still in `lobby`, maintaining an increasing `position` and consistent halves; the first 10–20 positions should have `half = 1`, followed by 10–20 with `half = 2`.
 
+**The current placeholder data is NOT launchable.** Before sharing the invitation code:
+
+1. Replace the four technical example questions with 10–20 actual questions for each half using the restricted database SQL editor. Use consecutive positions `1..N`, put all AS Grinta questions first (`half = 1`) and all football-general questions afterward (`half = 2`).
+2. Verify `select asgq_private.ready_for_kickoff();` returns `true`.
+3. Arm the prepared event **once, before the evening** (not during play): `update asgq_private.event set armed = true where id = 1 and phase = 'lobby';`
+4. Invite everyone using the secret code. Once two participants enter, countdown and the entire game run without an operator.
+
+The client shows a preparation message before arming; no admin UI or game controls are visible to the players.
+
+**Continuous regression checks:** `node tests/grinta_quiz_client.mjs` plus `bash tests/sql/grinta_quiz_schema.sh <postgres-container-id>`, both executed in GitHub CI. The PostgreSQL QA script creates fake participants and 20 fake questions inside a transaction that is rolled back, so no rehearsal data remains.
+
 There is **no restart / reset control in the player UI**. Test with a transactional database rollback or a separate test environment before announcing the real code; after a full rehearsal, reset the event and test participants in a restricted SQL session. Do not reset an active real game.
 
 ## Checks before release
@@ -44,4 +55,4 @@ There is **no restart / reset control in the player UI**. Test with a transactio
 - After the last first-half question the halftime screen appears, then the next half, then the final podium.
 - Test with 15–30 simultaneous phones, iOS Safari and Android Chrome, including background/foreground restoration.
 
-**Current status:** V1 scaffold, no real questions and no live event verification yet. Avoid distributing the invitation code until the full end-to-end test has passed.
+**Current status:** V1 implemented, automated front-end and SQL full-game tests green; the public quiz is deliberately locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Avoid distributing the invitation code until the full end-to-end test has passed.
