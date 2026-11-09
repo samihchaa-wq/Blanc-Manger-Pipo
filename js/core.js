@@ -52,7 +52,7 @@ const GAMES = {
     desc:["Le meneur choisit le début d’un dilemme.","Chacun le complète après « mais » pour atteindre sa cible secrète de votes Oui.","Répondez Oui ou Non aux dilemmes des autres."] },
   dico:      { name:'Le Dico', cat:'ecrire', pitch:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
     desc:["Le meneur choisit un mot du dictionnaire et le lit à voix haute.","Les autres inventent chacun une définition.","Le meneur lit toutes les définitions, mélangées à la vraie.","Votez pour celle que vous pensez correcte."] },
-  qcm:       { name:'QCM', cat:'ambiance', pitch:'Grand Quiz AS Grinta 2026 : deux mi-temps sur ton téléphone.',
+  qcm:       { name:'QCM', cat:'ambiance', pitch:'AS Grinta 2026 · 20 questions provisoires · animateur photo · bots à ajouter dans le vestiaire.',
     desc:["Un seul quiz pour la soirée AS Grinta.","Code Admin+ demandé à l'entrée.","Deux mi-temps, scores et podium automatiques."] },
 };
 // Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
