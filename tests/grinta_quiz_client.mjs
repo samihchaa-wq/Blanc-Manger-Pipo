@@ -35,15 +35,21 @@ const lobbyMigration=read('supabase/migrations/20261122190000_as_grinta_manual_l
 assert.match(lobbyMigration, /ev\.manual_started and ev\.created/, 'Do not auto-start with bots');
 assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_add_bot/, 'Secure add bot RPC missing');
 assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_start/, 'Secure manual kickoff RPC missing');
+assert.match(lobbyMigration, /delete from asgq_rehearsal_private\.players where event_id=1/, 'Rehearsal reset must limit player deletion to its event');
+assert.match(lobbyMigration, /delete from asgq_rehearsal_private\.join_attempts where client_hash is not null/, 'Rehearsal reset must not run unrestricted deletes');
+assert.doesNotMatch(lobbyMigration, /delete from asgq_rehearsal_private\.[a-z_]+\s*;/i, 'Every rehearsal DELETE must have a WHERE clause');
+assert.doesNotMatch(script, /Ajoute tes bots dans le vestiaire|Les 20 questions sont réservées/, 'Do not clutter mobile game screens with explanatory copy');
+
 assert.match(read('js/ecrans/accueil.js'), /repetition.*'1'/, 'The normal QCM create path must be repeatable until finalized');
 assert.match(script, /asgq_rehearsal_state/, 'Test must read server-side state');
 assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to server');
 assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
 assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
 
-const presenterImage = style.match(new RegExp('data:image/webp;base64,([A-Za-z0-9+/=]+)'));
-assert.ok(presenterImage, 'Uploaded presenter photos are not embedded in the game');
-assert.ok(presenterImage[1].length > 7500 && presenterImage[1].length % 4 === 0, 'Presenter atlas truncated');
+const presenterAsset=path.join(root,'grinta-quiz/presenter-atlas.png');
+assert.ok(fs.statSync(presenterAsset).size > 25000, 'Original transparent presenter PNG missing');
+assert.match(style, /presenter-atlas\.png/, 'Presenter CSS must use PNG with alpha');
+assert.doesNotMatch(style, /data:image\/webp;base64|\.presenter-photo\{[^}]*background-color:#fff/, 'No compressed white-backed presenter thumbnail');
 for (const pose of ['thinking','excited','surprised','confident','puzzled','facepalm','victory','question']) {
   assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
 }

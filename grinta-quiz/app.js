@@ -46,8 +46,10 @@ function toast(message) {
   noticeTimer = setTimeout(() => notice.classList.remove('visible'), 3500);
 }
 function fmtError(error) {
-  const e = error?.message || 'Connexion impossible.';
-  return e.replace(/^JSON object requested, multiple \(or no\) rows returned.*/,'Session introuvable.');
+  const message=String(error?.message || '');
+  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
+  if (/DELETE requires a WHERE clause|SQL|PostgREST|PGRST\d|syntax error|permission denied|relation .* does not exist|violates .* constraint/i.test(message)) return 'Impossible de terminer cette action. Réessaie.';
+  return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
 // Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
 const presenter = (pose, message='') =>
@@ -70,112 +72,98 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    <div class="hero"><div class="eyebrow">${isRehearsal?'RÉPÉTITION · BOTS RÉELS':'LA GRANDE SOIRÉE 2026'}</div>
-      <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
-      <p>${isRehearsal?'Teste le vrai moteur du quiz contre des bots. Chronomètre, réponses, classement et podium synchronisés côté serveur.':'Deux mi-temps. Une seule équipe. Un seul champion.'}</p></div>
-    ${presenter('thinking','Prêt pour le coup d’envoi ?')}
+    <div class="hero hero-compact"><h1>LE GRAND <span class="gold">QUIZ</span></h1></div>
+    ${presenter('thinking')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
     </div>
-    <form class="panel" id="join-form" autocomplete="off">
-      <div class="eyebrow" style="margin-bottom:22px">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LE VESTIAIRE'}</div>
-      <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ex. : Alban" autocomplete="nickname" value="${safe(savedName)}"></label>
+    <form class="panel join-panel" id="join-form" autocomplete="off">
+      <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ton prénom" autocomplete="nickname" value="${safe(savedName)}"></label>
       ${isCreate
-        ? '<label class="field"><span>MOT DE PASSE ADMIN+ (CRÉATION UNIQUEMENT)</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
-        : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="•••• ••••" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
-      ${isRehearsal && isCreate ? '<p class="muted center">Ajoute tes bots dans le vestiaire, puis lance la partie quand tu es prêt.</p>' : ''}
-      <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}</button>
-      <p class="muted center" style="margin:20px 0 0">${isCreate
-        ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
-        : 'Demande le code de salon au créateur. Aucun mot de passe Admin+ nécessaire.'}</p>
+        ? '<label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
+        : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="8 chiffres" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
+      <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE'}</button>
+      ${isCreate ? '<p class="entry-hint">Admin+ : création uniquement</p>' : ''}
     </form>
-    ${isRehearsal
-      ? '<div class="rehearsal-note"><p><strong>Partie de répétition :</strong> des bots répondent réellement dans la base de test. Les 20 questions sont réservées à la répétition, pas celles de la soirée.</p><a href="./">RETOUR AU QUIZ OFFICIEL</a></div>'
-      : '<div class="rehearsal-note"><p>Tu veux essayer le quiz sans consommer la partie officielle ?</p><a class="rehearsal-link" href="./?repetition=1">TESTER AVEC DES BOTS</a></div>'}`, 'join');
+    ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
+  `, 'join');
 }
 function renderLobby(s) {
-  const count = s.players.length;
-  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const count=s.players.length;
+  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
-    ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', isRehearsal ? 'Ajoute des bots et lance la partie lorsque tout le monde est prêt.' : 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
-    ${presenter('confident','Le vestiaire se remplit !')}
-    <div class="panel">
+    <div class="hero hero-compact"><h2>VESTIAIRE</h2></div>
+    ${presenter('confident')}
+    <div class="panel lobby-panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
-      <div class="timer-line"><span class="chip">${count} JOUEUR${count>1?'S':''} CONNECTÉ${count>1?'S':''}</span><span class="eyebrow">AS GRINTA</span></div>
-      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : isRehearsal ? `<p class="muted center">20 questions provisoires · 2 mi-temps · Aucun lancement automatique.</p>${s.is_host ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ Ajouter un bot</button><button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'Il manque 1 joueur' : 'Lancer la partie'}</button>` : '<p class="muted center">Le créateur va lancer la partie.</p>'}` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
-      <div class="section-title"><span class="eyebrow">DANS LE VESTIAIRE</span></div>
+      <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
       <ul class="roster">${players}</ul>
-    </div>`, 'lobby');
+      ${s.starts_at ? timerLine('DÉPART DANS') : isRehearsal
+        ? s.is_host
+          ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>
+            <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'AJOUTE UN JOUEUR' : 'LANCER LA PARTIE'}</button>`
+          : '<p class="muted center">En attente du créateur…</p>'
+        : '<p class="muted center">En attente du coup d’envoi…</p>'}
+    </div>
+    <a class="quiet-link" href="../">RETOUR AUX JEUX</a>
+  `, 'lobby');
 }
 function renderIntro(s) {
-  shell(`${headerText('ÇA COMMENCE', 'PREMIÈRE <span class="gold">MI-TEMPS</span>', 'AS Grinta. Prépare ton meilleur niveau.')}
-    ${presenter('cheer','C’est parti !')}
-    <div class="panel center"><div class="metric"><span>COUP D’ENVOI DANS</span><div class="number" id="clock">--</div><span>La première question arrive automatiquement.</span></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
+  shell(`<div class="hero hero-compact"><h2>1RE MI-TEMPS</h2></div>
+    ${presenter('cheer')}
+    <div class="panel center"><div class="metric"><div class="number" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
 }
 function renderQuestion(s) {
-  const q = s.question || {};
-  const choice = chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
-  const choices = (q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const q=s.question || {};
+  const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
+  const choices=(q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
     ${timerLine('TEMPS RESTANT')}
-    ${presenter('question','À toi de jouer !')}
-    <div class="question-card" style="margin-top:22px"><div class="number">${q.points || 1} POINT${q.points > 1?'S':''} EN JEU</div><h2>${safe(q.text)}</h2></div>
+    ${presenter('question')}
+    <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
-    <div class="response-note">${choice === null || choice === undefined ? 'Choisis ta réponse avant la fin du chrono.' : 'Réponse enregistrée. Tu peux encore changer d’avis.'}</div>
-    <div class="center muted" style="margin-top:auto"><span id="answer-counter">${q.answered_count || 0}</span> / ${s.players.length} réponses reçues</div>`, 'question');
+    <p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`, 'question');
 }
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
 }
 function renderReveal(s) {
-  const q = s.question || {};
-  const success = q.my_choice === q.correct;
-  const answered = q.my_choice !== null && q.my_choice !== undefined;
-  const choices = (q.choices || []).map((answer,i)=> {
-    const correct = i === q.correct;
-    const mineWrong = q.my_choice === i && !correct;
-    const cls = correct?'correct':mineWrong?'wrong':'dim';
-    return `<div class="choice ${cls}" role="listitem"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`;
-  }).join('');
-  const verdict = success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'TEMPS ÉCOULÉ';
-  const outcome = `<div class="result-status ${success?'good':'bad'}">${verdict}</div>
-    <div class="score-gain">+${q.earned ?? 0} POINT${q.earned === 1?'':'S'}</div>`;
-  shell(`<div class="kicker"><span>RÉSULTAT · ${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${presenter(success?'excited':answered?'facepalm':'surprised', success?'Bien joué !':answered?'On fera mieux !':'Trop tard !')}
-    <div class="panel center" style="margin-bottom:16px">${outcome}<p class="muted">${safe(q.text)}</p></div>
-    <div class="choices" role="list" style="margin-top:0">${choices}</div>
-    ${q.explanation ? `<p class="muted">${safe(q.explanation)}</p>` : ''}
-    <div class="section-title"><span class="eyebrow">CLASSEMENT PROVISOIRE</span></div>
-    <div class="panel" style="padding:8px 18px"><ol class="small-list">${rankingRows(s)}</ol></div>
-    ${timerLine('QUESTION SUIVANTE DANS')}`, 'reveal');
+  const q=s.question || {};
+  const success=q.my_choice === q.correct;
+  const answered=q.my_choice !== null && q.my_choice !== undefined;
+  const verdict=success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'TEMPS ÉCOULÉ';
+  shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
+    ${presenter(success?'excited':answered?'facepalm':'surprised')}
+    <div class="result-status ${success?'good':'bad'}">${verdict}</div>
+    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong><b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b></div>
+    <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
+    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
+    ${timerLine('SUITE DANS')}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`${headerText('45 MINUTES · MI-TEMPS', 'PAUSE <span class="gold">VESTIAIRE</span>', 'Place au classement de la première partie.')}
-    ${presenter('puzzled','Qui sera champion ?')}
-    <div class="panel"><span class="eyebrow">LE CLASSEMENT À LA PAUSE</span><ol class="small-list" style="margin-top:16px">${rankingRows(s,30)}</ol>
-    ${timerLine('REPRISE DANS')}</div>
-    <p class="muted center">La deuxième mi-temps portera sur le football en général.</p>`, 'halftime');
+  shell(`<div class="hero hero-compact"><h2>MI-TEMPS</h2></div>
+    ${presenter('puzzled')}
+    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol>
+      ${timerLine('REPRISE DANS')}</div>`, 'halftime');
 }
 function renderFinished(s) {
-  const top = (s.standings||[]).slice(0,3);
-  const order = top.length >= 3 ? [top[1],top[0],top[2]] : top.length===2?[top[1],top[0]]:top;
-  const podium = order.map(p=> {
+  const top=(s.standings||[]).slice(0,3);
+  const order=top.length >= 3 ? [top[1],top[0],top[2]] : top.length===2?[top[1],top[0]]:top;
+  const podium=order.map(p=> {
     const position=top.indexOf(p)+1;
     const tier=position===1?'first':position===3?'third':'';
     return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
   }).join('');
-  shell(`${headerText('COUP DE SIFFLET FINAL', 'LE GRAND <span class="gold">VAINQUEUR</span>', 'Le quiz est terminé. Voici le verdict du vestiaire.')}
-    ${presenter('victory','Quel match !')}
-    <div class="panel center"><div class="eyebrow">CHAMPION DU GRAND QUIZ 2026</div>
-      <h2 class="display" style="font-size:clamp(42px,12vw,69px);color:var(--gold);margin:13px 0">${safe(top[0]?.name || 'AS Grinta')}</h2>
-      <div class="podium">${podium}</div>
-    </div>
+  shell(`<div class="hero hero-compact"><h2>PODIUM</h2></div>
+    ${presenter('victory')}
+    <h2 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h2>
+    <div class="podium">${podium}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
-    <div class="panel" style="padding:8px 18px"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    <p class="muted center">Merci à tous les joueurs de l'AS Grinta.</p>
-    ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE RÉPÉTITION</button>' : ''}`, 'finished');
+    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
+    ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
+    <a class="quiet-link" href="../">RETOUR AUX JEUX</a>`, 'finished');
 }
 function updateClocks() {
   if (!state) return;
