@@ -57,7 +57,7 @@ const GAMES = {
 // Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
 const CATEGORIES = [['cartes','Cartes'],['ecrire','À l’écrit'],['table','Autour de la table'],['ambiance','Ambiance']];
 // Dernier jeu choisi sur ce téléphone : une nouvelle partie le reprend.
-const dernierJeu = () => { try { const j = localStorage.getItem('pdcat-jeu'); return GAMES[j] && j !== 'qcm' ? j : 'phrases' } catch { return 'phrases' } };
+const dernierJeu = () => { try { const j = localStorage.getItem('pdcat-jeu'); return GAMES[j] ? j : 'phrases' } catch { return 'phrases' } };
 const retenirJeu = j => { try { localStorage.setItem('pdcat-jeu', j) } catch {} };
 
 // Les boutons portent data-act : chaque écran déclare ses actions ici, et un
