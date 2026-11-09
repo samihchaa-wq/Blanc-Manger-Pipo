@@ -105,8 +105,10 @@ async function enter(call, name){
 }
 
 // Le QCM n'est plus un salon du Soulieteur : c'est l'événement AS Grinta unique.
-function ouvrirGrintaQuiz(){
-  location.assign(new URL('./grinta-quiz/', location.href).href);
+function ouvrirGrintaQuiz(remplacer = false){
+  const url = new URL('./grinta-quiz/', location.href).href;
+  if (remplacer) location.replace(url);
+  else location.assign(url);
 }
 
 /* ---------- Actions ---------- */
