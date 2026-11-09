@@ -8,6 +8,21 @@ const page=read('grinta-quiz/index.html');
 const script=read('grinta-quiz/app.js');
 const style=read('grinta-quiz/style.css');
 const db=read('supabase/migrations/20261122140000_as_grinta_quiz_preflight_guard.sql');
+const demoPage=read('grinta-quiz/demo.html');
+const demo=read('grinta-quiz/demo.js');
+const demoStyle=read('grinta-quiz/demo.css');
+new Function(demo);
+assert.match(script, /href="\.\/demo\.html"/, 'One-click demo missing from live entry');
+assert.match(demoPage, /\.\/demo\.js/, 'Demo script missing from separate page');
+assert.match(demoPage, /\.\/style\.css/, 'Demo should reuse real visual design');
+assert.match(demoPage, /\.\/demo\.css/, 'Demo warning layout missing');
+assert.match(demo, /data-demo-answer/, 'Demo cannot answer');
+assert.match(demo, /phase==='halftime'/, 'Demo missing halftime');
+assert.match(demo, /phase==='finished'/, 'Demo missing podium');
+assert.match(demo, /data-demo-next/, 'Demo cannot skip phases for reviewing');
+assert.match(demoStyle, /demo-banner/, 'Demo state must be clearly labeled');
+assert.doesNotMatch(demoPage+demo, /supabase\.js|\.rpc\(|fetch\(|createClient\(|XMLHttpRequest|localStorage\.setItem/,
+  'Demo must not read or write the live backend or stored session');
 
 new Function(script);
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
