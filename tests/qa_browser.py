@@ -251,7 +251,7 @@ def run(browser, base):
             assert icon_sizes()==original, "Changer de jeu ne doit pas redimensionner les icônes"
             # Vérifier chaque jeu, y compris les descriptions les plus longues :
             # aucun changement de hauteur du descriptif ne doit déplacer la grille.
-            for mode in GAMES:
+            for mode in (g for g in GAMES if g != 'qcm'):
                 page.locator(f'[data-act="mode"][data-v="{mode}"]').click()
                 after=tiles()
                 clean(after)
@@ -273,6 +273,29 @@ def run(browser, base):
             no_errors(page,errors,f"accueil-{width}")
             checks+=1
         finally:ctx.close()
+
+    # Le QCM est désormais un événement unique : choix direct, sans salon ni catalogue.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#access-code[type="password"]').count()==1
+        assert "ADMIN+" in page.locator("main").inner_text()
+        assert page.locator('[data-act="qcm-new"]').count()==0
+        no_errors(page,errors,"qcm-acces-as-grinta")
+        checks+=1
+    finally:ctx.close()
+
+    # Changer de jeu depuis un salon ne crée pas non plus de QCM générique.
+    ctx,page,errors=open_page(browser,base,game="phrases")
+    try:
+        page.locator('[data-act="game-pick"]').click()
+        page.locator('[data-act="set-game"][data-v="qcm"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#access-code[type="password"]').count()==1
+        no_errors(page,errors,"qcm-depuis-salon")
+        checks+=1
+    finally:ctx.close()
 
     # Sur tous les jeux, affichage vrai CSS et DOM du salon (hôte et invité).
     for game in GAMES:
