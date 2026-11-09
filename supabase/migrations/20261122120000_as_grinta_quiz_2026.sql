@@ -204,7 +204,9 @@ begin
   if encode(extensions.digest('asgq:' || normalized_code, 'sha256'),'hex') <> ev.code_hash then
     raise exception 'Code d’entrée incorrect.';
   end if;
-  if ev.phase <> 'lobby' then raise exception 'Le quiz a déjà commencé.'; end if;
+  if ev.phase <> 'lobby' or (ev.starts_at is not null and clock_timestamp() >= ev.starts_at) then
+    raise exception 'Le quiz a déjà commencé.';
+  end if;
   if (select count(*) from asgq_private.players)>=ev.max_players then raise exception 'Le vestiaire est complet.'; end if;
   clean_name := btrim(regexp_replace(coalesce(p_name,''),'\s+',' ','g'));
   if char_length(clean_name) < 2 or char_length(clean_name) > 22 then raise exception 'Prénom : entre 2 et 22 caractères.'; end if;
