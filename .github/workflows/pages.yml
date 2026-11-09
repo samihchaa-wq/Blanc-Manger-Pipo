@@ -117,7 +117,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Verify the published quiz assets match this release
+      - name: Check that the new version is actually served
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           REVISION: ${{ github.sha }}
