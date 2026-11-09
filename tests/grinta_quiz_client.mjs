@@ -68,7 +68,7 @@ for (const pose of ['thinking','excited','surprised','confident','puzzled','face
   assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
 }
 assert.match(script, /success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
-assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
+assert.match(script, /stage\('<h2>PODIUM<\/h2>','victory'/, 'Presenter should congratulate finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
