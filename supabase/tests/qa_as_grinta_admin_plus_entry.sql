@@ -9,6 +9,7 @@ declare
   token_one uuid;
   token_two uuid;
   room_code text;
+  i integer;
 begin
   if has_function_privilege('anon','public.asgq_join_admin_plus(text,text)','EXECUTE')
      or has_function_privilege('anon','public.asgq_join(text,text,uuid)','EXECUTE') then
@@ -75,6 +76,20 @@ begin
   end if;
   if (select count(*) from asgq_private.players)<>2 then
     raise exception 'ASGQ_ADMIN_QA: expected exactly host + guest';
+  end if;
+  -- A whole football squad may share one public IP behind the clubhouse Wi-Fi.
+  -- All 30 players must be able to join using the exact same code/client hash.
+  for i in 3..30 loop
+    guest := public.asgq_join_room(room_code,'Grinta_'||i);
+    if guest->>'token' is null then
+      raise exception 'ASGQ_ADMIN_QA: player % blocked on shared Wi-Fi: %',i,guest;
+    end if;
+  end loop;
+  if (select count(*) from asgq_private.players)<>30 then
+    raise exception 'ASGQ_ADMIN_QA: a full 30-player roster cannot join';
+  end if;
+  if (select failures from asgq_private.join_attempts where client_hash='grinta-ci-user') <> 1 then
+    raise exception 'ASGQ_ADMIN_QA: failed code attempts were not counted';
   end if;
   if (select starts_at is not null from asgq_private.event where id=1) then
     raise exception 'ASGQ_ADMIN_QA: placeholder questions auto-started';
