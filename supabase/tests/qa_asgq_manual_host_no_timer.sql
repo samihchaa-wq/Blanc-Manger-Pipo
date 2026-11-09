@@ -45,10 +45,10 @@ begin
   -- A complete dummy question set exists only in this transaction.
   delete from asgq_private.questions where position between 1 and 40;
   insert into asgq_private.questions(position,half,prompt,choices,correct_index,points,explanation)
-    select i,case when i<=10 then 1 else 2 end,
-      'Validation SQL question '||i,
+    select gs.num,case when gs.num<=10 then 1 else 2 end,
+      'Validation SQL question '||gs.num,
       array['Choix 1','Choix 2','Choix 3','Choix 4']::text[],0,1,'Test'
-    from generate_series(1,20) as i;
+    from generate_series(1,20) as gs(num);
   update asgq_private.event set armed=true where id=1;
   s:=public.asgq_state(host_token);
   if s->>'phase'<>'lobby' then raise exception 'MANUAL_QA: countdown started from a poll'; end if;
@@ -105,11 +105,6 @@ begin
   if not saw_halftime or public.asgq_state(host_token)->>'phase'<>'finished' then
     raise exception 'MANUAL_QA: no manual halftime/podium';
   end if;
-  if (select score from asgq_private.players where id=(guest->>'player_id')::uuid) is null then
-    -- The join response may not expose player_id; the state score was already verified.
-    null;
-  end if;
-
   practice_host:=public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Maître',0);
   practice_token:=(practice_host->>'token')::uuid;
   practice_guest:=public.asgq_rehearsal_join_room(practice_host->>'code','Invité');
