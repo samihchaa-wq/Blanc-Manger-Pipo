@@ -25,6 +25,12 @@ assert.match(script, /data-add-bot/, 'No add-bot lobby button');
 assert.match(script, /data-start-quiz/, 'No manual kickoff');
 assert.match(script, /asgq_rehearsal_add_bot/, 'Bot RPC missing');
 assert.match(script, /asgq_rehearsal_start/, 'Host launch RPC missing');
+assert.match(script, /asgq_rehearsal_remove_bot/, 'Bot removal RPC missing');
+assert.match(script, /data-remove-bot/, 'Missing remove-bot button in roster');
+const removeMigration=read('supabase/migrations/20261122191000_asgq_remove_bot_before_kickoff.sql');
+assert.match(removeMigration, /host_token_hash is distinct from host_player\.token_hash/, 'Remove bot must be host-only');
+assert.match(removeMigration, /bot_player\.bot_order is null/, 'Cannot remove real players via bot control');
+
 const lobbyMigration=read('supabase/migrations/20261122190000_as_grinta_manual_lobby_20_provisional.sql');
 assert.match(lobbyMigration, /ev\.manual_started and ev\.created/, 'Do not auto-start with bots');
 assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_add_bot/, 'Secure add bot RPC missing');
