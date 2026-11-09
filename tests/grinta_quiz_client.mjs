@@ -54,7 +54,7 @@ for (const pose of ['thinking','excited','surprised','confident','puzzled','face
   assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
 }
 assert.match(script, /s\.is_host\?'confident':success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
-assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
+assert.match(script, /stage\('<h2>PODIUM<\/h2>', 'victory'/, 'Presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-host-action="start"/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
@@ -100,8 +100,8 @@ assert.match(db, /ev\.armed and asgq_private\.ready_for_kickoff\(\)/, 'Cannot ar
 assert.doesNotMatch(page+script+style, /sb_secret_|service_role|private[_-]?key/i, 'Never expose privileged secrets');
 assert.doesNotMatch(page+script+style, /QUESTION DE TEST|Réponse A \(test\)/i, 'Do not ship test questions to browsers');
 const manual=read('supabase/migrations/20261122200000_asgq_host_manual_flow.sql');
-assert.match(manual, /create or replace function asgq_private\.tick\(\)[\s\S]*?Intentionally inert/, 'Official quiz must never auto-advance');
-assert.match(manual, /create or replace function asgq_rehearsal_private\.tick\(\)[\s\S]*?Intentionally inert/, 'Bot rehearsal must never auto-advance');
+assert.match(manual, /create or replace function asgq_private\.tick\(\)[\s\S]*?return;/i, 'Official quiz must never auto-advance');
+assert.match(manual, /create or replace function asgq_rehearsal_private\.tick\(\)[\s\S]*?return;/i, 'Bot rehearsal must never auto-advance');
 assert.match(manual, /public\.asgq_advance\(p_token uuid, p_expected_phase text, p_expected_position integer\)/, 'Official host progression RPC missing');
 assert.match(manual, /public\.asgq_rehearsal_advance\(p_token uuid, p_expected_phase text, p_expected_position integer\)/, 'Bot rehearsal host progression RPC missing');
 assert.match(manual, /public\.asgq_start\(p_token uuid\)/, 'Official kickoff must be manual');
@@ -109,7 +109,7 @@ assert.match(manual, /host_token_hash is distinct from host_player\.token_hash/g
 assert.match(manual, /ev\.phase is distinct from p_expected_phase/, 'Advances must be idempotent against stale clicks');
 assert.match(manual, /Le maître du jeu ne répond pas/, 'The host must never earn points');
 assert.doesNotMatch(script, /timerLine\(|updateClocks\(|TEMPS RESTANT|SUITE DANS|REPRISE DANS|DÉPART DANS|TEMPS ÉCOULÉ/, 'No timer display should remain');
-assert.match(script, /data-host-action="next"/, 'Master must be able to trigger every next phase');
+assert.match(script, /data-host-action="\$\{action\}"/, 'Master must be able to trigger every next phase');
 assert.match(script, /data-host-action="start"/, 'Master must be able to start the game');
 assert.match(script, /asgq_rehearsal_advance/, 'Host action must use the rehearsal server RPC');
 assert.match(script, /asgq_advance/, 'Host action must use the official server RPC');
