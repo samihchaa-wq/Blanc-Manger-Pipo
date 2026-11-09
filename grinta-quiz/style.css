@@ -83,3 +83,9 @@ background-repeat:no-repeat;background-size:400% 200%;box-shadow:0 8px 25px #000
 .roster .remove-bot{margin-left:auto;flex:none;width:31px;height:31px;border-radius:50%;border:1px solid rgba(233,191,103,.65);background:#223950;color:#fff;font-size:23px;line-height:28px;cursor:pointer}
 .roster .remove-bot:disabled{opacity:.5;cursor:default}
 .roster .remove-bot:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
+
+/* Keep the four answer options reachable on small smartphones even with the presenter. */
+.scene[data-screen="question"] .presenter-shot{min-height:0;justify-content:flex-end;gap:9px;margin:3px 0 7px}
+.scene[data-screen="question"] .presenter-photo{width:45px;height:68px;border-radius:9px}
+.scene[data-screen="question"] .presenter-bubble{max-width:170px;padding:8px 11px;font-size:11px}
+.scene[data-screen="question"] .question-card{margin-top:7px!important}
