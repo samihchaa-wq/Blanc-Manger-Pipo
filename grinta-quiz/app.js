@@ -57,14 +57,16 @@ function shell(html, key) {
 }
 function renderJoin() {
   signature = 'join';
+  let savedName = '';
+  try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   shell(`
     <div class="hero"><div class="eyebrow">LA GRANDE SOIRÉE 2026</div>
       <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
       <p>Deux mi-temps. Une seule équipe. Un seul champion.</p></div>
     <form class="panel" id="join-form" autocomplete="off">
       <div class="eyebrow" style="margin-bottom:22px">ENTRE DANS LE VESTIAIRE</div>
-      <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ex. : Alban" autocomplete="nickname"></label>
-      <label class="field"><span>CODE DE LA SOIRÉE</span><input class="code" id="access-code" maxlength="12" required placeholder="••••••••••" autocapitalize="characters" spellcheck="false" aria-label="Code secret de la soirée"></label>
+      <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ex. : Alban" autocomplete="nickname" value="${safe(savedName)}"></label>
+      <label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="access-code" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>
       <button type="submit" class="primary" id="join-button">REJOINDRE LE QUIZ</button>
       <p class="muted center" style="margin:20px 0 0">Le contenu reste secret jusqu'au coup d'envoi.</p>
     </form>`, 'join');
@@ -200,7 +202,7 @@ async function fetchState() {
     const message=fmtError(error);
     if (/Session expirée|Session introuvable|Session inconnue/i.test(message)) {
       token=null; state=null; try{localStorage.removeItem(storeKey)}catch(_){}
-      renderJoin(); toast('Ta session a expiré. Entre de nouveau le code.');
+      renderJoin(); toast('Ta session a expiré. Entre de nouveau le mot de passe Admin+.');
     } else if(!lastConnectionError) {
       lastConnectionError=true;
       toast('Connexion momentanément indisponible. Nouvelle tentative automatique.');
@@ -214,12 +216,12 @@ async function join(event) {
   const button=form.querySelector('button[type=submit]');
   if (button.disabled) return;
   const name=form.querySelector('#player-name').value.trim();
-  const code=form.querySelector('#access-code').value.trim().toUpperCase();
-  if (!name || !code) return;
+  const password=form.querySelector('#access-code').value.trim();
+  if (!name || !password) return;
   button.disabled=true;
   button.textContent='ENTRÉE EN COURS…';
   try {
-    const {data,error}=await api.rpc('asgq_join',{p_code:code,p_name:name,p_token:null});
+    const {data,error}=await api.rpc('asgq_join_admin_plus',{p_password:password,p_name:name});
     if(error) throw error;
     token=data?.token;
     if(!token) throw new Error('Session manquante.');
