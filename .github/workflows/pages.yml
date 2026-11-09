@@ -67,6 +67,10 @@ jobs:
         run: |
           cat tests/sql/concurrency_fixtures.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres -v ON_ERROR_STOP=1
           bash tests/sql/check_concurrency.sh "${{ job.services.postgres.id }}"
+      - name: Grand Quiz AS Grinta — intégrité et confidentialité
+        run: node tests/grinta_quiz_client.mjs
+      - name: Grand Quiz AS Grinta — parcours complet PostgreSQL
+        run: bash tests/sql/grinta_quiz_schema.sh "${{ job.services.postgres.id }}"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -117,6 +121,12 @@ jobs:
           cp sw.js manifest.webmanifest logo.svg favicon-32.png icon-180.png icon-192.png icon-512.png _site/
           cp -r games _site/games
           cp -r css js dico design-studio _site/
+          # Le quiz événementiel a son propre chemin /grinta-quiz/.
+          # Sans cette copie, la PR est fusionnée mais GitHub Pages renvoie 404.
+          cp -r grinta-quiz _site/grinta-quiz
+          for f in index.html style.css app.js; do
+            test -s "_site/grinta-quiz/$f" || { echo "manquant dans _site : grinta-quiz/$f"; exit 1; }
+          done
           test -s _site/dico/index.json || { echo 'manquant dans _site : dico/index.json'; exit 1; }
           # Les ressources de la maquette 2 doivent être publiées avec le CSS.
           for f in logo-officiel.webp parchment.webp plum-painted.webp; do
