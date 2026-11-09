@@ -24,5 +24,6 @@ sql < supabase/tests/qa_as_grinta_admin_plus_entry.sql
 sql < supabase/tests/qa_as_grinta_quiz_2026.sql
 sql < supabase/migrations/20261122180000_as_grinta_real_bot_rehearsal.sql
 sql < supabase/migrations/20261122190000_as_grinta_manual_lobby_20_provisional.sql
+sql < supabase/migrations/20261122191000_asgq_remove_bot_before_kickoff.sql
 sql < supabase/tests/qa_as_grinta_real_bots.sql
 echo "ASGQ_QA: scenario transactionnel OK (deux mi-temps, sécurité et podium)."
