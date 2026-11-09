@@ -130,8 +130,7 @@ function renderReveal(s) {
   const lastOfFirst=s.half===1 && s.position===s.first_half_count;
   const nextLabel=lastQuestion?'VOIR LE PODIUM':lastOfFirst?'MI-TEMPS':'QUESTION SUIVANTE';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${stage('',s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
-    <div class="result-status ${success?'good':'bad'}">${verdict}</div>
+    ${stage(`<div class="result-status ${success?'good':'bad'}">${verdict}</div>`,s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
     <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
