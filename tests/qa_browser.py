@@ -56,7 +56,7 @@ window.supabase = {
 };
 """
 
-GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme", "qcm"]
+GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme"]
 SIZES = [320, 360, 375, 390, 430]
 SAMPLE_NAMES = ["Aïcha", "Bastien", "Camille", "Dylan"]
 
@@ -297,6 +297,26 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # Un ancien salon QCM déjà ouvert est redirigé à la nouvelle porte d'entrée.
+    legacy, _ = fixture("qcm")
+    ctx = browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce")
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    page.add_init_script("localStorage.setItem('pdcat'," +
+                         json.dumps(json.dumps({"code":"00123456","token":"host-token"})) + ");")
+    page.add_init_script("window.__qaState = "+json.dumps(legacy,ensure_ascii=False)+";window.__qaWhite = null;")
+    try:
+        page.goto(base+"/",wait_until="load",timeout=20000)
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('#access-code[type="password"]').count()==1
+        assert page.evaluate("localStorage.getItem('pdcat')") is None
+        no_errors(page,errors,"qcm-ancien-salon")
+        checks+=1
+    finally:ctx.close()
+
     # Sur tous les jeux, affichage vrai CSS et DOM du salon (hôte et invité).
     for game in GAMES:
         for width in [320,375,430]:
@@ -528,107 +548,6 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
-    # QCM : sans quiz, pas de lancement ; l'hôte peut en créer un.
-    ctx,page,errors=open_page(browser,base,game="qcm",role="host")
-    try:
-        page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
-        page.locator('[data-act="qcm-new"]').wait_for()
-        assert page.locator('[data-act="start"]').is_disabled()
-        assert "Choisis d’abord un quiz" in page.locator('[data-act="start"]').inner_text()
-        no_errors(page,errors,"qcm-sans-quiz")
-        checks+=1
-    finally:ctx.close()
-
-    # QCM : question, révélation et suite, avec les vrais boutons, aux deux largeurs.
-    for width in (320,430):
-        # Un joueur touche une réponse : la bonne réponse ne lui est jamais montrée avant.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="qcm_question",width=width)
-        try:
-            assert page.locator('[data-act="qcm-answer"]').count()==4
-            assert page.locator('.qcm-c.ok').count()==0,"Bonne réponse visible par un joueur"
-            assert page.locator('[data-act="qcm-reveal"]').count()==0
-            page.locator('[data-act="qcm-answer"][data-i="2"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_answer')")
-            calls=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_answer')")
-            assert calls[-1]["args"]["p_choice"]==2,calls
-            no_horizontal_overflow(page,f"qcm-question-joueur-{width}")
-            no_errors(page,errors,f"qcm-question-joueur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-        # L'animateur voit la bonne réponse cochée et peut révéler sans attendre.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="host",phase="qcm_question",width=width)
-        try:
-            assert page.locator('[data-act="qcm-answer"]').count()==0,"L'animateur ne répond pas"
-            assert page.locator('.qcm-c.ok').inner_text().startswith("C")
-            page.locator('[data-act="qcm-reveal"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_reveal')")
-            no_horizontal_overflow(page,f"qcm-question-animateur-{width}")
-            no_errors(page,errors,f"qcm-question-animateur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-        # Révélation : qui a répondu quoi, le bonus, et seul l'animateur passe à la suite.
-        for role in ("host","guest"):
-            ctx,page,errors=open_page(browser,base,game="qcm",role=role,phase="reveal",width=width)
-            try:
-                assert page.locator('.qcm-c.ok').count()==1
-                assert "Bastien" in page.locator('.qcm-choices').inner_text()
-                assert page.locator('.qcm-bonus').count()==1
-                assert "Théo : 14 buts !" in page.locator('.qcm-note').inner_text()
-                # l'animateur (Aïcha) n'apparaît pas au classement
-                assert "Aïcha" not in page.locator('ol.rank').inner_text()
-                if role=="host":
-                    page.locator('[data-act="qcm-next"]').click()
-                    page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_next')")
-                else:
-                    assert page.locator('[data-act="qcm-next"]').count()==0
-                no_horizontal_overflow(page,f"qcm-revelation-{role}-{width}")
-                no_errors(page,errors,f"qcm-revelation-{role}-{width}")
-                checks+=1
-            finally:ctx.close()
-
-        # Éditeur : créer un quiz, écrire une question complète, l'enregistrer.
-        ctx,page,errors=open_page(browser,base,game="qcm",role="host",width=width)
-        try:
-            page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
-            page.locator('[data-act="qcm-new"]').click()
-            page.locator('#qe-text').wait_for()
-            assert "ABCD-EFGH-JKMN" in page.locator('.qe-key').inner_text()
-            page.locator('#qe-text').fill('Qui a marqué le plus de buts cette saison ?')
-            page.locator('[data-act="qe-vf"]').click()
-            assert page.locator('#qe-c0').input_value()=="Vrai" and page.locator('#qe-c1').input_value()=="Faux"
-            page.locator('#qe-c0').fill('Karim')
-            page.locator('#qe-c1').fill('Yanis')
-            page.locator('#qe-c3').fill('Théo')
-            page.locator('[data-act="qe-correct"][data-k="3"]').click()
-            page.locator('[data-act="qe-points"][data-v="3"]').click()
-            page.locator('#qe-note').fill('14 buts !')
-            page.locator('[data-act="qe-save"]').click()
-            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_quiz_save')")
-            args=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_quiz_save').at(-1).args")
-            q=args["p_questions"][0]
-            # la réponse C laissée vide disparaît : la bonne réponse (D) devient la 3e
-            assert q["choices"]==["Karim","Yanis","Théo"] and q["correct"]==2 and q["points"]==3,q
-            assert q["note"]=="14 buts !" and args["p_key"]=="ABCD-EFGH-JKMN",args
-            page.locator('.qe-item').wait_for()
-            no_horizontal_overflow(page,f"qcm-editeur-{width}")
-            no_errors(page,errors,f"qcm-editeur-{width}")
-            checks+=1
-        finally:ctx.close()
-
-    # QCM : fin de partie sans l'animateur sur le podium.
-    ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="reveal")
-    try:
-        page.evaluate("""() => { const s = window.__qaState; s.room.status = 'finished';
-          s.players[1].score = 7; s.players[2].score = 4; s.room.winner_id = 'p1'; refresh(true) }""")
-        page.locator('.bigwin').wait_for()
-        assert "Aïcha" not in page.locator('.podium').inner_text(),"L'animateur ne doit pas être sur le podium"
-        assert "Toi" in page.locator('.podium').inner_text() and "Camille" in page.locator('.podium').inner_text()
-        no_errors(page,errors,"qcm-fin")
-        checks+=1
-    finally:ctx.close()
-
     # Injection HTML malveillante : le contenu de joueurs et cartes doit
     # être affiché en texte et jamais interprété comme du code.
     payload='<img src="x" onerror="window.__qaInjected=true">'
@@ -636,7 +555,6 @@ def run(browser, base):
         ("phrases","lobby","player",".plist"),
         ("phrases","answering","card",".hand"),
         ("dico","dico_vote","definition",".ddefs"),
-        ("qcm","qcm_question","quiz",".qcm-choices"),
     ]:
         role="guest" if phase!="lobby" else "host"
         ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
