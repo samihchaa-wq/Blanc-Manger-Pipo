@@ -27,6 +27,10 @@ jobs:
           node-version: '22'
       - name: Frontend sanity checks
         run: node tests/sanity.mjs
+      - name: Régressions réseau multijoueur
+        run: node tests/reseau.mjs
+      - name: Sécurité des salons
+        run: node tests/securite-salon.mjs
       - name: QCM AS Grinta et animateur
         run: node tests/grinta_quiz_client.mjs
 
