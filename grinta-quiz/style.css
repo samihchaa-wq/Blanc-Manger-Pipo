@@ -108,3 +108,93 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .roster .remove-bot{margin-left:auto;flex:none;width:31px;height:31px;border-radius:50%;border:1px solid rgba(233,191,103,.65);background:#223950;color:#fff;font-size:23px;line-height:28px;cursor:pointer}
 .roster .remove-bot:disabled{opacity:.5;cursor:default}
 .roster .remove-bot:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
+
+
+/* AS Grinta — mobile-first master-operated quiz. No clipped iPhone status-bar area. */
+html,body{overflow-x:hidden}
+body{-webkit-text-size-adjust:100%;overscroll-behavior-y:contain}
+.shell{min-height:100dvh;max-width:520px;padding-top:calc(env(safe-area-inset-top,0px) + 16px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px)}
+.brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;min-height:56px;margin:0 0 6px;padding:5px 1px;background:rgba(6,19,38,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.crest.crest-authentic{width:48px;height:54px;padding:0;border:0;background:none;box-shadow:none;border-radius:0}
+.crest-authentic img{display:block;width:100%;height:100%;object-fit:contain;filter:none}
+.brand-wordmark>span{font-size:21px}
+.brand-wordmark small{font-size:9px}
+.brand-back{min-width:44px;min-height:44px;touch-action:manipulation}
+.scene{overflow:visible;min-width:0;padding-bottom:6px}
+.panel{max-width:100%}
+.stage-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;min-width:0;min-height:154px;margin:0 0 10px}
+.stage-head .stage-copy{min-width:0}
+.stage-copy h1,.stage-copy h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:.012em;line-height:.91;text-transform:uppercase;margin:0}
+.stage-copy h1{font-size:clamp(47px,13vw,68px)}
+.stage-copy h2{font-size:clamp(36px,10vw,52px)}
+.stage-copy .gold{color:var(--gold-2)}
+.stage-head .presenter-shot{justify-content:end;align-items:center;margin:0;overflow:visible;min-width:0}
+.stage-head .presenter-photo{width:112px;height:168px;flex:none;background-size:400% 200%;background-color:transparent;filter:none;border:0;box-shadow:none}
+.stage-lobby{min-height:119px;margin-bottom:6px}
+.stage-lobby .presenter-photo{width:90px;height:135px}
+.stage-intro .presenter-photo{width:120px;height:180px}
+.stage-halftime .presenter-photo{width:96px;height:144px}
+.stage-reveal{min-height:113px;margin:0 0 7px}
+.stage-reveal .presenter-photo{width:85px;height:127.5px}
+.stage-podium .presenter-photo{width:108px;height:162px}
+.scene[data-screen="join"] .entry-tabs{margin-top:0}
+.scene[data-screen="join"] .join-panel{margin-top:0}
+.scene[data-screen="question"] .question-topline{display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:105px}
+.scene[data-screen="question"] .question-topline .kicker{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:0;flex:1}
+.scene[data-screen="question"] .question-topline .kicker>span{font-size:12px}
+.scene[data-screen="question"] .question-topline .kicker .pos{font-size:12px}
+.scene[data-screen="question"] .question-topline .presenter-shot{margin:0;justify-content:flex-end}
+.scene[data-screen="question"] .question-topline .presenter-photo{width:82px;height:123px}
+.scene[data-screen="question"] .question-card{margin-top:0}
+.scene[data-screen="question"] .choice.host-choice{cursor:default;user-select:none}
+.scene[data-screen="question"] .choices{margin-bottom:10px}
+.scene[data-screen="question"] .start-quiz{margin-top:12px}
+.scene[data-screen="reveal"] .result-status{font-size:clamp(30px,8.5vw,40px);line-height:1}
+.scene[data-screen="reveal"] .answer-reveal{margin-bottom:6px}
+.scene[data-screen="intro"] .panel{padding:16px}
+.scene[data-screen="halftime"] .start-quiz{margin-top:14px}
+.scene[data-screen="finished"] .podium{margin-top:12px}
+.primary,.choice,.invite-button,.add-bot,.entry-tabs button{touch-action:manipulation}
+.start-quiz[data-host-action]{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 9px);z-index:3;box-shadow:0 3px 0 #86632e,0 8px 24px #061326bd}
+.primary:focus-visible,.choice:focus-visible,.add-bot:focus-visible{outline:3px solid var(--gold-2);outline-offset:3px}
+/* The presenter atlas positions correspond to the actual supplied gestures. */
+.presenter-welcome .presenter-photo{background-position:0% 0%}
+.presenter-thinking .presenter-photo{background-position:66.667% 0%}
+.presenter-excited .presenter-photo{background-position:0% 100%}
+.presenter-surprised .presenter-photo{background-position:100% 0%}
+.presenter-confident .presenter-photo{background-position:66.667% 100%}
+.presenter-puzzled .presenter-photo{background-position:66.667% 0%}
+.presenter-facepalm .presenter-photo{background-position:33.333% 100%}
+.presenter-victory .presenter-photo{background-position:100% 100%}
+.presenter-question .presenter-photo{background-position:33.333% 0%}
+.presenter-cheer .presenter-photo{background-position:0% 100%}
+@media(max-height:740px){
+  .shell{padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
+  .brand{min-height:50px;margin-bottom:3px;padding:2px 0}
+  .crest.crest-authentic{width:41px;height:47px}
+  .stage-head{min-height:122px;margin-bottom:5px}
+  .stage-head .presenter-photo{width:90px;height:135px}
+  .stage-intro .presenter-photo{width:100px;height:150px}
+  .stage-lobby{min-height:108px}
+  .stage-lobby .presenter-photo{width:80px;height:120px}
+  .stage-reveal{min-height:100px}
+  .stage-reveal .presenter-photo{width:74px;height:111px}
+  .stage-copy h1{font-size:clamp(42px,12vw,59px)}
+  .stage-copy h2{font-size:clamp(34px,9vw,46px)}
+  .scene[data-screen="question"] .question-topline{min-height:85px}
+  .scene[data-screen="question"] .question-topline .presenter-photo{width:68px;height:102px}
+  .entry-tabs{margin-bottom:9px}
+  .entry-tabs button{padding:10px}
+  .join-panel{padding:13px}
+  .join-panel .field input{height:47px}
+  .join-panel .primary{min-height:49px}
+}
+@media(max-width:359px){
+  .brand-wordmark>span{font-size:19px}
+  .stage-head{grid-template-columns:minmax(0,1fr) 78px;gap:3px}
+  .stage-head .presenter-photo{width:78px;height:117px}
+  .stage-copy h1{font-size:43px}
+  .stage-copy h2{font-size:35px}
+  .scene[data-screen="question"] .question-topline .presenter-photo{width:62px;height:93px}
+  .scene[data-screen="question"] .question-card h2{font-size:25px}
+}
