@@ -1,6 +1,6 @@
 # Grand Quiz AS Grinta 2026 — V1
 
-A **single-use**, smartphone-only quiz. No show control panel, no separate spectator screen, no quiz catalogue or question editor. Built as a separate `/grinta-quiz/` page of the Soulieteur repository and a separate `asgq_private` database schema to avoid changes to the existing games.
+A **single-use**, smartphone-only quiz. The creator alone is the **maître du jeu** who advances the show manually, without a timer or countdown. No separate spectator screen, quiz catalogue or question editor. Built as a separate `/grinta-quiz/` page of the Soulieteur repository and a separate `asgq_private` database schema to avoid changes to the existing games.
 
 ## Répétitions en conditions réelles avec bots
 
@@ -9,7 +9,7 @@ Depuis **l’accueil du Soulieteur**, sélectionner QCM puis appuyer sur **Crée
 - **Créer** : prénom + mot de passe Admin+ habituel, puis accès au vestiaire avec le code à huit chiffres.
 - **Rejoindre** : code de salon à huit chiffres, comme les autres jeux. Un coéquipier peut également rejoindre la répétition sur son propre téléphone.
 - Le créateur peut **ajouter jusqu’à 20 bots un par un, en retirer**, puis appuyer lui-même sur **Lancer la partie**. Le jeu ne démarre pas tout seul dès qu'un bot est ajouté.
-- Les bots sont des joueurs dans une **base privée dédiée** (`asgq_rehearsal_private`), répondent après des délais répartis sur les 25 secondes de chaque question et gagnent des points avec exactement les mêmes calculs que les humains.
+- Les bots sont des joueurs dans une **base privée dédiée** (`asgq_rehearsal_private`), répondent sans décompte et gagnent des points avec les mêmes calculs que les humains.
 - Les deux mi-temps comportent **20 questions provisoires au total (10 + 10)**, modifiables plus tard, réservées à la répétition. Elles **ne proviennent pas** du questionnaire officiel : le contenu définitif reste secret.
 - Même moteur de synchronisation, bonnes réponses et scores côté serveur, 25 secondes de réponse, 9 secondes de révélation, pause de 40 secondes et podium. Après **Lancer la partie**, un compte à rebours initial de 30 secondes précède l'introduction.
 - Une fois la répétition terminée, le bouton **NOUVELLE RÉPÉTITION** permet d'en recréer une après vérification Admin+. Les scores précédents et les bots sont alors réinitialisés dans la base de répétition.
@@ -21,19 +21,19 @@ Tests automatisés : `supabase/tests/qa_as_grinta_real_bots.sql` est exécuté d
 ## Session
 
 1. A player taps **QCM** in Le Soulieteur, or opens `/grinta-quiz/`. The creator chooses **Créer**, enters their nickname and the **existing Admin+ password**, and receives a **cryptographically generated 8-digit room code**. Teammates choose **Rejoindre**, enter their nickname and that room code, or follow the invitation link. Guests never need Admin+.
-2. The event stays safely in its lobby until both halves contain 10–20 validated real questions **and** the event has been armed in the restricted database before the evening. Once armed, the second guest starts a 2-minute automatic lobby countdown.
+2. The event stays safely in its lobby until both halves contain 10–20 validated real questions **and** the event has been armed in the restricted database before the evening. Once armed, the creator taps **LANCER LA PARTIE** when ready; there is no automatic lobby countdown.
 3. A 7-second kickoff intro plays, then the first half begins.
-4. The server advances every 25-second question to a 9-second answer reveal and awards points exactly once.
+4. The server keeps every question open until the host taps **RÉVÉLER LA RÉPONSE**; only then are scores awarded once. The host taps **QUESTION SUIVANTE**, **LANCER LA 2E MI-TEMPS** and **VOIR LE PODIUM** to continue.
 5. At the boundary between half 1 and half 2, a 40-second halftime/rankings screen appears.
 6. The second half finishes with a scoreboard and podium. Every phone independently polls the same server state.
 
-The backend computes deadlines from **database time**. Every status read advances the event under a row lock, so no phone acts as a master. The Admin+ password and future questions are never shipped in the frontend; answer keys and question database are in a non-exposed schema with RLS enabled. Admin+ is checked only at **room creation** by the existing private `_is_admin_plus` routine and never stored by the client. Guests use the 8-digit code, protected by server-side attempt limits. The obsolete invitation-code and Admin+-to-join RPCs are not publicly executable.
+The backend never advances quiz phases on a clock. Server-side host-token checks guard every launch and progression; players cannot trigger those actions, even by calling RPC directly. The Admin+ password and future questions are never shipped in the frontend; answer keys and question database are in a non-exposed schema with RLS enabled. Admin+ is checked only at **room creation** by the existing private `_is_admin_plus` routine and never stored by the client. Guests use the 8-digit code, protected by server-side attempt limits. The obsolete invitation-code and Admin+-to-join RPCs are not publicly executable.
 
 ## Files
 
 - `index.html`: standalone entry point and branded shell.
 - `style.css`: lightweight AS Grinta navy-and-gold mobile visual system.
-- `app.js`: session/resume, polling, display, answer selection and timer.
+- `app.js`: session/resume, polling, display, answer selection and host-only progression buttons.
 - `../supabase/migrations/20261122120000_as_grinta_quiz_2026.sql`: isolated data model and public authenticated RPCs.
 
 The page uses the *publishable* Supabase key and the already-installed `../vendor/supabase.js`. It does not import or modify `js/core.js`, `js/jeux/qcm.js`, or the Soulieteur's tables.
@@ -61,10 +61,10 @@ There is **no restart / reset control in the player UI**. Test with a transactio
 
 - Several devices join the same room and receive the same phase countdown.
 - An incorrect Admin+ password cannot create a room; wrong 8-digit guest codes cannot join; the server never returns the password or upcoming questions/answers.
-- A selected answer can change while the question is open, but cannot change after the deadline.
+- A selected answer can change while the question is open, but cannot change after the host reveals it.
 - Disconnect and reconnect preserve the same token and score.
 - With an existing answer, late/duplicate polls never award points twice.
 - After the last first-half question the halftime screen appears, then the next half, then the final podium.
 - Test with 15–30 simultaneous phones, iOS Safari and Android Chrome, including background/foreground restoration.
 
-**Current status:** V1 implemented. The public quiz remains locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Do not share the Admin+ password with teammates: share only the 8-digit room code. The host plays like everyone else; there is no regie.
+**Current status:** V1 implemented. The public quiz remains locked until the real 20–40 questions are supplied and the pre-event arming step is completed. No rehearsal on real party phones yet. Do not share the Admin+ password with teammates: share only the 8-digit room code. The room creator is the master of ceremonies and never answers or appears in the ranking. The same role works in both the official room and bot rehearsal.
