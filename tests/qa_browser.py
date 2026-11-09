@@ -378,11 +378,12 @@ def run(browser, base):
         assert page.evaluate("() => getComputedStyle(document.querySelector('.brand')).backgroundColor === 'rgba(0, 0, 0, 0)'"), "Le bandeau supérieur ne doit plus avoir de couleur différente"
         assert page.locator('[data-start-quiz]').is_disabled()
         page.locator('[data-add-bot]').click()
-        page.locator('.roster .bot-label').first.wait_for(state='visible')
+        page.locator('[data-remove-bot]').first.wait_for(state='visible')
+        assert page.locator('.roster .host-label, .roster .bot-label').count()==0, "Ne pas afficher les badges maître du jeu ou bot"
         page.locator('[data-add-bot]').click()
-        page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===2")
+        page.wait_for_function("() => document.querySelectorAll('[data-remove-bot]').length===2")
         page.locator('[data-remove-bot]').last.click()
-        page.wait_for_function("() => document.querySelectorAll('.roster .bot-label').length===1")
+        page.wait_for_function("() => document.querySelectorAll('[data-remove-bot]').length===1")
         assert page.locator('[data-start-quiz]').is_enabled()
         page.locator('[data-start-quiz]').click()
         page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_rehearsal_start')")
