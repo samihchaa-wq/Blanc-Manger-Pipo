@@ -1,6 +1,6 @@
 /* Grand Quiz AS Grinta 2026 — mobile-only, single event.
  * Adapted from the Soulieteur QCM's synchronized answering / scoring model.
- * The server owns time, scoring, transitions and secret answers. No host or regie.
+ * The server protects scoring and secret answers; the master of the game controls every transition.
  */
 'use strict';
 
@@ -15,7 +15,6 @@ const notice = document.getElementById('notice');
 const letters = ['A','B','C','D'];
 let token = null;
 let state = null;
-let serverDelta = 0;
 let signature = '';
 let requesting = false;
 let sendingAnswer = false;
@@ -29,12 +28,7 @@ let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const firstLetter = name => safe((name || 'G').trim().slice(0,1).toUpperCase());
-const date = value => value ? Date.parse(value) : null;
-const now = () => Date.now() + serverDelta;
-const deadline = () => date(state?.phase === 'lobby' ? state.starts_at : state?.phase_until);
-const timeRemaining = () => Math.max(0,(deadline() ?? now()) - now());
-const sec = ms => Math.ceil(ms / 1000);
-const waitText = seconds => seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2,'0')}`;
+
 const topText = n => n === 1 ? '1RE MI-TEMPS' : '2E MI-TEMPS';
 const halfNum = s => s.position - (s.half === 2 ? s.first_half_count : 0);
 const totalHalf = s => s.half === 2 ? s.second_half_count : s.first_half_count;
@@ -58,13 +52,10 @@ const presenter = (pose, message='') =>
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
-function timerLine(label) {
-  return `<div class="timer-line"><div class="eyebrow">${label}</div><div class="big-timer" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div>`;
-}
+
 function shell(html, key) {
   const practiceTag=isRehearsal ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
-  updateClocks();
 }
 function renderJoin() {
   signature = 'join-' + entryMode;
@@ -89,9 +80,14 @@ function renderJoin() {
     ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
 }
+function hostAction(s, label, action='next') {
+  return s.is_host ? `<button type="button" class="primary start-quiz" data-host-action="${action}">${label}</button>`
+    : '<p class="muted center">En attente du maître du jeu…</p>';
+}
 function renderLobby(s) {
   const count=s.players.length;
-  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.id === s.me.id && s.is_host ? ' · MAÎTRE DU JEU' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const canStart=count >= 2 && s.ready;
   shell(`
     <div class="hero hero-compact"><h2>VESTIAIRE</h2></div>
     ${presenter('confident')}
@@ -100,12 +96,9 @@ function renderLobby(s) {
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
       <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
       <ul class="roster">${players}</ul>
-      ${s.starts_at ? timerLine('DÉPART DANS') : isRehearsal
-        ? s.is_host
-          ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>
-            <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'AJOUTE UN JOUEUR' : 'LANCER LA PARTIE'}</button>`
-          : '<p class="muted center">En attente du créateur…</p>'
-        : '<p class="muted center">En attente du coup d’envoi…</p>'}
+      ${isRehearsal && s.is_host ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
+      ${s.is_host ? `<button type="button" class="primary start-quiz" data-host-action="start" ${canStart?'':'disabled'}>${!s.ready?'QUIZ NON PRÊT':count<2?'EN ATTENTE DE JOUEURS':'LANCER LA PARTIE'}</button>`
+          : '<p class="muted center">En attente du maître du jeu…</p>'}
     </div>
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>
   `, 'lobby');
@@ -113,18 +106,19 @@ function renderLobby(s) {
 function renderIntro(s) {
   shell(`<div class="hero hero-compact"><h2>1RE MI-TEMPS</h2></div>
     ${presenter('cheer')}
-    <div class="panel center"><div class="metric"><div class="number" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
+    <div class="panel center">${hostAction(s,'COMMENCER LES QUESTIONS')}</div>`, 'intro');
 }
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
-  const choices=(q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const choices=(q.choices || []).map((answer,i) => s.is_host
+    ? `<div class="choice host-choice"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
+    : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer?'disabled':''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${timerLine('TEMPS RESTANT')}
     ${presenter('question')}
     <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
-    <p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`, 'question');
+    ${s.is_host ? hostAction(s,'RÉVÉLER LA RÉPONSE') : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
@@ -133,20 +127,23 @@ function renderReveal(s) {
   const q=s.question || {};
   const success=q.my_choice === q.correct;
   const answered=q.my_choice !== null && q.my_choice !== undefined;
-  const verdict=success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'TEMPS ÉCOULÉ';
+  const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'SANS RÉPONSE';
+  const lastQuestion=s.position===s.first_half_count+s.second_half_count;
+  const lastOfFirst=s.half===1 && s.position===s.first_half_count;
+  const nextLabel=lastQuestion?'VOIR LE PODIUM':lastOfFirst?'MI-TEMPS':'QUESTION SUIVANTE';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${presenter(success?'excited':answered?'facepalm':'surprised')}
+    ${presenter(s.is_host?'confident':success?'excited':answered?'facepalm':'surprised')}
     <div class="result-status ${success?'good':'bad'}">${verdict}</div>
-    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong><b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b></div>
+    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
-    ${timerLine('SUITE DANS')}`, 'reveal');
+    ${hostAction(s,nextLabel)}`, 'reveal');
 }
 function renderHalftime(s) {
   shell(`<div class="hero hero-compact"><h2>MI-TEMPS</h2></div>
     ${presenter('puzzled')}
-    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol>
-      ${timerLine('REPRISE DANS')}</div>`, 'halftime');
+    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
+    ${hostAction(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
 function renderFinished(s) {
   const top=(s.standings||[]).slice(0,3);
@@ -165,23 +162,7 @@ function renderFinished(s) {
     ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
     <a class="quiet-link" href="../">RETOUR AUX JEUX</a>`, 'finished');
 }
-function updateClocks() {
-  if (!state) return;
-  const t = deadline();
-  if (!t) return;
-  const remaining = Math.max(0,t-now());
-  const clock = document.getElementById('clock');
-  if (clock) {
-    clock.textContent = waitText(sec(remaining));
-    clock.classList.toggle('urgent',remaining <= 5000 && remaining > 0);
-  }
-  const start = date(state.phase_started_at);
-  const total = t - (start || now());
-  const pct = total>0 ? Math.max(0,Math.min(100,remaining/total*100)) : 0;
-  const progress = document.getElementById('time-progress');
-  if (progress) progress.style.width = `${pct}%`;
-  // The normal 1.8 s polling interval advances expired phases without RPC storms.
-}
+
 function renderState(force=false) {
   if (!state) return;
   const {now: serverNow, ...stable} = state;
@@ -213,8 +194,6 @@ async function fetchState() {
     const {data,error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_state' : 'asgq_state',{p_token:token});
     if (error) throw error;
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
-    const atReceive=Date.now();
-    serverDelta=date(data.now)-atReceive;
     state=data;
     lastConnectionError=false;
     renderState();
@@ -265,9 +244,9 @@ async function join(event) {
   }
 }
 async function lobbyCommand(rpcName, botId=null) {
-  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || state.starts_at || lobbyActionBusy) return;
+  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
   lobbyActionBusy=true;
-  const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':rpcName==='asgq_rehearsal_start'?'[data-start-quiz]':null;
+  const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':null;
   const button=selector?document.querySelector(selector):Array.from(document.querySelectorAll('[data-remove-bot]')).find(el=>el.dataset.removeBot===botId);
   if (button) button.disabled=true;
   try {
@@ -283,6 +262,28 @@ async function lobbyCommand(rpcName, botId=null) {
   } finally { lobbyActionBusy=false; }
 }
 
+let hostActionBusy = false;
+async function masterCommand(action) {
+  if (!state?.is_host || hostActionBusy) return;
+  if (action==='start' && state.phase!=='lobby') return;
+  if (action==='next' && !['intro','question','reveal','halftime'].includes(state.phase)) return;
+  hostActionBusy=true;
+  const button=document.querySelector('[data-host-action]');
+  if(button) button.disabled=true;
+  try {
+    const rpcName=isRehearsal ? (action==='start'?'asgq_rehearsal_start':'asgq_rehearsal_next')
+      : (action==='start'?'asgq_start':'asgq_next');
+    const {error}=await api.rpc(rpcName,{p_token:token});
+    if(error) throw error;
+    signature='';
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+    if(button?.isConnected)button.disabled=false;
+  } finally {
+    hostActionBusy=false;
+  }
+}
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -303,7 +304,7 @@ async function shareRoom() {
   }
 }
 async function answer(index) {
-  if(!state || state.phase!=='question' || sendingAnswer || timeRemaining()<=0) return;
+  if(!state || state.is_host || state.phase!=='question' || sendingAnswer) return;
   const previous=state.question.my_choice;
   chosenOptimistically=index;
   sendingAnswer=true;
@@ -345,7 +346,8 @@ app.addEventListener('click',e=>{
   const removeBot=e.target.closest('[data-remove-bot]');
   if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
   if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
-  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand('asgq_rehearsal_start');return}
+  const master=e.target.closest('[data-host-action]');
+  if(master) {void masterCommand(master.dataset.hostAction);return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
@@ -354,6 +356,5 @@ app.addEventListener('input',e=>{
   if(e.target.id==='room-code') e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,8);
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
-setInterval(updateClocks,200);
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
 if(token) void fetchState(); else renderJoin();
