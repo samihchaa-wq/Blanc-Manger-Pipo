@@ -358,6 +358,10 @@ def run(browser, base):
         page.locator('[data-act="mode"][data-v="qcm"]').click()
         page.locator('[data-act="create"]').click()
         page.wait_for_url("**/grinta-quiz/?repetition=1&action=create",timeout=10000)
+        assert page.locator('.crest-authentic img').is_visible(), "Écusson officiel AS Grinta absent"
+        assert page.locator('.stage-welcome .presenter-photo').is_visible(), "Animateur d’accueil absent"
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 2"), "Débordement horizontal sur mobile"
+        assert page.evaluate("() => document.querySelector('.brand-back').getBoundingClientRect().top >= 0"), "Sortie du quiz inaccessible"
         assert page.locator(".rehearsal-banner").count()==1
         assert page.locator('#bots-count').count()==0
         assert 'CRÉER LA PARTIE' in page.locator('#join-form').inner_text()
