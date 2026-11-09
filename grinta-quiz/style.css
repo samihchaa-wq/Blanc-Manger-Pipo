@@ -70,3 +70,10 @@ background-repeat:no-repeat;background-size:400% 200%;box-shadow:0 8px 25px #000
 .start-quiz{margin-top:8px}
 .bot-label{font-size:9px;background:#194766;color:var(--gold);padding:2px 4px;border-radius:4px;vertical-align:middle;letter-spacing:.08em}
 @media(max-width:360px){.presenter-photo{width:70px;height:105px}.presenter-bubble{font-size:12px;padding:10px 12px}}
+
+
+/* Host controls — match the other Soulieteur lobbies, never auto-add bots. */
+.add-bot{display:block;width:100%;min-height:50px;border:1px solid var(--gold);border-radius:12px;background:#112f4d;color:var(--gold-2);font:800 17px 'DM Sans',sans-serif;margin:17px 0 10px;cursor:pointer}
+.add-bot:disabled,.start-quiz:disabled{opacity:.52;cursor:default}
+.start-quiz{margin-bottom:15px}
+.bot-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(233,191,103,.19);color:var(--gold-2);font-size:9px;font-weight:800;letter-spacing:.08em;vertical-align:middle}
