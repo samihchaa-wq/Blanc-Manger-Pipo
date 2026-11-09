@@ -108,6 +108,8 @@ async function enter(call, name){
 function ouvrirGrintaQuiz(remplacer = false, onglet = null){
   // Comme les autres jeux : la vignette ne lance rien. Seul « Créer la partie » ouvre le QCM.
   const url = new URL('./grinta-quiz/', location.href);
+  // Une partie QCM de test ne consomme jamais la partie unique de la soirée.
+  if (onglet === 'create') url.searchParams.set('repetition','1');
   if (onglet) url.searchParams.set('action', onglet === 'join' ? 'join' : 'create');
   if (remplacer) location.replace(url.href);
   else location.assign(url.href);

@@ -4,14 +4,16 @@ A **single-use**, smartphone-only quiz. No show control panel, no separate spect
 
 ## Répétitions en conditions réelles avec bots
 
-Depuis l'écran de connexion du quiz, cliquer sur **TESTER AVEC DES BOTS**. Il s'agit d'une **véritable partie multijoueur côté serveur**, pas d'une simulation d'écrans :
+Depuis **l’accueil du Soulieteur**, sélectionner QCM puis appuyer sur **Créer la partie**. Cela ouvre directement la partie d'essai avec le véritable moteur du quiz, sans consommer l’événement final. Il s'agit d'une **véritable partie multijoueur côté serveur**, pas d'une simulation d'écrans :
 
-- **Créer** : nom + mot de passe Admin+ habituel ; choix de **2, 5, 10 ou 20 bots**.
+- **Créer** : prénom + mot de passe Admin+ habituel, puis accès au vestiaire avec le code à huit chiffres.
 - **Rejoindre** : code de salon à huit chiffres, comme les autres jeux. Un coéquipier peut également rejoindre la répétition sur son propre téléphone.
+- Le créateur peut **ajouter jusqu’à 20 bots un par un, en retirer**, puis appuyer lui-même sur **Lancer la partie**. Le jeu ne démarre pas tout seul dès qu'un bot est ajouté.
 - Les bots sont des joueurs dans une **base privée dédiée** (`asgq_rehearsal_private`), répondent après des délais répartis sur les 25 secondes de chaque question et gagnent des points avec exactement les mêmes calculs que les humains.
-- Les deux mi-temps comportent 10 questions chacune, réservées à la répétition. Elles **ne proviennent pas** du questionnaire officiel : le contenu définitif reste secret.
-- Même moteur de synchronisation, bonnes réponses et scores côté serveur, 9 secondes de révélation, pause et podium. Seule la salle d'attente est réduite à **30 secondes** au lieu de 120 pour faciliter les essais.
+- Les deux mi-temps comportent **20 questions provisoires au total (10 + 10)**, modifiables plus tard, réservées à la répétition. Elles **ne proviennent pas** du questionnaire officiel : le contenu définitif reste secret.
+- Même moteur de synchronisation, bonnes réponses et scores côté serveur, 25 secondes de réponse, 9 secondes de révélation, pause de 40 secondes et podium. Après **Lancer la partie**, un compte à rebours initial de 30 secondes précède l'introduction.
 - Une fois la répétition terminée, le bouton **NOUVELLE RÉPÉTITION** permet d'en recréer une après vérification Admin+. Les scores précédents et les bots sont alors réinitialisés dans la base de répétition.
+- Les **huit portraits fournis de l'animateur** sont intégrés directement dans la feuille de style et apparaissent suivant la phase et le résultat (réflexion, surprise, célébration, déception, finale).
 - Un indicateur « RÉPÉTITION AVEC BOTS · SCORES DE TEST » reste visible à l'écran. Aucune répétition n'arme ou ne modifie la vraie partie (`asgq_private`).
 
 Tests automatisés : `supabase/tests/qa_as_grinta_real_bots.sql` est exécuté dans une transaction PostgreSQL isolée, avec 20 questions, 5 bots, un invité humain, les scores, les deux mi-temps, le podium et une remise à zéro.

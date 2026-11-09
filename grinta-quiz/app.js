@@ -22,6 +22,7 @@ let sendingAnswer = false;
 let chosenOptimistically = null;
 let noticeTimer = null;
 let lastConnectionError = false;
+let lobbyActionBusy = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
 let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
 
@@ -48,6 +49,10 @@ function fmtError(error) {
   const e = error?.message || 'Connexion impossible.';
   return e.replace(/^JSON object requested, multiple \(or no\) rows returned.*/,'Session introuvable.');
 }
+// Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
+const presenter = (pose, message='') =>
+  `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Animateur AS Grinta"></div>${message ? `<div class="presenter-bubble">${safe(message)}</div>` : ''}</div>`;
+
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
@@ -68,6 +73,7 @@ function renderJoin() {
     <div class="hero"><div class="eyebrow">${isRehearsal?'RÉPÉTITION · BOTS RÉELS':'LA GRANDE SOIRÉE 2026'}</div>
       <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
       <p>${isRehearsal?'Teste le vrai moteur du quiz contre des bots. Chronomètre, réponses, classement et podium synchronisés côté serveur.':'Deux mi-temps. Une seule équipe. Un seul champion.'}</p></div>
+    ${presenter('thinking','Prêt pour le coup d’envoi ?')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -78,7 +84,7 @@ function renderJoin() {
       ${isCreate
         ? '<label class="field"><span>MOT DE PASSE ADMIN+ (CRÉATION UNIQUEMENT)</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
         : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="•••• ••••" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
-      ${isRehearsal && isCreate ? '<label class="field"><span>NOMBRE DE BOTS</span><select id="bots-count" aria-label="Nombre de bots"><option value="2">2 bots</option><option value="5" selected>5 bots</option><option value="10">10 bots</option><option value="20">20 bots</option></select></label>' : ''}
+      ${isRehearsal && isCreate ? '<p class="muted center">Ajoute tes bots dans le vestiaire, puis lance la partie quand tu es prêt.</p>' : ''}
       <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}</button>
       <p class="muted center" style="margin:20px 0 0">${isCreate
         ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
@@ -90,20 +96,22 @@ function renderJoin() {
 }
 function renderLobby(s) {
   const count = s.players.length;
-  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}</span></li>`).join('');
+  const players = s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot && !s.starts_at ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
-    ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
+    ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', isRehearsal ? 'Ajoute des bots et lance la partie lorsque tout le monde est prêt.' : 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
+    ${presenter('confident','Le vestiaire se remplit !')}
     <div class="panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
       <div class="timer-line"><span class="chip">${count} JOUEUR${count>1?'S':''} CONNECTÉ${count>1?'S':''}</span><span class="eyebrow">AS GRINTA</span></div>
-      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
+      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : isRehearsal ? `<p class="muted center">20 questions provisoires · 2 mi-temps · Aucun lancement automatique.</p>${s.is_host ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ Ajouter un bot</button><button type="button" class="primary start-quiz" data-start-quiz ${count < 2 ? 'disabled' : ''}>${count < 2 ? 'Il manque 1 joueur' : 'Lancer la partie'}</button>` : '<p class="muted center">Le créateur va lancer la partie.</p>'}` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
       <div class="section-title"><span class="eyebrow">DANS LE VESTIAIRE</span></div>
       <ul class="roster">${players}</ul>
     </div>`, 'lobby');
 }
 function renderIntro(s) {
   shell(`${headerText('ÇA COMMENCE', 'PREMIÈRE <span class="gold">MI-TEMPS</span>', 'AS Grinta. Prépare ton meilleur niveau.')}
+    ${presenter('cheer','C’est parti !')}
     <div class="panel center"><div class="metric"><span>COUP D’ENVOI DANS</span><div class="number" id="clock">--</div><span>La première question arrive automatiquement.</span></div><div class="bar"><i id="time-progress"></i></div></div>`, 'intro');
 }
 function renderQuestion(s) {
@@ -112,6 +120,7 @@ function renderQuestion(s) {
   const choices = (q.choices || []).map((answer,i)=> `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
     ${timerLine('TEMPS RESTANT')}
+    ${presenter('question','À toi de jouer !')}
     <div class="question-card" style="margin-top:22px"><div class="number">${q.points || 1} POINT${q.points > 1?'S':''} EN JEU</div><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
     <div class="response-note">${choice === null || choice === undefined ? 'Choisis ta réponse avant la fin du chrono.' : 'Réponse enregistrée. Tu peux encore changer d’avis.'}</div>
@@ -134,6 +143,7 @@ function renderReveal(s) {
   const outcome = `<div class="result-status ${success?'good':'bad'}">${verdict}</div>
     <div class="score-gain">+${q.earned ?? 0} POINT${q.earned === 1?'':'S'}</div>`;
   shell(`<div class="kicker"><span>RÉSULTAT · ${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
+    ${presenter(success?'excited':answered?'facepalm':'surprised', success?'Bien joué !':answered?'On fera mieux !':'Trop tard !')}
     <div class="panel center" style="margin-bottom:16px">${outcome}<p class="muted">${safe(q.text)}</p></div>
     <div class="choices" role="list" style="margin-top:0">${choices}</div>
     ${q.explanation ? `<p class="muted">${safe(q.explanation)}</p>` : ''}
@@ -143,6 +153,7 @@ function renderReveal(s) {
 }
 function renderHalftime(s) {
   shell(`${headerText('45 MINUTES · MI-TEMPS', 'PAUSE <span class="gold">VESTIAIRE</span>', 'Place au classement de la première partie.')}
+    ${presenter('puzzled','Qui sera champion ?')}
     <div class="panel"><span class="eyebrow">LE CLASSEMENT À LA PAUSE</span><ol class="small-list" style="margin-top:16px">${rankingRows(s,30)}</ol>
     ${timerLine('REPRISE DANS')}</div>
     <p class="muted center">La deuxième mi-temps portera sur le football en général.</p>`, 'halftime');
@@ -156,6 +167,7 @@ function renderFinished(s) {
     return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
   }).join('');
   shell(`${headerText('COUP DE SIFFLET FINAL', 'LE GRAND <span class="gold">VAINQUEUR</span>', 'Le quiz est terminé. Voici le verdict du vestiaire.')}
+    ${presenter('victory','Quel match !')}
     <div class="panel center"><div class="eyebrow">CHAMPION DU GRAND QUIZ 2026</div>
       <h2 class="display" style="font-size:clamp(42px,12vw,69px);color:var(--gold);margin:13px 0">${safe(top[0]?.name || 'AS Grinta')}</h2>
       <div class="podium">${podium}</div>
@@ -246,7 +258,7 @@ async function join(event) {
   button.textContent=creating ? 'CRÉATION EN COURS…' : 'ENTRÉE EN COURS…';
   try {
     const rpcName=creating ? (isRehearsal ? 'asgq_rehearsal_create' : 'asgq_create') : (isRehearsal ? 'asgq_rehearsal_join_room' : 'asgq_join_room');
-    const args=creating ? {...(isRehearsal?{p_bots:Number(form.querySelector('#bots-count')?.value || 5)}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
+    const args=creating ? {...(isRehearsal?{p_bots:0}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
     const {data,error}=await api.rpc(rpcName,args);
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
@@ -264,6 +276,25 @@ async function join(event) {
     if(button.isConnected) {button.disabled=false;button.textContent=creating?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}
   }
 }
+async function lobbyCommand(rpcName, botId=null) {
+  if (!isRehearsal || !state?.is_host || state.phase!=='lobby' || state.starts_at || lobbyActionBusy) return;
+  lobbyActionBusy=true;
+  const selector=rpcName==='asgq_rehearsal_add_bot'?'[data-add-bot]':rpcName==='asgq_rehearsal_start'?'[data-start-quiz]':null;
+  const button=selector?document.querySelector(selector):Array.from(document.querySelectorAll('[data-remove-bot]')).find(el=>el.dataset.removeBot===botId);
+  if (button) button.disabled=true;
+  try {
+    const args={p_token:token,...(botId?{p_bot_id:botId}:{})};
+    const {data,error}=await api.rpc(rpcName,args);
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    signature='';
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+    if (button?.isConnected) button.disabled=false;
+  } finally { lobbyActionBusy=false; }
+}
+
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -323,6 +354,10 @@ app.addEventListener('click',e=>{
     renderJoin();
     return;
   }
+  const removeBot=e.target.closest('[data-remove-bot]');
+  if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
+  if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
+  if(e.target.closest('[data-start-quiz]')) {void lobbyCommand('asgq_rehearsal_start');return}
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));

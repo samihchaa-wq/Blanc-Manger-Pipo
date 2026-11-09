@@ -7,6 +7,7 @@ const read = p => fs.readFileSync(path.join(root,p),'utf8');
 const page=read('grinta-quiz/index.html');
 const script=read('grinta-quiz/app.js');
 const style=read('grinta-quiz/style.css');
+const home=read('js/ecrans/accueil.js');
 const db=read('supabase/migrations/20261122140000_as_grinta_quiz_preflight_guard.sql');
 
 new Function(script);
@@ -18,13 +19,38 @@ assert.match(serverBots, /bot_order/, 'Server-side bot participant marker missin
 assert.match(serverBots, /insert into asgq_rehearsal_private\.answers\(/, 'Bots must submit stored real answers');
 assert.match(serverBots, /as(g)?q_rehearsal_private\.tick\(\)/, 'Rehearsal must use the real timer state machine');
 assert.match(script, /repetition/, 'Rehearsal launcher missing');
-assert.match(script, /TESTER AVEC DES BOTS/, 'No entry point to real bot testing');
-assert.match(script, /p_bots:Number\(form\.querySelector\('#bots-count'\)/, 'Bot count selection missing');
+assert.match(script, /TESTER AVEC DES BOTS/, 'Link to real bot testing missing');
+assert.match(script, /p_bots:0/, 'Bot rooms must start empty, ready to add bots one by one');
+assert.match(script, /data-add-bot/, 'No add-bot lobby button');
+assert.match(script, /data-start-quiz/, 'No manual kickoff');
+assert.match(script, /asgq_rehearsal_add_bot/, 'Bot RPC missing');
+assert.match(script, /asgq_rehearsal_start/, 'Host launch RPC missing');
+assert.match(script, /asgq_rehearsal_remove_bot/, 'Bot removal RPC missing');
+assert.match(script, /data-remove-bot/, 'Missing remove-bot button in roster');
+const removeMigration=read('supabase/migrations/20261122191000_asgq_remove_bot_before_kickoff.sql');
+assert.match(removeMigration, /host_token_hash is distinct from host_player\.token_hash/, 'Remove bot must be host-only');
+assert.match(removeMigration, /bot_player\.bot_order is null/, 'Cannot remove real players via bot control');
+
+const lobbyMigration=read('supabase/migrations/20261122190000_as_grinta_manual_lobby_20_provisional.sql');
+assert.match(lobbyMigration, /ev\.manual_started and ev\.created/, 'Do not auto-start with bots');
+assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_add_bot/, 'Secure add bot RPC missing');
+assert.match(lobbyMigration, /create or replace function public\.asgq_rehearsal_start/, 'Secure manual kickoff RPC missing');
+assert.match(read('js/ecrans/accueil.js'), /repetition.*'1'/, 'The normal QCM create path must be repeatable until finalized');
 assert.match(script, /asgq_rehearsal_state/, 'Test must read server-side state');
 assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to server');
 assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
 assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
 
+const presenterImage = style.match(new RegExp('data:image/webp;base64,([A-Za-z0-9+/=]+)'));
+assert.ok(presenterImage, 'Uploaded presenter photos are not embedded in the game');
+assert.ok(presenterImage[1].length > 7500 && presenterImage[1].length % 4 === 0, 'Presenter atlas truncated');
+for (const pose of ['thinking','excited','surprised','confident','puzzled','facepalm','victory','question']) {
+  assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
+}
+assert.match(script, /presenter\(success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
+assert.match(script, /presenter\('victory'/, 'Presenter should congratulate finalists');
+assert.match(script, /data-add-bot/, 'Host cannot add bots');
+assert.match(script, /data-start-quiz/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
 assert.match(page, /\.\/app\.js/, 'Dedicated script missing');
 assert.match(page, /\.\.\/vendor\/supabase\.js/, 'Use the existing pinned Supabase client');
@@ -41,7 +67,6 @@ assert.match(script, /setInterval\(\(\)=>\{if\(token && !requesting\)/, 'Automat
 assert.match(script, /renderHalftime/, 'Second-half separation missing');
 assert.match(script, /renderFinished/, 'Podium missing');
 const entry=read('supabase/migrations/20261122160000_grinta_quiz_admin_plus_entry.sql');
-const home=read('js/ecrans/accueil.js');
 const salon=read('js/ecrans/salon.js');
 const commun=read('js/ecrans/commun.js');
 const room=read('supabase/migrations/20261122170000_grinta_quiz_create_and_join.sql');

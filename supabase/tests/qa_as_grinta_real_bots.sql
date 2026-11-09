@@ -9,6 +9,7 @@ declare
   t uuid;
   guest_token uuid;
   code text;
+  bot_id uuid;
   phase_name text;
   idx integer;
   bot_responses integer;
@@ -31,12 +32,31 @@ begin
     if sqlerrm like 'ASGQ_TEST:%' then raise; end if;
     if sqlerrm not like '%Mot de passe Admin+ incorrect%' then raise exception 'ASGQ_TEST: wrong error: %',sqlerrm; end if;
   end;
-  creator := public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Alban',5);
+  creator := public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Alban',0);
+  if (select count(*) from asgq_rehearsal_private.players)<>1 then raise exception 'ASGQ_TEST: creation should only add the host'; end if;
+  for idx in 1..5 loop perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid); end loop;
   code := creator->>'code';
   t := (creator->>'token')::uuid;
   if code !~ '^[0-9]{8}$' or t is null then raise exception 'ASGQ_TEST: bad creator result %',creator; end if;
   if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>5 then
     raise exception 'ASGQ_TEST: 5 server-side bots missing';
+  end if;
+  select id into bot_id from asgq_rehearsal_private.players
+    where bot_order=5;
+  perform public.asgq_rehearsal_remove_bot(t,bot_id);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>4 then
+    raise exception 'ASGQ_TEST: host cannot remove bots';
+  end if;
+  begin
+    perform public.asgq_rehearsal_remove_bot(gen_random_uuid(),
+      (select id from asgq_rehearsal_private.players where bot_order=4));
+    raise exception 'ASGQ_TEST: outsider removed a bot';
+  exception when others then
+    if sqlerrm like 'ASGQ_TEST:%' then raise; end if;
+  end;
+  perform public.asgq_rehearsal_add_bot(t);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>5 then
+    raise exception 'ASGQ_TEST: host cannot re-add bot after removal';
   end if;
   if (select created from asgq_private.event where id=1) then
     raise exception 'ASGQ_TEST: official event created by rehearsal';
@@ -59,6 +79,9 @@ begin
     raise exception 'ASGQ_TEST: incorrect room code worked';
   end if;
 
+  if (select starts_at from asgq_rehearsal_private.event where id=1) is not null then raise exception 'ASGQ_TEST: bots auto-started'; end if;
+  perform public.asgq_rehearsal_start(t);
+  if (select starts_at from asgq_rehearsal_private.event where id=1) is null then raise exception 'ASGQ_TEST: start did not begin countdown'; end if;
   update asgq_rehearsal_private.event set starts_at=clock_timestamp()-interval '1 second' where id=1;
   state := public.asgq_rehearsal_state(t);
   if state->>'phase'<>'intro' then raise exception 'ASGQ_TEST: intro absent'; end if;
@@ -101,10 +124,24 @@ begin
     raise exception 'ASGQ_TEST: expected 5 bots times 20 questions, got %',bot_responses;
   end if;
   -- Admin+ can start a completely fresh rehearsal when the previous one is done.
-  creator := public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Alban',2);
+  creator := public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Alban',0);
+  perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid);
+  perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid);
   if (select count(*) from asgq_rehearsal_private.players)<>3
      or (select count(*) from asgq_rehearsal_private.answers)<>0 then
     raise exception 'ASGQ_TEST: rehearsal reset failed';
+  end if;
+  -- Roster test: 20 bots, removal of number 1, and successful re-addition.
+  for idx in 3..20 loop perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid); end loop;
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>20 then
+    raise exception 'ASGQ_TEST: could not reach 20 bots';
+  end if;
+  select id into bot_id from asgq_rehearsal_private.players where bot_order=1;
+  perform public.asgq_rehearsal_remove_bot((creator->>'token')::uuid,bot_id);
+  perform public.asgq_rehearsal_add_bot((creator->>'token')::uuid);
+  if (select count(*) from asgq_rehearsal_private.players where bot_order is not null)<>20
+    or not exists (select 1 from asgq_rehearsal_private.players where bot_order=1) then
+    raise exception 'ASGQ_TEST: bot numbers were not reusable';
   end if;
   if (select count(*) from asgq_private.players)<>0
      or (select armed from asgq_private.event where id=1) then
