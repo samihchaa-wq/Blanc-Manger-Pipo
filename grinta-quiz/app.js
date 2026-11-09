@@ -76,7 +76,7 @@ function renderLobby(s) {
     ${headerText('AVANT-MATCH', 'LE <span class="gold">VESTIAIRE</span>', 'Les joueurs prennent place. Le coup d’envoi sera automatique.')}
     <div class="panel">
       <div class="timer-line"><span class="chip">${count} JOUEUR${count>1?'S':''} CONNECTÉ${count>1?'S':''}</span><span class="eyebrow">AS GRINTA</span></div>
-      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : `<p class="muted center">Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.</p>`}
+      ${s.starts_at ? `${timerLine('COUP D’ENVOI DANS')}<p class="muted center">Tout commence automatiquement à zéro.</p>` : `<p class="muted center">${!s.ready ? 'Le quiz est en préparation. Le coup d’envoi sera activé lorsque les deux mi-temps seront prêtes.' : 'Le compte à rebours débutera dès que deux joueurs auront rejoint le vestiaire.'}</p>`}
       <div class="section-title"><span class="eyebrow">DANS LE VESTIAIRE</span></div>
       <ul class="roster">${players}</ul>
     </div>`, 'lobby');
