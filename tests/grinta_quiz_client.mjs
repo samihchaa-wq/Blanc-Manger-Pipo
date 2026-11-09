@@ -123,7 +123,8 @@ assert.match(script, /question-topline/, 'Place the cut-out presenter beside que
 const lobbyMarkup=script.split('function renderLobby(s) {')[1]?.split('function renderIntro(s) {')[0];
 assert.ok(lobbyMarkup, 'Lobby screen missing');
 assert.doesNotMatch(lobbyMarkup, /class="avatar"/, 'No circular letter icon in the lobby player list');
-assert.match(lobbyMarkup, /class="host-label"/, 'Keep the master-of-game badge');
+assert.doesNotMatch(lobbyMarkup, /class="(?:host|bot)-label"|MAÎTRE DU JEU/, 'No role badges beside player names');
+assert.match(lobbyMarkup, /p\.is_bot/, 'Keep bot-only removal controls');
 assert.match(lobbyMarkup, /data-remove-bot/, 'Bot removal must remain usable');
 assert.doesNotMatch(script, /RETOUR AUX JEUX/, 'Redundant return-to-games text must be removed from quiz screens');
 assert.match(page, /class="brand-back"/, 'Keep the header exit X when removing text links');
