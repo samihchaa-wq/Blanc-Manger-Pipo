@@ -9,7 +9,8 @@ const sb = supabase.createClient('https://yqfewxadpyulgxehhpcu.supabase.co','sb_
 // empêcher les jeux en ligne de démarrer.
 if ('serviceWorker' in navigator && window.isSecureContext) {
   addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js', { updateViaCache:'none' })
+      .then(reg => reg.update()).catch(() => {});
   }, { once:true });
 }
 
