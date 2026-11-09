@@ -9,6 +9,8 @@ const joueurs = k => minPlayers(k) === maxPlayers(k) ? `${minPlayers(k)} joueurs
 function lobby(){
   const r = state.room, host = isMe(r.host_id), n = state.players.length, min = minPlayers(r.mode), max = maxPlayers(r.mode);
   const manque = Math.max(0, min - n);
+  // QCM : pas de partie sans quiz (le serveur refuse aussi)
+  const sansQuiz = r.mode === 'qcm' && !(state.qcm?.quiz?.count > 0);
   // partie lancée avec punitions : chacun propose les siennes avant le jeu
   if (pun?.phase) return punWrite();
   return `
@@ -23,7 +25,7 @@ function lobby(){
     ${host && n < max ? `<button class="btn ghost small" data-act="bot" ${dis()}>+ Ajouter un bot</button>` : ''}
     <div class="dock">
       ${host
-        ? `<button class="btn" data-act="start" ${dis(manque > 0)}>${manque ? `Il manque ${manque} joueur${manque > 1 ? 's' : ''}` : 'Lancer la partie'}</button>`
+        ? `<button class="btn" data-act="start" ${dis(manque > 0 || sansQuiz)}>${manque ? `Il manque ${manque} joueur${manque > 1 ? 's' : ''}` : sansQuiz ? 'Choisis d’abord un quiz' : 'Lancer la partie'}</button>`
         : `<p class="dockhint">${lobbyHint()}</p>`}
     </div>`;
 }
@@ -32,6 +34,7 @@ function lobby(){
 function lobbyHint(){
   const r = state.room, n = state.players.length, min = minPlayers(r.mode);
   if (n < min) { const k = min - n; return `Il manque ${k} joueur${k > 1 ? 's' : ''} pour jouer.` }
+  if (r.mode === 'qcm' && !(state.qcm?.quiz?.count > 0)) return `<b>${nameOf(r.host_id)}</b> prépare le quiz.`;
   return `<b>${nameOf(r.host_id)}</b> va lancer la partie.`;
 }
 
@@ -41,7 +44,7 @@ let rulesOpen = false, gamePick = false, reglagesOuverts = false;
 // réglages (repliés pour l'hôte, résumés en une ligne pour les autres).
 function gameBox(host){
   const r = state.room, g = GAMES[r.mode] || GAMES.phrases;
-  const modeDesc = { ondes: WAVE_INVERSE_DESC, dilemme: DILEMME_VARIANT_DESC, phrases: PHRASES_VARIANT_DESC }[r.mode];
+  const modeDesc = { ondes: WAVE_INVERSE_DESC, dilemme: DILEMME_VARIANT_DESC, phrases: PHRASES_VARIANT_DESC, qcm: QCM_VARIANT_DESC }[r.mode];
   return `<section class="panel gamebox">
       <div class="gtitle">
         <div class="gtext"><h3 class="gname">${g.name}</h3><p class="gsub">${joueurs(r.mode)}</p></div>
@@ -50,6 +53,7 @@ function gameBox(host){
       ${host && gamePick ? gamePicker() : ''}
       ${rulesOpen ? `<ul class="gdesc grules">${g.desc.map(step => `<li>${esc(step)}</li>`).join("")}</ul>${modeDesc ? `<p class="gdesc">${esc(modeDesc)}</p>` : ''}` : ''}
       <button type="button" class="rulesbtn" data-act="rules" aria-expanded="${rulesOpen}">${rulesOpen ? 'Masquer la règle' : 'Lire la règle'}</button>
+      ${r.mode === 'qcm' ? qcmLobby(host) : ''}
       ${reglages(host)}
     </section>`;
 }
@@ -77,6 +81,7 @@ const MODES = {
   ondes:   { cle:'wave_variant',    act:'wave-variant',    defaut:'normal',    liste:[['normal','Normal'],['inverse','Inversé']] },
   dilemme: { cle:'dilemme_variant', act:'dilemme-variant', defaut:'aleatoire', liste:[['moitie','50/50'],['aleatoire','Aléatoire']] },
   phrases: { cle:'phrases_variant', act:'phrases-variant', defaut:'normal',    liste:[['normal','Normal'],['private','Private Joke']] },
+  qcm:     { cle:'qcm_variant',     act:'qcm-variant',     defaut:'classique', liste:[['classique','Classique'],['rapidite','Rapidité']] },
 };
 function modeCourant(){
   const m = MODES[state.room.mode];
@@ -183,8 +188,10 @@ function resumeReglages(){
   const nb = `${v} ${optLabel().toLowerCase().replace('manches', v > 1 ? 'manches' : 'manche').replace('tours', v > 1 ? 'tours' : 'tour')}`;
   const p = pun ? (optValue('pun') > 0 ? ' · Punitions' : ' · Sans punitions') : '';
   const m = modeCourant();
-  return `${m ? `Mode ${m.label} · ` : ''}${nb} · Temps ${temps.toLowerCase()}${p}`;
+  return `${m ? `Mode ${m.label} · ` : ''}${isQcm() ? `Temps ${qcmTemps()}` : `${nb} · Temps ${temps.toLowerCase()}`}${p}`;
 }
+// QCM : le temps de réponse à chaque question, en clair.
+const qcmTemps = () => ({ unlimited:'illimité', slow:'60 s', medium:'30 s', fast:'15 s' })[timeMode()[0]] + ' par question';
 function reglages(host){
   if (!host) return `<p class="gdesc resume">${resumeReglages()}</p>`;
   return `<div class="reglages${reglagesOuverts ? ' open' : ''}">
@@ -192,8 +199,8 @@ function reglages(host){
         <span><b>Réglages</b><small>${resumeReglages()}</small></span>${ic('next', 'chev')}</button>
       ${reglagesOuverts ? `<div class="regbody">
         ${modeCourant() ? `<div class="rrow col"><span>Mode</span>${modeChoix()}</div>` : ''}
-        <div class="rrow"><span>${optLabel()}</span>${stepper(optKey(), optKey() === 'turns' ? 'Tours' : 'Manches', optLabel())}</div>
-        <div class="rrow col"><span>Temps</span>${timeField(true)}</div>
+        ${isQcm() ? '' : `<div class="rrow"><span>${optLabel()}</span>${stepper(optKey(), optKey() === 'turns' ? 'Tours' : 'Manches', optLabel())}</div>`}
+        <div class="rrow col"><span>${isQcm() ? `Temps <small>${qcmTemps()}</small>` : 'Temps'}</span>${timeField(true)}</div>
         ${pun ? `<div class="rrow"><span>Punitions <small>${PUN_NB} par joueur, tirées au sort à la fin</small></span>${punCheck()}</div>` : ''}
       </div>` : ''}
     </div>`;
@@ -231,6 +238,7 @@ surAction('set-game', async el => {
 surAction('time-mode', el => act('set_time_mode', { p_mode: el.dataset.v }));
 surAction('wave-variant', el => act('set_wave_variant', { p_variant: el.dataset.v }));
 surAction('dilemme-variant', el => act('set_dilemme_variant', { p_variant: el.dataset.v }));
+surAction('qcm-variant', el => act('set_qcm_variant', { p_variant: el.dataset.v }));
 surAction('phrases-variant', el => {
   if (el.dataset.v !== 'private') { pjDemande = false; return act('set_phrases_variant', { p_variant:'normal' }) }
   if (state.room.phrases_variant === 'private') return;

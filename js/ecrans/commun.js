@@ -10,7 +10,7 @@ function qcard(tag, html, cls = '', foot = ''){
 
 // Champs dont la saisie survit à un rafraîchissement : leur valeur vient d'un
 // brouillon gardé en mémoire, le curseur est remis à sa place.
-const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|custom-phrase|custom-wave-left|custom-wave-right|custom-mime-action|custom-mime-low|custom-mime-high|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|[ae]-(text|left|right|act))$/;
+const CHAMPS_SUIVIS = /^(pun-\d|w-clue|w-theme|custom-phrase|custom-wave-left|custom-wave-right|custom-mime-action|custom-mime-low|custom-mime-high|dico-def|dil-start|dil-but|c-name|j-name|j-code|pj-code|cat-q|pj-new|qcm-key|qe-(title|text|note|c[0-3])|[ae]-(text|left|right|act))$/;
 function render(){
   // un re-rendu pendant un glissement arracherait la carte sous le doigt
   if (dragging || flying) { pendingRender = true; return }
@@ -21,13 +21,15 @@ function render(){
   if (jeu) document.body.dataset.game = jeu; else delete document.body.dataset.game;
   let html;
   if (adminOpen) html = adminView();
+  else if (qcmEd && session) html = qcmEditorView();
   else if (!session) html = home();
   else if (!state) html = '<p class="center"><span class="spin"></span>Connexion à la partie…</p>';
   else html = topbar() + { lobby, question_select: qselect, answering, judging, ranking, clue, guessing,
     naming: bacNaming, writing: bacWrite, voting: bacVote,
     white_clue:whiteClue, white_vote:whiteVote, white_guess:whiteGuess,
     white_elimination:whiteElimination, mime_play:mimePlay, dico_pick:dicoPick, dico_write:dicoWrite, dico_vote:dicoVote,
-    dilemme_pick:dilemmePick, dilemme_write:dilemmeWrite, dilemme_vote:dilemmeVote, reveal, finished }[state.room.status]();
+    dilemme_pick:dilemmePick, dilemme_write:dilemmeWrite, dilemme_vote:dilemmeVote,
+    qcm_question:qcmQuestion, reveal, finished }[state.room.status]();
   // Réécrire un DOM identique fait clignoter les boutons et perdre le focus :
   // la plupart des rafraîchissements ne changent rien à l'écran.
   // Sans barre d'action fixe, la réserve du bas laisserait un grand vide.
@@ -41,7 +43,7 @@ function render(){
     if (focId) { const c = document.getElementById(focId); if (c) { c.focus(); try { c.setSelectionRange(foc, foc) } catch {} } }
     // Fondu/glissé seulement quand on change d'écran, pas à chaque petit
     // rafraîchissement (sinon toute la page tremble sous les yeux).
-    const key = adminOpen ? 'admin' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '') + (isWhite() ? '-' + (state.white?.cycle || 0) : '');
+    const key = adminOpen ? 'admin' : qcmEd && session ? 'qcm-edit' : !session ? 'home' : !state ? 'load' : state.room.status + (pun?.phase ? '-pun' : '') + (isWhite() ? '-' + (state.white?.cycle || 0) : '');
     const newScreen = key !== renderedKey;
     if (newScreen) {
       renderedKey = key;
@@ -53,6 +55,7 @@ function render(){
       countUp();
     } else app.classList.remove('fresh');
     if (adminOpen) adminApresRendu();
+    else if (qcmEd && session) qcmApresRendu();
     // les confettis à l'arrivée sur l'écran de fin, pas à chaque mise à jour
     else if (session && state && state.room.status === 'finished') { if (newScreen) confetti() }
     else if (session && state && state.room.status === 'writing') fillBac();
@@ -109,7 +112,7 @@ function topbar(){
       <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>`;
   return `<div class="top">
-      <div class="top-l">${netBadge(r.code)}<span class="gmeta"><b>${(GAMES[r.mode] || GAMES.phrases).name}</b>${r.round ? `<span class="round">Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}</span>` : ''}</span></div>
+      <div class="top-l">${netBadge(r.code)}<span class="gmeta"><b>${(GAMES[r.mode] || GAMES.phrases).name}</b>${r.round ? `<span class="round">${isQcm() ? `Question ${r.round}${state.qcm?.total ? ' / ' + state.qcm.total : ''}` : `Manche ${r.round}${isCounted() ? ' / ' + (r.round + roundsLeft()) : ''}`}</span>` : ''}</span></div>
       <div class="top-r">
         <span class="cdring" id="cd" hidden aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="16"></circle><circle class="arc" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"></circle></svg><b class="cdn"></b></span>
         <button class="xbtn" data-act="leave" aria-label="Quitter la partie" title="Quitter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>

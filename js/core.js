@@ -51,6 +51,8 @@ const GAMES = {
     desc:["Le meneur choisit le début d’un dilemme.","Chacun le complète après « mais » pour atteindre sa cible secrète de votes Oui.","Répondez Oui ou Non aux dilemmes des autres."] },
   dico:      { name:'Le Dico', cat:'ecrire', pitch:'Invente la définition d’un mot du dictionnaire et démasque la vraie.',
     desc:["Le meneur choisit un mot du dictionnaire et le lit à voix haute.","Les autres inventent chacun une définition.","Le meneur lit toutes les définitions, mélangées à la vraie.","Votez pour celle que vous pensez correcte."] },
+  qcm:       { name:'QCM', cat:'ambiance', pitch:'Ton quiz, tes questions : tout le monde répond en même temps.',
+    desc:["L’animateur prépare son quiz : ses questions, 2 à 4 réponses, la bonne.","La même question s’affiche sur tous les téléphones : touchez votre réponse.","Bonne réponse, qui a répondu quoi, points : l’animateur passe ensuite à la question suivante."] },
 };
 // Les familles de jeux, dans l'ordre de la liste « Changer de jeu ».
 const CATEGORIES = [['cartes','Cartes'],['ecrire','À l’écrit'],['table','Autour de la table'],['ambiance','Ambiance']];
@@ -73,6 +75,8 @@ const WAVE_INVERSE_DESC = 'Mode inversé : un joueur propose un thème. Le médi
 const PHRASES_VARIANT_DESC = 'Mode Normal : cartes classiques. Mode Private Joke : cartes ajoutées par votre groupe.';
 // Dilemme : les deux modes de partie.
 const DILEMME_VARIANT_DESC = 'Mode 50/50 : visez la moitié des votes Oui. Mode Aléatoire : chacun reçoit une cible secrète de votes Oui.';
+// QCM : comment se gagnent les points.
+const QCM_VARIANT_DESC = 'Mode Classique : une bonne réponse rapporte les points de la question. Mode Rapidité : le premier qui trouve gagne 1 point de plus.';
 // Vignette d'un jeu, la même partout (accueil, salon, barre du haut) : Mr White
 // et Mimes ont la leur en jpg. white.svg reste l'emblème affiché pendant la partie.
 const tileImg = k => k === 'white' ? 'white-home.jpg' : k === 'mimes' ? 'mimes.jpg' : k + '.webp';
@@ -84,14 +88,18 @@ const isWhite = () => state?.room.mode === 'white';
 const isMime = () => state?.room.mode === 'mimes';
 const isDico = () => state?.room.mode === 'dico';
 const isDilemme = () => state?.room.mode === 'dilemme';
+const isQcm = () => state?.room.mode === 'qcm';
 const isInverse = () => isWave() && state?.room.wave_variant === 'inverse';
 // Priorités, Baromètre et Petit bac se jouent en manches comptées, pas au score cible.
-const isCounted = () => isPrio() || isWave() || isBac() || isWhite() || isMime() || isDico() || isDilemme();
+const isCounted = () => isPrio() || isWave() || isBac() || isWhite() || isMime() || isDico() || isDilemme() || isQcm();
 // Un juge (ou un médium) et un devineur suffisent ; Phrases à trou demande au
 // moins deux réponses à départager. Le Petit bac se joue à deux exactement.
+// Le QCM : l'animateur et au moins un joueur, jusqu'à 30 (une équipe entière).
 // Le serveur applique les mêmes règles.
-const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' || mode === 'mimes' ? 2 : 3;
-const maxPlayers = mode => mode === 'bac' ? 2 : 12;
+const minPlayers = mode => mode === 'priorites' || mode === 'ondes' || mode === 'bac' || mode === 'mimes' || mode === 'qcm' ? 2 : 3;
+const maxPlayers = mode => mode === 'bac' ? 2 : mode === 'qcm' ? 30 : 12;
+// Les joueurs classés : au QCM, l'animateur connaît les réponses et ne joue pas.
+const classes = () => isQcm() ? state.players.filter(p => p.id !== state.room.reader_id) : state.players;
 // Réglages du salon, à − et + (le serveur applique les mêmes bornes) :
 // manches de 1 à 20 (Phrases à trou, Petit bac), tours de 1 à 5 (Priorités, Baromètre).
 const BORNES = { target:[1, 20], turns:[1, 5] };
@@ -116,6 +124,10 @@ const ICONS = {
   next:'<path d="M9.5 6l6 6-6 6"/>',
   voice:'<path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
   pen:'<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.5 7l3.5 3.5"/>',
+  haut:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  bas:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  bolt:'<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z"/>',
+  copy:'<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/>',
 };
 ICONS.down = '<g transform="rotate(180 12 12)">' + ICONS.up + '</g>';
 const ic = (n, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -172,7 +184,7 @@ async function verifierVersion(){
 // Jamais en pleine saisie : seulement à l'accueil, au salon, aux résultats, en fin
 // de partie, ou tout de suite si ce code ne connaît pas le jeu de la partie.
 function rechargerSiPossible(){
-  if (!majEnAttente || adminOpen) return;
+  if (!majEnAttente || adminOpen || qcmEd) return;
   const st = state?.room?.status, saisie = document.activeElement?.matches?.('input, textarea');
   const calme = !session || !state || (['lobby', 'reveal', 'finished'].includes(st) && !pun?.phase);
   if (state && !GAMES[state.room.mode]) return recharger();
@@ -248,6 +260,7 @@ async function readState(expectedSession){
       const d = await rpc('get_full_state', args);
       const s = d.state, pu = d.pun || null;
       if (d.white) s.white = d.white;
+      if (d.qcm) { s.qcm = d.qcm; s.room.qcm_variant = d.qcm.variant }
       // Le serveur a déjà relu l'état après punish_state : la saisie des
       // punitions vient de se fermer, salon = annulée, sinon la partie démarre.
       let annulee = false;
@@ -266,6 +279,9 @@ async function readStateLegacy(args){
   let s = await rpc('get_state', args);
   if (s.room.mode === 'white' && s.room.status !== 'lobby')
     s.white = await rpc('white_state', args);
+  if (s.room.mode === 'qcm') {
+    try { s.qcm = await rpc('qcm_state', args); s.room.qcm_variant = s.qcm?.variant } catch {}
+  }
   // les punitions ne servent qu'au salon et à l'écran de fin
   let pu = null;
   if (s.room.status === 'lobby' || s.room.status === 'finished')
@@ -342,14 +358,17 @@ function connect(){
     });
   // Chaque action envoie un « bump » aux autres : la relecture régulière n'est
   // qu'un filet de sécurité. Temps réel en place : toutes les 30 s ; coupé :
-  // toutes les 4 s, pour que l'attente ne paraisse pas figée. Chaque relecture
+  // toutes les 4 s, pour que l'attente ne paraisse pas figée. Pendant les
+  // questions du QCM, où tout le monde doit voir la même question en même
+  // temps : toutes les 5 s, même si le temps réel marche. Chaque relecture
   // est une requête journalisée qui renvoie tout l'état : à 4 s en continu,
   // le quota gratuit de Supabase (journaux, données sortantes) explosait.
   poll = setInterval(() => {
-    if (!document.hidden && Date.now() - lastSync >= (rtOk ? 30000 : 4000) - 100) refresh();
+    if (!document.hidden && Date.now() - lastSync >= (qcmEnDirect() ? 5000 : (rtOk ? 30000 : 4000)) - 100) refresh();
   }, 4000);
   clearInterval(tickTimer); tickTimer = setInterval(updateCountdown,500);
 }
+const qcmEnDirect = () => state?.room.mode === 'qcm' && ['qcm_question', 'reveal'].includes(state?.room.status);
 function disconnect(){
   // Invalide les lectures encore en vol, notamment lors d'un changement de salon.
   refreshSequence++;
@@ -359,7 +378,7 @@ function disconnect(){
 }
 function ping(){ if (channel?.state === 'joined') channel.send({ type:'broadcast', event:'bump', payload:{} }) }
 function startSession(){ state = null; last = ''; render(); connect(); refresh(true); keepAwake() }
-function leaveLocal(){ disconnect(); save(null); state = null; history.replaceState(null,'',location.pathname); keepAwake(); render() }
+function leaveLocal(){ disconnect(); save(null); state = null; qcmEd = null; history.replaceState(null,'',location.pathname); keepAwake(); render() }
 
 // L'écran reste allumé tant qu'on est dans une partie : pendant les attentes
 // (lecteur, mimes, Mr White) le téléphone se verrouillait, et les bots, pilotés
@@ -410,7 +429,10 @@ function scheduleBots(){
   const r = state.room, bots = state.players.filter(p => p.is_bot && p.active);
   if (!bots.length) return;
   let todo = false;
-  if (r.status === 'question_select') todo = bots.some(b => b.id === r.reader_id);
+  // QCM : les bots répondent à la question ; la suite revient à l'animateur.
+  if (r.mode === 'qcm') todo = r.status === 'qcm_question' ? bots.some(b => b.id !== r.reader_id && !(state.qcm?.answered || []).includes(b.id))
+    : r.status === 'finished' && bots.some(b => !b.continue_requested);
+  else if (r.status === 'question_select') todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'answering')  todo = bots.some(b => b.id !== r.reader_id && !b.submitted);
   else if (r.status === 'judging')    todo = bots.some(b => b.id === r.reader_id);
   else if (r.status === 'ranking')    todo = bots.some(b => !b.ranked);
@@ -439,6 +461,7 @@ function scheduleBots(){
   botTimer = setTimeout(async () => {
     const fn = r.mode === 'white' && r.status.startsWith('white_') ? 'white_bot_step'
       : r.status === 'mime_play' ? 'mime_bot_step'
+      : r.status === 'qcm_question' ? 'qcm_bot_step'
       : r.status === 'clue' && isInverse() ? 'wave_bot_step' : 'bot_step';
     try {
       // Le serveur n'a pas le dictionnaire : le téléphone de l'hôte lui en envoie une page

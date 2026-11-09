@@ -22,6 +22,7 @@
 | Mimes | juge, deux intensités, refus de notes invalides, score et fin de manche | SQL transactionnel exécuté |
 | Le Dico | vraies/fausses définitions, rôle du meneur, auteurs cachés, changement du vote avant clôture, score | SQL transactionnel exécuté, correctif déployé |
 | Dilemme | propositions cachées, refus du vote sur soi / ID dupliqué, modification du vote avant clôture, score | SQL transactionnel **avec migration correctrice en attente** |
+| QCM | quiz par code secret (empreinte seule), validation des questions, bonne réponse cachée avant révélation, animateur hors jeu et hors classement, changement de réponse, mode Rapidité, temps écoulé, départs (joueur, animateur, sous le minimum), 15 joueurs, bots, droits | SQL transactionnel sur toutes les migrations rejouées dans PostgreSQL jetable (CI) ; **pas encore joué sur Supabase ni sur téléphones** |
 | Les 8 jeux | départ sous le nombre minimum, ancien jeton refusé, retour salon, reconnexion | SQL transactionnel exécuté |
 | Les 8 jeux | délai expiré, participant silencieux, score non compté deux fois, phase finale | SQL transactionnel exécuté |
 | Les 8 jeux | sept salons complets à 12 participants, refus du 13e, Petit Bac limité à 2 | SQL transactionnel exécuté |
@@ -136,6 +137,16 @@ Pour chaque configuration, noter : modèle, version OS/navigateur, résolution u
 - **DIC-04** Changement d'avis **tant que le vote est ouvert** ; une seule voix effective.
 - **DIC-05** Score +2 pour la vraie définition, +1 par joueur dupé et bonus du meneur si personne ne trouve.
 - **DIC-06** Départ du meneur / d'un auteur / minuterie expirée : partie toujours jouable.
+
+### QCM
+- **QCM-01** Créer un quiz, écrire 3 questions (2, 3 et 4 réponses), le rouvrir sur un autre téléphone avec son code.
+- **QCM-02** Les joueurs ne voient jamais la bonne réponse ni le commentaire avant la révélation ; l'animateur les voit.
+- **QCM-03** Tous les téléphones affichent la même question en même temps ; changer de réponse tant que la question est ouverte.
+- **QCM-04** Révélation automatique quand tout le monde a répondu, à la fin du temps, ou sur décision de l'animateur.
+- **QCM-05** Mode Rapidité : +1 au premier qui trouve ; mode Classique : les points de la question seulement.
+- **QCM-06** Départ d'un joueur, de l'animateur (le nouvel hôte reprend), passage sous 2 joueurs : partie cohérente.
+- **QCM-07** Fin : podium et punitions sans l'animateur ; « Refaire une partie » relance le même quiz.
+- **QCM-08** Salon de 15 à 20 personnes sur le même Wi-Fi : entrées par le lien d'invitation, sans blocage.
 
 ### Dilemme
 - **DIL-01** Choix de la situation de départ réservé au meneur.

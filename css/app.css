@@ -1125,3 +1125,81 @@ body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
 .pjset{margin-top:22px}
 .pjset .sec{margin-top:0}
 .pjset .hint{margin:6px 0 16px}
+
+/* ===== QCM ===== */
+[data-game="qcm"]{--accent:#C5DD45}
+/* Les réponses : la carte papier du Dico, avec une lettre de couleur par réponse. */
+.qcm-choices{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px}
+.qcm-c{align-items:center;min-height:58px;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:18px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.qcm-c .dnum{width:36px;height:36px;margin-top:0;font-size:17px;font-weight:800;color:#25141F}
+.qcm-c.c0 .dnum{background:#FF6B98}
+.qcm-c.c1 .dnum{background:#4CC3F5}
+.qcm-c.c2 .dnum{background:#FFC23D}
+.qcm-c.c3 .dnum{background:#3FDC9C}
+.qcm-c small{font-weight:600}
+.qcm-c .ic.qcm-ok{flex:none;width:28px;height:28px;stroke:#0B6B47;stroke-width:3}
+.qcm-c.ok{box-shadow:0 0 0 3px var(--mint),0 3px 0 #0B6B47}
+.qcm-choices.res .qcm-c.ko{opacity:.6}
+.qcm-choices.res .qcm-c.ko.mine{opacity:.85;box-shadow:0 0 0 3px var(--pop),0 3px 0 var(--pop-deep)}
+.qcm-choices .found{margin:8px 4px 2px}
+.qcm-noteprev{margin-top:12px}
+.qcm-bonus{display:flex;align-items:center;gap:9px;margin-top:16px;font-size:15px;color:var(--text-dim)}
+.qcm-bonus b{color:var(--text);font-weight:600}
+.qcm-bonus .ic{flex:none;width:24px;height:24px;stroke:var(--gold);fill:rgba(255,194,61,.28)}
+.qcm-note>p:not(.eyebrow){font-family:"Bricolage Grotesque",system-ui,sans-serif}
+/* L'encart du quiz dans le salon */
+.qcmbox{margin-top:12px;padding-top:12px;border-top:1px solid var(--hairline)}
+.qcmbox .qcm-titre{margin-top:4px;font-size:19px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.qcm-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.qcm-acts .btn+.btn,.qcm-code .btn+.btn{margin-top:0}
+.qcmbox>.btn{margin-top:12px}
+.qcm-mine{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
+.qcm-pick{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border-radius:12px;
+  text-align:left;background:var(--surface-2);border:1px solid var(--hairline)}
+.qcm-pick b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.qcm-pick small{flex:none;font-size:12px;color:var(--text-faint)}
+.qcm-pick.on{border-color:var(--accent,var(--gold));box-shadow:0 0 0 1px var(--accent,var(--gold)) inset}
+.qcm-code{display:flex;align-items:flex-end;gap:8px;margin-top:14px}
+.qcm-code .field{flex:1;min-width:0;margin:0}
+.qcm-code input{text-transform:uppercase;letter-spacing:.06em}
+.qcm-code .btn{margin-bottom:2px}
+.qcm-anim{margin-top:12px}
+/* L'éditeur de quiz */
+.qe-etat{font-size:13px;color:var(--text-faint)}
+.qe-head .field{margin:0}
+.qe-key{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:16px}
+.qe-key>span{font-size:13px;color:var(--text-faint)}
+.qe-key b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;letter-spacing:.06em;color:var(--gold-soft);font-weight:600}
+.qe-key .btn{margin-left:auto}
+.qe-key .btn .ic{width:17px;height:17px}
+.qe-list{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:10px}
+.qe-item{display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 12px;border-radius:15px;background:var(--surface);border:1px solid var(--hairline)}
+.qe-n{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#322037;color:#FFF5D7;font-size:14px;font-weight:700}
+.qe-t{flex:1;min-width:0;padding-top:3px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.qe-t small{display:block;margin-top:4px;font-size:13px;font-weight:400;color:var(--text-faint)}
+.qe-acts{flex:none;display:flex;gap:4px}
+.qe-acts button{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--surface-2);color:var(--text)}
+.qe-acts button:disabled{opacity:.3;cursor:default}
+.qe-acts .ic{width:18px;height:18px}
+.qe-form{list-style:none;margin:0}
+.qe-form textarea{resize:none;min-height:58px}
+.qe-lab{margin:4px 0 8px;font-weight:800}
+.qe-lab small{display:block;font-size:12px;font-weight:400}
+.qe-choices{list-style:none;padding:0;margin:0 0 10px;display:grid;gap:8px}
+.qe-choices li{display:flex;align-items:center;gap:8px}
+.qe-choices input{flex:1;min-width:0}
+.qe-letter{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;font-weight:800;font-size:17px;color:#25141F;
+  border:2px solid rgba(37,20,31,.35)}
+.qe-letter.c0{background:#FF6B98}.qe-letter.c1{background:#4CC3F5}.qe-letter.c2{background:#FFC23D}.qe-letter.c3{background:#3FDC9C}
+.qe-letter.on{border-color:#0B6B47;box-shadow:0 0 0 3px #3FDC9C}
+.qe-letter .ic{width:24px;height:24px;stroke-width:3}
+.qe-vf{margin:2px 0 14px}
+.qe-pts{margin-bottom:14px}
+.qe-pts .seg{flex:none;width:150px}
+.qe-formacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.qe-formacts .btn+.btn{margin-top:0}
+.qe-suppr{margin-left:auto}
+.qe-vide{margin:0 0 12px}
+.qe-add{margin-top:4px}
+.qe-delquiz{display:block;margin:26px auto 0}
+@media (max-width:360px){.qe-acts button{width:32px;height:32px}.qe-pts .seg{width:126px}}

@@ -28,8 +28,15 @@ window.supabase = {
       window.__qaCalls.push({name, args});
       if (name === 'get_full_state') {
         return {data:{state:JSON.parse(JSON.stringify(window.__qaState)),
-                      white:window.__qaWhite || null,pun:null},error:null};
+                      white:window.__qaWhite || null,pun:null,
+                      qcm:window.__qaState.qcm ? JSON.parse(JSON.stringify(window.__qaState.qcm)) : null},error:null};
       }
+      // QCM : création, choix et enregistrement d'un quiz simulés.
+      if (name === 'qcm_quiz_create') return {data:{id:'quiz-neuf',key:'ABCD-EFGH-JKMN',title:args.p_title,questions:[]},error:null};
+      if (name === 'qcm_select') return {data:{id:'quiz-neuf',title:'Mon quiz',count:0},error:null};
+      if (name === 'qcm_quiz_get') return {data:{id:'quiz-1',key:args.p_key,title:'Fin de saison',
+        questions:[{text:'Qui a marqué le plus de buts ?',choices:['Karim','Théo'],correct:1,points:1,note:null}]},error:null};
+      if (name === 'qcm_quiz_save') return {data:{id:'quiz-neuf',key:args.p_key,title:args.p_title,questions:args.p_questions},error:null};
       if (name === 'create_room') return {data:{code:'00123456',token:'host-token'},error:null};
       if (name === 'join_room') {
         return args.p_code === '00123456'
@@ -49,7 +56,7 @@ window.supabase = {
 };
 """
 
-GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme"]
+GAMES = ["phrases", "priorites", "ondes", "bac", "white", "mimes", "dico", "dilemme", "qcm"]
 SIZES = [320, 360, 375, 390, 430]
 SAMPLE_NAMES = ["Aïcha", "Bastien", "Camille", "Dylan"]
 
@@ -132,6 +139,22 @@ def fixture(game, role="host", n=3, phase="lobby"):
                       "buts":[{"id":"b1","text":"tu cours partout","mine":False,"my_vote":None},
                               {"id":"b2","text":"tu fais la sieste","mine":True,"my_vote":None},
                               {"id":"b3","text":"tu bois de l'eau","mine":False,"my_vote":None}]}
+    if game=="qcm":
+        # L'hôte (p0) anime : lui seul voit la bonne réponse avant la révélation.
+        fin=phase in ("reveal","finished")
+        s["qcm"]={"variant":"classique","quiz":{"title":"Fin de saison","count":3,
+                                                "id":"quiz-1" if role=="host" else None}}
+        if phase!="lobby":
+            s["qcm"].update({"position":1,"total":3,"text":"Qui a marqué le plus de buts cette saison ?",
+                "choices":["Karim","Yanis","Théo","Malik"],"points":2,
+                "correct":2 if (role=="host" or fin) else None,
+                "note":"Théo : 14 buts !" if (role=="host" or fin) else None,
+                "my_choice":None,"answered":["p2"],
+                "answers":[{"player_id":"p1","choice":2,"points":3,"bonus":True},
+                           {"player_id":"p2","choice":0,"points":0,"bonus":False}] if fin else None})
+        if phase=="finished":
+            players[0]["score"]=0; players[1]["score"]=7; players[2]["score"]=4
+            r["winner_id"]="p1"
     return s, white
 
 def open_page(browser, base, game=None, role="host", n=3, phase="lobby",
@@ -192,16 +215,16 @@ def run(browser, base):
     for width in SIZES:
         ctx,page,errors=open_page(browser,base,width=width)
         try:
-            assert page.locator(".seg.games button").count()==8
+            assert page.locator(".seg.games button").count()==len(GAMES)
             # Les barres mobiles font varier la hauteur accordée à l'accueil.
-            # Les huit images restent exactement de même taille en y revenant.
+            # Les images des jeux restent exactement de même taille en y revenant.
             def icon_sizes():
                 return page.eval_on_selector_all(
                     ".seg.games img",
                     "(els) => els.map(el => parseFloat(getComputedStyle(el).width))"
                 )
             original=icon_sizes()
-            assert len(original)==8 and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
+            assert len(original)==len(GAMES) and max(original)-min(original)<0.1, "Colonnes d'icônes de tailles inégales"
             # Les illustrations doivent être à nu : aucun cartouche papier, padding,
             # bordure ou ombre, même pour le jeu sélectionné.
             def tiles():
@@ -482,6 +505,107 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # QCM : sans quiz, pas de lancement ; l'hôte peut en créer un.
+    ctx,page,errors=open_page(browser,base,game="qcm",role="host")
+    try:
+        page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
+        page.locator('[data-act="qcm-new"]').wait_for()
+        assert page.locator('[data-act="start"]').is_disabled()
+        assert "Choisis d’abord un quiz" in page.locator('[data-act="start"]').inner_text()
+        no_errors(page,errors,"qcm-sans-quiz")
+        checks+=1
+    finally:ctx.close()
+
+    # QCM : question, révélation et suite, avec les vrais boutons, aux deux largeurs.
+    for width in (320,430):
+        # Un joueur touche une réponse : la bonne réponse ne lui est jamais montrée avant.
+        ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="qcm_question",width=width)
+        try:
+            assert page.locator('[data-act="qcm-answer"]').count()==4
+            assert page.locator('.qcm-c.ok').count()==0,"Bonne réponse visible par un joueur"
+            assert page.locator('[data-act="qcm-reveal"]').count()==0
+            page.locator('[data-act="qcm-answer"][data-i="2"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_answer')")
+            calls=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_answer')")
+            assert calls[-1]["args"]["p_choice"]==2,calls
+            no_horizontal_overflow(page,f"qcm-question-joueur-{width}")
+            no_errors(page,errors,f"qcm-question-joueur-{width}")
+            checks+=1
+        finally:ctx.close()
+
+        # L'animateur voit la bonne réponse cochée et peut révéler sans attendre.
+        ctx,page,errors=open_page(browser,base,game="qcm",role="host",phase="qcm_question",width=width)
+        try:
+            assert page.locator('[data-act="qcm-answer"]').count()==0,"L'animateur ne répond pas"
+            assert page.locator('.qcm-c.ok').inner_text().startswith("C")
+            page.locator('[data-act="qcm-reveal"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_reveal')")
+            no_horizontal_overflow(page,f"qcm-question-animateur-{width}")
+            no_errors(page,errors,f"qcm-question-animateur-{width}")
+            checks+=1
+        finally:ctx.close()
+
+        # Révélation : qui a répondu quoi, le bonus, et seul l'animateur passe à la suite.
+        for role in ("host","guest"):
+            ctx,page,errors=open_page(browser,base,game="qcm",role=role,phase="reveal",width=width)
+            try:
+                assert page.locator('.qcm-c.ok').count()==1
+                assert "Bastien" in page.locator('.qcm-choices').inner_text()
+                assert page.locator('.qcm-bonus').count()==1
+                assert "Théo : 14 buts !" in page.locator('.qcm-note').inner_text()
+                # l'animateur (Aïcha) n'apparaît pas au classement
+                assert "Aïcha" not in page.locator('ol.rank').inner_text()
+                if role=="host":
+                    page.locator('[data-act="qcm-next"]').click()
+                    page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_next')")
+                else:
+                    assert page.locator('[data-act="qcm-next"]').count()==0
+                no_horizontal_overflow(page,f"qcm-revelation-{role}-{width}")
+                no_errors(page,errors,f"qcm-revelation-{role}-{width}")
+                checks+=1
+            finally:ctx.close()
+
+        # Éditeur : créer un quiz, écrire une question complète, l'enregistrer.
+        ctx,page,errors=open_page(browser,base,game="qcm",role="host",width=width)
+        try:
+            page.evaluate("() => { window.__qaState.qcm.quiz = null; refresh(true) }")
+            page.locator('[data-act="qcm-new"]').click()
+            page.locator('#qe-text').wait_for()
+            assert "ABCD-EFGH-JKMN" in page.locator('.qe-key').inner_text()
+            page.locator('#qe-text').fill('Qui a marqué le plus de buts cette saison ?')
+            page.locator('[data-act="qe-vf"]').click()
+            assert page.locator('#qe-c0').input_value()=="Vrai" and page.locator('#qe-c1').input_value()=="Faux"
+            page.locator('#qe-c0').fill('Karim')
+            page.locator('#qe-c1').fill('Yanis')
+            page.locator('#qe-c3').fill('Théo')
+            page.locator('[data-act="qe-correct"][data-k="3"]').click()
+            page.locator('[data-act="qe-points"][data-v="3"]').click()
+            page.locator('#qe-note').fill('14 buts !')
+            page.locator('[data-act="qe-save"]').click()
+            page.wait_for_function("() => window.__qaCalls.some(c=>c.name==='qcm_quiz_save')")
+            args=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='qcm_quiz_save').at(-1).args")
+            q=args["p_questions"][0]
+            # la réponse C laissée vide disparaît : la bonne réponse (D) devient la 3e
+            assert q["choices"]==["Karim","Yanis","Théo"] and q["correct"]==2 and q["points"]==3,q
+            assert q["note"]=="14 buts !" and args["p_key"]=="ABCD-EFGH-JKMN",args
+            page.locator('.qe-item').wait_for()
+            no_horizontal_overflow(page,f"qcm-editeur-{width}")
+            no_errors(page,errors,f"qcm-editeur-{width}")
+            checks+=1
+        finally:ctx.close()
+
+    # QCM : fin de partie sans l'animateur sur le podium.
+    ctx,page,errors=open_page(browser,base,game="qcm",role="guest",phase="reveal")
+    try:
+        page.evaluate("""() => { const s = window.__qaState; s.room.status = 'finished';
+          s.players[1].score = 7; s.players[2].score = 4; s.room.winner_id = 'p1'; refresh(true) }""")
+        page.locator('.bigwin').wait_for()
+        assert "Aïcha" not in page.locator('.podium').inner_text(),"L'animateur ne doit pas être sur le podium"
+        assert "Toi" in page.locator('.podium').inner_text() and "Camille" in page.locator('.podium').inner_text()
+        no_errors(page,errors,"qcm-fin")
+        checks+=1
+    finally:ctx.close()
+
     # Injection HTML malveillante : le contenu de joueurs et cartes doit
     # être affiché en texte et jamais interprété comme du code.
     payload='<img src="x" onerror="window.__qaInjected=true">'
@@ -489,6 +613,7 @@ def run(browser, base):
         ("phrases","lobby","player",".plist"),
         ("phrases","answering","card",".hand"),
         ("dico","dico_vote","definition",".ddefs"),
+        ("qcm","qcm_question","quiz",".qcm-choices"),
     ]:
         role="guest" if phase!="lobby" else "host"
         ctx,page,errors=open_page(browser,base,game=game,role=role,phase=phase)
@@ -498,6 +623,7 @@ def run(browser, base):
               if (kind==='player') state.players[1].name=txt;
               if (kind==='card') state.hand[0].text=txt;
               if (kind==='definition') state.dico.defs[0].text=txt;
+              if (kind==='quiz') state.qcm.choices[0]=txt;
               render();
             }""",[field,payload])
             assert page.locator(selector+' img[src="x"]').count()==0,"HTML exécuté : "+field
@@ -540,7 +666,7 @@ def run(browser, base):
         pwa_ctx.set_offline(True)
         pwa.goto(base+"/",wait_until="domcontentloaded",timeout=15000)
         pwa.locator("#pane-create").wait_for(timeout=5000)
-        assert pwa.locator(".seg.games button").count()==8,"Accueil hors ligne incomplet"
+        assert pwa.locator(".seg.games button").count()==len(GAMES),"Accueil hors ligne incomplet"
         no_horizontal_overflow(pwa,"pwa-demarrage-hors-ligne")
         no_errors(pwa,pwa_errors,"pwa-demarrage-hors-ligne")
         pwa_ctx.set_offline(False)
@@ -550,7 +676,7 @@ def run(browser, base):
         raise
     finally:
         pwa_ctx.close()
-    print(f"CHROMIUM QA OK : {checks} parcours navigateur, 8 jeux, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
+    print(f"CHROMIUM QA OK : {checks} parcours navigateur, {len(GAMES)} jeux, 5 tailles, rôles, invitation, vote, panne réseau et PWA hors connexion.")
 
 def main():
     handler=functools.partial(QuietHandler,directory=str(ROOT))
