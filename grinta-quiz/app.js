@@ -41,13 +41,15 @@ function toast(message) {
 }
 function fmtError(error) {
   const message=String(error?.message || '');
-  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
+  if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Seul le maître du jeu|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé|Les deux mi-temps ne sont pas prêtes/i.test(message)) return message;
   if (/DELETE requires a WHERE clause|SQL|PostgREST|PGRST\d|syntax error|permission denied|relation .* does not exist|violates .* constraint/i.test(message)) return 'Impossible de terminer cette action. Réessaie.';
   return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
 // Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
-const presenter = (pose, message='') =>
-  `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Animateur AS Grinta"></div>${message ? `<div class="presenter-bubble">${safe(message)}</div>` : ''}</div>`;
+const presenter = pose =>
+  `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Maître du jeu AS Grinta"></div></div>`;
+const stage = (title,pose,kind='') =>
+  `<div class="stage-head stage-${safe(kind)}"><div class="stage-copy">${title}</div>${presenter(pose)}</div>`;
 
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
@@ -63,8 +65,7 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    <div class="hero hero-compact"><h1>LE GRAND <span class="gold">QUIZ</span></h1></div>
-    ${presenter('thinking')}
+    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>', 'welcome', 'welcome')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -89,8 +90,7 @@ function renderLobby(s) {
   const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span class="avatar">${firstLetter(p.name)}</span><span>${safe(p.name)}${p.id === s.me.id && s.is_host ? ' · MAÎTRE DU JEU' : ''}${p.is_bot ? ' <span class="bot-label">BOT</span>' : ''}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   const canStart=count >= 2 && s.ready;
   shell(`
-    <div class="hero hero-compact"><h2>VESTIAIRE</h2></div>
-    ${presenter('confident')}
+    ${stage('<h2>VESTIAIRE</h2>', 'confident', 'lobby')}
     <div class="panel lobby-panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
@@ -104,8 +104,7 @@ function renderLobby(s) {
   `, 'lobby');
 }
 function renderIntro(s) {
-  shell(`<div class="hero hero-compact"><h2>1RE MI-TEMPS</h2></div>
-    ${presenter('cheer')}
+  shell(`${stage('<h2>1RE MI-TEMPS</h2>', 'cheer', 'intro')}
     <div class="panel center">${hostAction(s,'COMMENCER LES QUESTIONS')}</div>`, 'intro');
 }
 function renderQuestion(s) {
@@ -114,8 +113,7 @@ function renderQuestion(s) {
   const choices=(q.choices || []).map((answer,i) => s.is_host
     ? `<div class="choice host-choice"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
     : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer?'disabled':''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
-  shell(`<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${presenter('question')}
+  shell(`<div class="question-topline"><div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>${presenter('question')}</div>
     <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
     ${s.is_host ? hostAction(s,'RÉVÉLER LA RÉPONSE') : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
@@ -132,7 +130,7 @@ function renderReveal(s) {
   const lastOfFirst=s.half===1 && s.position===s.first_half_count;
   const nextLabel=lastQuestion?'VOIR LE PODIUM':lastOfFirst?'MI-TEMPS':'QUESTION SUIVANTE';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${presenter(s.is_host?'confident':success?'excited':answered?'facepalm':'surprised')}
+    ${stage('',s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
     <div class="result-status ${success?'good':'bad'}">${verdict}</div>
     <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
@@ -140,8 +138,7 @@ function renderReveal(s) {
     ${hostAction(s,nextLabel)}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`<div class="hero hero-compact"><h2>MI-TEMPS</h2></div>
-    ${presenter('puzzled')}
+  shell(`${stage('<h2>MI-TEMPS</h2>', 'puzzled', 'halftime')}
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
     ${hostAction(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
@@ -153,8 +150,7 @@ function renderFinished(s) {
     const tier=position===1?'first':position===3?'third':'';
     return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
   }).join('');
-  shell(`<div class="hero hero-compact"><h2>PODIUM</h2></div>
-    ${presenter('victory')}
+  shell(`${stage('<h2>PODIUM</h2>', 'victory', 'podium')}
     <h2 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h2>
     <div class="podium">${podium}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
