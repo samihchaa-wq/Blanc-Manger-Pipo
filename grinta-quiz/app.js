@@ -266,9 +266,11 @@ async function masterCommand(action) {
   const button=document.querySelector('[data-host-action]');
   if(button) button.disabled=true;
   try {
-    const rpcName=isRehearsal ? (action==='start'?'asgq_rehearsal_start':'asgq_rehearsal_next')
-      : (action==='start'?'asgq_start':'asgq_next');
-    const {error}=await api.rpc(rpcName,{p_token:token});
+    const rpcName=isRehearsal ? (action==='start'?'asgq_rehearsal_start':'asgq_rehearsal_advance')
+      : (action==='start'?'asgq_start':'asgq_advance');
+    const args=action==='start' ? {p_token:token}
+      : {p_token:token,p_expected_phase:state.phase,p_expected_position:state.position};
+    const {error}=await api.rpc(rpcName,args);
     if(error) throw error;
     signature='';
     await fetchState();
