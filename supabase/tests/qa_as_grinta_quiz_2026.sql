@@ -79,7 +79,7 @@ begin
   s := public.asgq_state(ta);
   if s->>'phase'<>'question' or s->'question'->>'correct' is not null
       or s->'question'->>'explanation' is not null
-      or s->'standings' is not null then
+      or s->>'standings' is not null then
     raise exception 'ASGQ_QA: question secrets or standings leaked';
   end if;
 
