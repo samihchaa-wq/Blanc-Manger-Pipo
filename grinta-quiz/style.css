@@ -101,7 +101,6 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .add-bot{display:block;width:100%;min-height:50px;border:1px solid var(--gold);border-radius:12px;background:#112f4d;color:var(--gold-2);font:800 17px 'DM Sans',sans-serif;margin:17px 0 10px;cursor:pointer}
 .add-bot:disabled,.start-quiz:disabled{opacity:.52;cursor:default}
 .start-quiz{margin-bottom:15px}
-.bot-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(233,191,103,.19);color:var(--gold-2);font-size:9px;font-weight:800;letter-spacing:.08em;vertical-align:middle}
 
 
 /* Kick / remove bots before manual kickoff, as in the other mini-games. */
@@ -113,7 +112,6 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .choice.readonly{cursor:default;user-select:text}
 .host-next{margin-top:18px}
 
-.host-label{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:rgba(80,211,161,.14);color:var(--green);font-size:9px;font-weight:800;letter-spacing:.04em;vertical-align:middle}
 
 /* AS Grinta — mobile-first master-operated quiz. No clipped iPhone status-bar area. */
 html,body{overflow-x:hidden}
