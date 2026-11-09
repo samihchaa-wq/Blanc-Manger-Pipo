@@ -10,6 +10,21 @@ const style=read('grinta-quiz/style.css');
 const db=read('supabase/migrations/20261122140000_as_grinta_quiz_preflight_guard.sql');
 
 new Function(script);
+const serverBots=read('supabase/migrations/20261122180000_as_grinta_real_bot_rehearsal.sql');
+assert.match(serverBots, /create schema if not exists asgq_rehearsal_private/, 'Must isolate test engine from official game');
+assert.match(serverBots, /public\.asgq_rehearsal_create/, 'Admin+ rehearsal create missing');
+assert.match(serverBots, /public\.asgq_rehearsal_join_room/, 'Guests need a standard room code in rehearsal');
+assert.match(serverBots, /bot_order/, 'Server-side bot participant marker missing');
+assert.match(serverBots, /insert into asgq_rehearsal_private\.answers\(/, 'Bots must submit stored real answers');
+assert.match(serverBots, /as(g)?q_rehearsal_private\.tick\(\)/, 'Rehearsal must use the real timer state machine');
+assert.match(script, /repetition/, 'Rehearsal launcher missing');
+assert.match(script, /TESTER AVEC DES BOTS/, 'No entry point to real bot testing');
+assert.match(script, /p_bots:Number\(form\.querySelector\('#bots-count'\)/, 'Bot count selection missing');
+assert.match(script, /asgq_rehearsal_state/, 'Test must read server-side state');
+assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to server');
+assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
+assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
+
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
 assert.match(page, /\.\/app\.js/, 'Dedicated script missing');
 assert.match(page, /\.\.\/vendor\/supabase\.js/, 'Use the existing pinned Supabase client');

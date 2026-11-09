@@ -303,6 +303,47 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # Répétition réelle : création Admin+ avec choix des bots, sans créer le quiz officiel.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        page.locator('a.rehearsal-link').click()
+        page.wait_for_url("**/grinta-quiz/?repetition=1",timeout=10000)
+        assert page.locator(".rehearsal-banner").count()==1
+        assert page.locator('#bots-count option').count()==4
+        page.locator('#player-name').fill('Alban')
+        page.locator('#bots-count').select_option('10')
+        page.locator('#admin-password').fill('SECRET-TEST')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_create') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
+        assert args=={"p_bots":10,"p_password":"SECRET-TEST","p_name":"Alban"},args
+        assert page.locator('.rehearsal-note').count()==1
+        no_errors(page,errors,"qcm-repetition-bots-creer")
+        checks+=1
+    finally:ctx.close()
+
+    # Les invités de la répétition utilisent le code de salon à 8 chiffres,
+    # sans jamais connaître le mot de passe Admin+.
+    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e:errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/?repetition=1&code=00123456",wait_until="load",timeout=20000)
+        assert page.locator('#room-code').input_value()=="00123456"
+        assert page.locator('#admin-password').count()==0
+        page.locator('#player-name').fill('Camille')
+        page.locator('#join-button').click()
+        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_join_room') === true")
+        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_join_room').args")
+        assert args=={"p_code":"00123456","p_name":"Camille"},args
+        no_errors(page,errors,"qcm-repetition-rejoindre")
+        checks+=1
+    finally:ctx.close()
+
     # La création est distincte de la participation et utilise l'Admin+.
     ctx,page,errors=open_page(browser,base)
     try:

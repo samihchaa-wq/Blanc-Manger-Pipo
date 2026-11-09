@@ -8,7 +8,8 @@ const SUPABASE_URL = 'https://yqfewxadpyulgxehhpcu.supabase.co';
 // Publishable client key, NOT a service-role secret.
 const SUPABASE_KEY = 'sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg';
 const api = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const storeKey = 'asgq-2026-participant';
+const isRehearsal = new URLSearchParams(location.search).get('repetition') === '1';
+const storeKey = isRehearsal ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-participant';
 const app = document.getElementById('app');
 const notice = document.getElementById('notice');
 const letters = ['A','B','C','D'];
@@ -54,7 +55,8 @@ function timerLine(label) {
   return `<div class="timer-line"><div class="eyebrow">${label}</div><div class="big-timer" id="clock">--</div></div><div class="bar"><i id="time-progress"></i></div>`;
 }
 function shell(html, key) {
-  app.innerHTML = `<section class="scene" data-screen="${key}">${html}</section>`;
+  const practiceTag=isRehearsal ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
+  app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
   updateClocks();
 }
 function renderJoin() {
@@ -63,9 +65,9 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    <div class="hero"><div class="eyebrow">LA GRANDE SOIRÉE 2026</div>
+    <div class="hero"><div class="eyebrow">${isRehearsal?'RÉPÉTITION · BOTS RÉELS':'LA GRANDE SOIRÉE 2026'}</div>
       <h1>LE GRAND<br><span class="gold">QUIZ.</span></h1>
-      <p>Deux mi-temps. Une seule équipe. Un seul champion.</p></div>
+      <p>${isRehearsal?'Teste le vrai moteur du quiz contre des bots. Chronomètre, réponses, classement et podium synchronisés côté serveur.':'Deux mi-temps. Une seule équipe. Un seul champion.'}</p></div>
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -76,11 +78,15 @@ function renderJoin() {
       ${isCreate
         ? '<label class="field"><span>MOT DE PASSE ADMIN+ (CRÉATION UNIQUEMENT)</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
         : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="•••• ••••" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
+      ${isRehearsal && isCreate ? '<label class="field"><span>NOMBRE DE BOTS</span><select id="bots-count" aria-label="Nombre de bots"><option value="2">2 bots</option><option value="5" selected>5 bots</option><option value="10">10 bots</option><option value="20">20 bots</option></select></label>' : ''}
       <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}</button>
       <p class="muted center" style="margin:20px 0 0">${isCreate
         ? 'Admin+ sert uniquement à créer la partie. Les autres joueurs utilisent le code à 8 chiffres.'
         : 'Demande le code de salon au créateur. Aucun mot de passe Admin+ nécessaire.'}</p>
-    </form>`, 'join');
+    </form>
+    ${isRehearsal
+      ? '<div class="rehearsal-note"><p><strong>Partie de répétition :</strong> des bots répondent réellement dans la base de test. Les 20 questions sont réservées à la répétition, pas celles de la soirée.</p><a href="./">RETOUR AU QUIZ OFFICIEL</a></div>'
+      : '<div class="rehearsal-note"><p>Tu veux essayer le quiz sans consommer la partie officielle ?</p><a class="rehearsal-link" href="./?repetition=1">TESTER AVEC DES BOTS</a></div>'}`, 'join');
 }
 function renderLobby(s) {
   const count = s.players.length;
@@ -156,7 +162,8 @@ function renderFinished(s) {
     </div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel" style="padding:8px 18px"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    <p class="muted center">Merci à tous les joueurs de l'AS Grinta.</p>`, 'finished');
+    <p class="muted center">Merci à tous les joueurs de l'AS Grinta.</p>
+    ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE RÉPÉTITION</button>' : ''}`, 'finished');
 }
 function updateClocks() {
   if (!state) return;
@@ -203,7 +210,7 @@ async function fetchState() {
   if (!token || requesting) return;
   requesting=true;
   try {
-    const {data,error}=await api.rpc('asgq_state',{p_token:token});
+    const {data,error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_state' : 'asgq_state',{p_token:token});
     if (error) throw error;
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
     const atReceive=Date.now();
@@ -238,8 +245,8 @@ async function join(event) {
   button.disabled=true;
   button.textContent=creating ? 'CRÉATION EN COURS…' : 'ENTRÉE EN COURS…';
   try {
-    const rpcName=creating ? 'asgq_create' : 'asgq_join_room';
-    const args=creating ? {p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
+    const rpcName=creating ? (isRehearsal ? 'asgq_rehearsal_create' : 'asgq_create') : (isRehearsal ? 'asgq_rehearsal_join_room' : 'asgq_join_room');
+    const args=creating ? {...(isRehearsal?{p_bots:Number(form.querySelector('#bots-count')?.value || 5)}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
     const {data,error}=await api.rpc(rpcName,args);
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
@@ -283,7 +290,7 @@ async function answer(index) {
   sendingAnswer=true;
   renderState(true);
   try {
-    const {error}=await api.rpc('asgq_answer',{p_token:token,p_choice:index});
+    const {error}=await api.rpc(isRehearsal ? 'asgq_rehearsal_answer' : 'asgq_answer',{p_token:token,p_choice:index});
     if(error) throw error;
     // Update immediately; a subsequent state refresh updates the shared answer count.
     if(state?.phase==='question') state.question.my_choice=index;
@@ -302,6 +309,12 @@ async function answer(index) {
 
 app.addEventListener('submit',e=>{if(e.target.id==='join-form') void join(e)});
 app.addEventListener('click',e=>{
+  if(isRehearsal && e.target.closest('[data-repeat-rehearsal]')) {
+    token=null;state=null;signature='';entryMode='create';
+    try{localStorage.removeItem(storeKey)}catch(_){}
+    renderJoin();
+    return;
+  }
   const mode=e.target.closest('[data-entry-mode]');
   if(mode) {
     const name=document.getElementById('player-name')?.value.trim();
