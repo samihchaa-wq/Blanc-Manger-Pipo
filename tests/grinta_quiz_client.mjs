@@ -280,4 +280,37 @@ assert.match(belowTop,/personal-rank/, 'A player outside the top five must see t
 assert.match(belowTop,/Joueur 6/, 'Personal rank shows the correct player');
 assert.doesNotMatch(renderRank({standings,me:{id:'host'},is_host:true}),/personal-rank/,
   'Host must not be added to player rankings');
+// Wave 2: Admin+-only host token recovery, without modifying the official event.
+const hostRecoverySql=read('supabase/migrations/20261123030000_asgq_host_session_recovery.sql');
+const hostRecoveryQA=read('supabase/tests/qa_as_grinta_host_recovery.sql');
+assert.match(hostRecoverySql,/create or replace function public\.asgq_recover_host\(p_password text\)/, 'Official host recovery RPC missing');
+assert.match(hostRecoverySql,/public\._is_admin_plus\(p_password\)/, 'Existing Admin+ must authenticate recovery');
+assert.match(hostRecoverySql,/v_attempts>5/, 'Host recovery must be rate limited');
+assert.match(hostRecoverySql,/host_player\.id/, 'Recover the existing host, never add a new participant');
+assert.match(hostRecoverySql,/update asgq_private\.players set token_hash=v_token_hash/, 'Old host token must be rotated');
+assert.match(hostRecoverySql,/update asgq_private\.event set host_token_hash=v_token_hash/, 'Event must point to the new host token');
+assert.doesNotMatch(hostRecoverySql,/delete from asgq_private|update asgq_private\.questions|set phase=/i, 'Recovery must never reset live quiz data');
+assert.match(hostRecoveryQA,/rollback;/, 'Host recovery tests must roll back the simulated event');
+assert.match(script,/api\.rpc\('asgq_recover_host'/, 'Host recovery must call the authenticated RPC');
+assert.match(script,/data-host-recovery/, 'Creator must be able to resume an existing emission');
+assert.match(script,/id="recover-host-form"/, 'Resume must have an Admin+-only form');
+assert.match(script,/localStorage\.setItem\(storeKey,token\)/, 'Recovered token must be persisted');
+assert.doesNotMatch(script,/api\.rpc\('asgq_recover_host',[^\n]*p_name/, 'Do not trust a client-supplied name for host recovery');
+
+// Shared scores get the same rank, with all champions named (no join-time winner).
+const rankFunction=script.match(/function competitionRank\(standings,index\) \{[\s\S]*?\n\}/)?.[0];
+assert.ok(rankFunction, 'Competition ranking function missing');
+const rankFor=new Function(rankFunction+'\nreturn competitionRank;')();
+const tiedStandings=[
+  {id:'p1',name:'Camille',score:12},
+  {id:'p2',name:'Nina',score:12},
+  {id:'p3',name:'Sam',score:10},
+  {id:'p4',name:'Alex',score:10},
+  {id:'p5',name:'Robin',score:7}
+];
+assert.deepEqual(tiedStandings.map((_,i)=>rankFor(tiedStandings,i)),[1,1,3,3,5], 'Equal scores must share competition ranks');
+assert.match(script,/const winners=winnerScore===undefined \? \[\] : standings\.filter/, 'All tied champions must be identified');
+assert.match(script,/CHAMPIONS DU QUIZ/, 'Tied champions need plural podium headline');
+assert.match(script,/championNames=winners\.length/, 'Champion heading must display every tied winner');
+assert.match(script,/class="joint-champions"/, 'Podium must indicate shared first place');
 console.log('ASGQ frontend / preflight checks OK');
