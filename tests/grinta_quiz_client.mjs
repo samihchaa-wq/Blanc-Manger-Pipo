@@ -240,7 +240,7 @@ assert.match(script,/data-answer/, 'Participant choices must remain interactive'
 assert.match(style,/SIX SCREEN MATCHED MOCKUPS 2026/, 'Approved six-screen direction is missing');
 assert.match(script,/PRÊT POUR<br>LE GRAND<br>QUIZ \?/, 'Welcome should show the approved hero copy');
 assert.doesNotMatch(script,/class="entry-tagline"|Entre dans l’émission/, 'User removed redundant tagline');
-assert.match(script,/JOUEURS \(\$\{count\}\)/, 'Lobby should count the visible players including the creator');
+assert.match(script,/JOUEURS \(\$\{participantCount\}\)/, 'Lobby player count must exclude the non-playing host');
 assert.match(script,/class="show-progress"/, 'On-screen question progress dots are missing');
 assert.match(script,/allQuestions\(s\)/, 'Question count must show the whole episode');
 assert.match(script,/class="halftime-board"/, 'Halftime ranking board must match the approved layout');
@@ -258,4 +258,26 @@ assert.match(style,/\.scene\[data-screen="finished"\] \.pod\.first \.step\{[^}]*
 assert.doesNotMatch(script,/setInterval\(updateClocks|timeRemaining|TEMPS RESTANT|COMPTE À REBOURS/,
   'No countdown is permitted in this visual redesign');
 
+// Audit regression checks: reveal data is public only after the manual reveal.
+assert.equal((waitingMigration.match(/'explanation',case when ev.phase='reveal' then q.explanation else null end/g)||[]).length,2,
+  'Both quiz modes must protect explanations until reveal');
+assert.match(script,/class="reveal-question"/, 'Verdict must recall the question');
+assert.match(script,/class="reveal-explanation"/, 'Verdict must show the server-provided explanation');
+assert.match(script,/class="personal-answer"/, 'Players should be reminded of their own wrong answer');
+assert.match(script,/sendingAnswer \? 'Enregistrement…'/, 'Answer confirmation must wait for server completion');
+assert.match(script,/class="champion-name"/, 'Final must name the champion');
+assert.match(style,/AUDIT GRAND QUIZ 2026/, 'Missing audited responsive adjustments');
+assert.match(style,/@media\(max-width:620px\)\{[\s\S]*?\.scene\[data-screen="reveal"\] \.response-groups/, 'Outcome groups must stack on phones');
+assert.match(style,/\.scene\[data-screen="finished"\] \.champion-name\{\s*display:block/, 'Champion must not remain hidden');
+assert.match(script,/manyPlayers=participantCount > 12/, 'Dense lobby must adapt to many players');
+assert.match(script,/class="launch-hint"/, 'Disabled start button must be explained');
+const rankFn=script.match(/function rankingRows\(s, count = 5\) \{[\s\S]*?\n\}/)?.[0];
+assert.ok(rankFn, 'Ranking renderer missing');
+const renderRank=new Function('const safe=v=>String(v);\n'+rankFn+'\nreturn rankingRows;')();
+const standings=Array.from({length:7},(_,i)=>({id:'id'+i,name:'Joueur '+i,score:10-i}));
+const belowTop=renderRank({standings,me:{id:'id6'},is_host:false});
+assert.match(belowTop,/personal-rank/, 'A player outside the top five must see their own rank');
+assert.match(belowTop,/Joueur 6/, 'Personal rank shows the correct player');
+assert.doesNotMatch(renderRank({standings,me:{id:'host'},is_host:true}),/personal-rank/,
+  'Host must not be added to player rankings');
 console.log('ASGQ frontend / preflight checks OK');
