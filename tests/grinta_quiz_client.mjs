@@ -56,6 +56,18 @@ assert.match(manual,/Bots answer when the host closes the question/, 'Bot answer
 assert.match(manual,/where p\.token_hash is distinct from ev\.host_token_hash/, 'Host must be excluded from standings');
 assert.doesNotMatch(script,/timerLine|timeRemaining|updateClocks|TEMPS RESTANT|TEMPS ÉCOULÉ|SUITE DANS|REPRISE DANS|setInterval\(updateClocks/, 'Quiz must not show any countdown');
 assert.match(script,/hostControl\(s,'RÉVÉLER LA RÉPONSE'\)/, 'Host needs a reveal button');
+const roundMigration=read('supabase/migrations/20261123010000_asgq_reveal_player_outcomes.sql');
+assert.equal((roundMigration.match(/'responses',case when ev\.phase='reveal'/g)||[]).length,2,
+  'Both state endpoints must hide all player outcomes until manual reveal');
+assert.match(roundMigration,/left join asgq_private\.answers response/, 'Official quiz needs real stored answers');
+assert.match(roundMigration,/left join asgq_rehearsal_private\.answers response/, 'Bot rehearsal needs real stored answers');
+assert.match(roundMigration,/participant\.token_hash is distinct from ev\.host_token_hash/g, 'Never list the game master as a player');
+assert.match(script,/function renderResponseBreakdown\(s\)/, 'The post-reveal response list is missing');
+assert.match(script,/const responses=s\.question\?\.responses/, 'Only server-provided results may be displayed');
+assert.match(script,/\$\{renderResponseBreakdown\(s\)\}/, 'Show responses on reveal, before standings');
+assert.match(style,/response-group--correct/, 'Correct answer badge missing');
+assert.match(style,/response-group--incorrect/, 'Incorrect answer badge missing');
+assert.match(style,/response-group--unanswered/, 'Unanswered badge missing');
 assert.match(script,/hostControl\(s,'REPRENDRE LE QUIZ'\)/, 'Host needs halftime control');
 assert.match(script,/state\.is_host \|\| sendingAnswer/, 'Host must not submit answers');
 assert.match(script,/asgq_rehearsal_advance/, 'Host phase control must work in rehearsal');

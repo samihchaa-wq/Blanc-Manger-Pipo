@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Isolated PostgreSQL rehearsal for the one-night AS Grinta quiz.
-# Replays the three event migrations and executes rollback-only QA tests.
+# Replays all event migrations, including reveal-only participant outcomes, and runs rollback-only QA tests.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 DB=as_grinta_quiz_qa
@@ -26,6 +26,7 @@ sql < supabase/migrations/20261122190000_as_grinta_manual_lobby_20_provisional.s
 sql < supabase/migrations/20261122191000_asgq_remove_bot_before_kickoff.sql
 sql < supabase/migrations/20261122192000_asgq_reuse_bot_numbers.sql
 sql < supabase/migrations/20261122200000_asgq_host_manual_control.sql
+sql < supabase/migrations/20261123010000_asgq_reveal_player_outcomes.sql
 sql < supabase/tests/qa_as_grinta_quiz_2026.sql
 sql < supabase/tests/qa_as_grinta_real_bots.sql
 echo "ASGQ_QA: scenario transactionnel OK (deux mi-temps, sécurité et podium)."

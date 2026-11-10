@@ -45,7 +45,8 @@ begin
   exception when others then if sqlerrm like 'ASGQ_QA:%' then raise; end if; end;
   perform public.asgq_advance(host_token,'intro',0);
   s:=public.asgq_state(host_token);
-  if s->>'phase'<>'question' or s->'question'->>'correct' is not null then
+  if s->>'phase'<>'question' or s->'question'->>'correct' is not null
+    or s->'question'->>'responses' is not null then
     raise exception 'ASGQ_QA: answer leaked before reveal'; end if;
   begin
     perform public.asgq_answer(host_token,0);
@@ -53,6 +54,9 @@ begin
   exception when others then if sqlerrm like 'ASGQ_QA:%' then raise; end if; end;
   perform public.asgq_answer(guest_token,1);
   perform public.asgq_answer(guest_token,0);
+  s:=public.asgq_state(host_token);
+  if s->'question'->>'responses' is not null then
+    raise exception 'ASGQ_QA: player results leaked before host reveal'; end if;
   perform public.asgq_state(guest_token);
   if (select phase from asgq_private.event where id=1)<>'question' then
     raise exception 'ASGQ_QA: polling closed an answer'; end if;
@@ -61,6 +65,11 @@ begin
   if g->>'phase'<>'reveal' or (g->'me'->>'score')::integer<>1
     or (g->'question'->>'correct')::integer<>0 or jsonb_array_length(g->'standings')<>1 then
     raise exception 'ASGQ_QA: reveal, scoring or host exclusion failed'; end if;
+  if jsonb_array_length(g->'question'->'responses')<>1
+    or g->'question'->'responses'->0->>'name'<>'Camille'
+    or g->'question'->'responses'->0->>'status'<>'correct'
+    or jsonb_array_length(public.asgq_state(host_token)->'question'->'responses')<>1 then
+    raise exception 'ASGQ_QA: host-inclusive or incorrect per-player reveal result'; end if;
   perform public.asgq_advance(host_token,'question',1);
   if (public.asgq_state(host_token)->>'phase')<>'reveal' then
     raise exception 'ASGQ_QA: duplicate request skipped a phase'; end if;
