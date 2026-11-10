@@ -102,7 +102,7 @@ function renderLobby(s) {
   const participantCount=s.players.filter(p => !p.is_host).length;
   const manyPlayers=participantCount > 12;
   const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span>${safe(p.name)}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
-  const rosterSection=`<div class="section-title"><span class="eyebrow">JOUEURS (${participantCount})</span></div>
+  const rosterSection=`<div class="section-title"><span class="eyebrow">JOUEURS (${participantCount})</span><small class="host-count">+ 1 animateur</small></div>
     <ul class="roster">${players}</ul>
     ${s.is_host && isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}`;
   const whyDisabled=participantCount<1 ? 'Il faut au moins un joueur pour lancer.' : !s.ready ? 'La partie n’est pas encore prête à démarrer.' : '';
