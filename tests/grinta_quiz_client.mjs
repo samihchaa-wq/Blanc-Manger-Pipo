@@ -247,7 +247,7 @@ assert.match(script,/class="halftime-board"/, 'Halftime ranking board must match
 assert.match(script,/class="halftime-stat"/, 'Halftime should show a genuine leader statistic');
 assert.match(script,/class="pod-crown"/, 'Final podium needs crown motifs');
 assert.match(script,/data-repeat-rehearsal>REJOUER/, 'Rehearsal finale needs the approved replay label');
-assert.match(script,/Number\(top\?\.score \|\| 0\)/, 'Halftime statistic must be derived from a real score');
+assert.match(script,/allPlayers\.reduce\(\(sum,p\)=>sum\+\(Number\(p\.score\)\|\|0\),0\)/, 'Halftime stat must use real cumulative participant points');
 assert.match(script,/\$\{p\.score\} pts/, 'Podium points must come from the real leaderboard');
 assert.match(style,/\.scene\[data-screen="reveal"\] \.response-groups\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/,
   'Reveal must use the three result columns from the mockup');
@@ -336,4 +336,24 @@ assert.match(home,/montrerRecuperationAsgq\(\)/, 'Special claim UI should appear
 assert.match(home,/quizMode === 'official'/, 'Other games and rehearsals must keep their normal entry');
 assert.match(read('css/app.css'),/#asgq-recovery-panel/, 'Guest recovery input needs a readable style');
 
+// Finish pass: preserve the TV show, session continuation and host's manual controls.
+assert.match(page, /og:title" content="LE GRAND QUIZ · AS GRINTA"/, 'Shared quiz links need quiz-specific social metadata');
+assert.match(page, /og:image" content="https:\/\/samihchaa-wq\.github\.io\/Blanc-Manger-Pipo\/grinta-quiz\/as-grinta-crest\.webp"/, 'Share must have absolute image URL for WhatsApp');
+assert.match(script, /const url=new URL\('\.\/',location\.href\)/, 'Invitation link must open the quiz social preview before routing to Soulieteur');
+assert.match(script, /if\(!pendingRevealConfirmation && Array\.isArray\(waiting\) && waiting\.length>0\)/, 'Manual reveal must warn when players are still waiting');
+assert.match(script, /data-confirm-reveal/, 'A deliberate second action must confirm revealing despite waiting players');
+assert.match(script, /data-cancel-reveal/, 'Host must be able to wait without closing the question');
+assert.doesNotMatch(script, /setTimeout\([^\n]*advancePhase/, 'Never auto-reveal the question');
+assert.match(script, /intro-announcement/, 'First half introduction needs an intentional stage message');
+assert.match(script, /collectivePoints/, 'Halftime stat should show a genuine collective number');
+assert.match(script, /question-card--long/, 'Long questions need full readable width');
+assert.match(script, /podium--\$\{Math\.min\(3,top\.length\)\}/, 'Podium should adapt to one and two finalists');
+assert.match(script, /preloadPresenter\(upcoming\[key\]\)/, 'Only upcoming real portraits should be prefetched');
+assert.match(script, /navigator\.connection\?\.saveData/, 'Do not preload portraits on data saver connections');
+assert.match(script, /const activeCode=previousAccess\?\.querySelector/, 'Host access codes should not vanish on an unrelated screen refresh');
+assert.match(home, /data-act="asgq-resume"/, 'Soulieteur should offer optional continuation of a saved official quiz');
+assert.match(home, /localStorage\.getItem\('asgq-2026-participant'\)/, 'Resumption should require a previously held personal token');
+assert.match(page, /id="screen-announcer"/, 'Accessible phase changes must be announced separately');
+assert.match(page, /<main id="app" aria-live="off"/, 'Polling should not reread the entire page to assistive technology');
+assert.doesNotMatch(script, /setInterval\(updateClocks|timeRemaining|TEMPS RESTANT|COMPTE À REBOURS/, 'Quiz remains entirely manual');
 console.log('ASGQ frontend / preflight checks OK');
