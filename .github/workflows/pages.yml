@@ -72,7 +72,7 @@ jobs:
             test -s "_site/grinta-quiz/$f" || { echo "manquant dans _site : grinta-quiz/$f"; exit 1; }
           done
           # Fail the deployment when the tested Grinta changes are absent.
-          for pose in trophy thumbs confused pointing laughter cheer facepalm thinking arms surprised; do
+          for pose in trophy thumbs confused pointing laughter cheer facepalm thinking arms surprised skeptical amazed; do
             test -s "_site/grinta-quiz/presenters/$pose.png" || { echo "Pose haute définition manquante : $pose"; exit 1; }
           done
           grep -q "PRESENTER_FILES" _site/grinta-quiz/app.js

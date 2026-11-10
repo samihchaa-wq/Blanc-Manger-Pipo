@@ -60,7 +60,7 @@ assert.match(script,/hostControl\(s,'REPRENDRE LE QUIZ'\)/, 'Host needs halftime
 assert.match(script,/state\.is_host \|\| sendingAnswer/, 'Host must not submit answers');
 assert.match(script,/asgq_rehearsal_advance/, 'Host phase control must work in rehearsal');
 assert.match(script,/asgq_start/, 'Official kickoff must be host-only');
-const presenterNames=['trophy','thumbs','confused','pointing','laughter','cheer','facepalm','thinking','arms','surprised'];
+const presenterNames=['trophy','thumbs','confused','pointing','laughter','cheer','facepalm','thinking','arms','surprised','skeptical','amazed'];
 for (const name of presenterNames) {
   const asset=path.join(root,'grinta-quiz/presenters',name+'.png');
   const bytes=fs.readFileSync(asset);
@@ -74,7 +74,11 @@ for (const name of presenterNames) {
 assert.match(script,/class="presenter-photo" src="\.\/presenters\//, 'Use a sharp separate transparent image per pose');
 assert.doesNotMatch(script+style,/presenter-atlas\.png|data:image\/webp;base64|background-image:url\("\.\/presenter-atlas/, 'Never use the tiny atlas again');
 assert.match(style,/object-fit:contain/, 'Full portrait must preserve aspect ratio');
-assert.match(script, /success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
+assert.match(script, /success\?successPose:answered\?'facepalm'/, 'Presenter should react to player results');
+assert.match(script, /amazed:'amazed'/, 'New enthusiastic picture must be mapped');
+assert.match(script, /doubt:'skeptical'/, 'New skeptical picture must be mapped');
+assert.match(script, /stage\('<h2>MI-TEMPS<\/h2>','doubt','halftime'\)/, 'Skeptical pose must be visible at halftime');
+assert.match(script, /const successPose = \(s.position \|\| 0\) % 2 === 0 \? 'excited' : 'amazed'/, 'New enthusiastic pose must alternate with the previously integrated positive expression');
 assert.match(script, /stage\('<h2>PODIUM<\/h2>','victory'/, 'Presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
