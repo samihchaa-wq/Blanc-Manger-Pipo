@@ -46,6 +46,7 @@ function fmtError(error) {
   return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
 // Club photographs, original 1024x1536 cutouts: no compressed sprite or face recreation.
+// Semantic pose names keep each expression appropriate to the current quiz moment.
 const PRESENTER_FILES = Object.freeze({
   welcome:'laughter', thinking:'thinking', excited:'thumbs', amazed:'amazed', surprised:'surprised',
   confident:'arms', puzzled:'confused', doubt:'skeptical', facepalm:'facepalm',
@@ -71,7 +72,7 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>',isCreate?'welcome':'thinking','welcome')}
+    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>',isCreate?'excited':'thinking','welcome')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -128,22 +129,31 @@ function renderQuestion(s) {
 function rankingRows(s, count = 5) {
   return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
 }
+// Correct -> congratulatory; incorrect -> skeptical/facepalm;
+// unanswered -> genuinely surprised or questioning. The host does not answer
+// questions and remains neutral, and poses stay stable during state polling.
+function presenterPoseForReveal(s, success, answered) {
+  if (s.is_host) return 'confident';
+  const position = Math.max(1, Number(s.position) || 1);
+  if (success) return ['amazed','excited','welcome'][(position - 1) % 3];
+  if (answered) return position % 2 === 0 ? 'doubt' : 'facepalm';
+  return position % 2 === 0 ? 'puzzled' : 'surprised';
+}
 function renderReveal(s) {
   const q=s.question || {};
   const success=q.my_choice === q.correct && !s.is_host;
   const answered=q.my_choice !== null && q.my_choice !== undefined;
   const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
-  // Alternate two genuine positive expressions across questions, consistently for every refresh.
-  const successPose = (s.position || 0) % 2 === 0 ? 'excited' : 'amazed';
+  const resultPose = presenterPoseForReveal(s, success, answered);
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'confident':success?successPose:answered?'facepalm':'surprised','reveal')}
+    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,resultPose,'reveal')}
     <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`${stage('<h2>MI-TEMPS</h2>','doubt','halftime')}
+  shell(`${stage('<h2>MI-TEMPS</h2>','thinking','halftime')}
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
     ${hostControl(s,'REPRENDRE LE QUIZ')}`, 'halftime');
 }
