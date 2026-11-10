@@ -154,6 +154,21 @@ surAction('create', () => {
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
 });
+// A lost official quiz session requires an ephemeral code issued by the host.
+// Only expose this exceptional route AFTER a failed official-room join.
+function montrerRecuperationAsgq(){
+  const pane=document.getElementById('pane-join');
+  if(!pane || document.getElementById('asgq-recovery-panel')) return;
+  const section=document.createElement('div');
+  section.id='asgq-recovery-panel';
+  section.className='asgq-recovery-panel';
+  section.innerHTML=`<p>Tu étais déjà dans le Grand Quiz ? Demande un code de récupération à l'animateur pour retrouver ton score.</p>
+    <label><span>Code temporaire de récupération</span>
+      <input id="asgq-recovery-code" type="text" inputmode="numeric" maxlength="8"
+        autocomplete="one-time-code" spellcheck="false" placeholder="8 chiffres"></label>
+    <button class="btn" data-act="asgq-recover">Récupérer ma place</button>`;
+  pane.append(section);
+}
 // The main Soulieteur join screen is the ONLY entry for invited Quiz players.
 // Look up the type of the 8-digit room before creating any participant.
 // Regular Soulieteur rooms continue using their original RPC untouched.
@@ -164,8 +179,9 @@ surAction('join', async () => {
   if (busy) return;
   if (c.length === 8) {
     busy = true;
+    let quizMode=null;
     try {
-      const quizMode = await rpc('asgq_room_mode', {p_code:c});
+      quizMode = await rpc('asgq_room_mode', {p_code:c});
       if (quizMode === 'official' || quizMode === 'rehearsal') {
         const name=quizMode === 'rehearsal' ? 'asgq_rehearsal_join_room' : 'asgq_join_room';
         const joined=await rpc(name,{p_code:c,p_name:n});
@@ -182,15 +198,42 @@ surAction('join', async () => {
         return;
       }
     } catch(e) {
+      if(quizMode === 'official' && /Nom déjà utilisé|déjà inscrit|commenc|inscriptions|inscription/i.test(e.message || '')) {
+        montrerRecuperationAsgq();
+      }
       toast(e.message || 'Impossible de rejoindre le Grand Quiz.');
       return;
     } finally {busy = false}
   }
   return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
 });
+surAction('asgq-recover', async () => {
+  if(busy) return;
+  const c=val('j-code').replace(/\D/g,''), n=val('j-name');
+  const rescue=val('asgq-recovery-code').replace(/\D/g,'');
+  if(c.length!==8 || !n || rescue.length!==8) {
+    return toast('Renseigne le code de la partie, ton pseudo et les 8 chiffres fournis par l’animateur.');
+  }
+  busy=true;
+  try {
+    const joined=await rpc('asgq_claim_player_handoff',{
+      p_room_code:c,p_player_name:n,p_handoff_code:rescue
+    });
+    if(joined?.error) throw Error(joined.error);
+    if(!joined?.token) throw Error('Impossible de retrouver ton accès au Grand Quiz.');
+    try {
+      localStorage.setItem('asgq-2026-participant',joined.token);
+      localStorage.setItem('pdcat-name',joined.name || n);
+    } catch {}
+    location.assign(new URL('./grinta-quiz/',location.href).href);
+  } catch(e) {
+    toast(e.message || 'Récupération impossible.');
+  } finally {busy=false}
+});
 document.addEventListener('input', e => {
   if (e.target.id === 'c-name' || e.target.id === 'j-name') homeName = e.target.value;
   if (e.target.id === 'j-code') homeCode = e.target.value = e.target.value.replace(/\D/g,'');
+  if (e.target.id === 'asgq-recovery-code') e.target.value=e.target.value.replace(/\D/g,'');
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('#c-name')) document.querySelector('[data-act=create]')?.click();
