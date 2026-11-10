@@ -529,6 +529,45 @@ def run(browser, base):
         assert page.locator('.response-group--unanswered .response-person').all_inner_texts()==["Nina"], "Joueurs sans réponse absents"
         assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===1"), "Sur iPhone, les catégories du verdict doivent rester lisibles en pleine largeur"
         page.screenshot(path=str(OUT/'asgq-show-04-verdict.png'),full_page=True)
+        # Dense event: the maximum room holds 29 participants + 1 host.
+        # All responses must be visible, correctly grouped, and no names clipped
+        # horizontally even on small devices. This tests DOM/CSS, NOT live traffic.
+        for width in (320,390,430):
+            page.set_viewport_size({"width":width,"height":750})
+            page.evaluate("""() => {
+              const roster=Array.from({length:29},(_,i)=>({
+                id:'guest-'+i,
+                name:'Participant '+String(i+1).padStart(2,'0')+
+                     (i===28?' Très Grand Prénom':''),
+                score:15-i%7
+              }));
+              const responses=roster.map((p,i)=>({
+                id:p.id,name:p.name,
+                status:i%3===0?'correct':i%3===1?'incorrect':'unanswered'
+              }));
+              renderReveal({
+                phase:'reveal',position:3,half:1,first_half_count:10,
+                second_half_count:10,room_code:'00123456',
+                is_host:true,me:{id:'host',name:'Alban',score:0},
+                players:[{id:'host',name:'Alban',is_host:true},...roster],
+                standings:roster,
+                question:{
+                  text:'Quel joueur a marqué le but décisif lors du dernier match ?',
+                  choices:['L’attaquant','Le gardien','Le défenseur','Le milieu'],
+                  correct:0,earned:null,my_choice:null,
+                  responses
+                }
+              });
+            }""")
+            assert page.locator('.response-breakdown .response-person').count()==29, "Verdict dense : joueur absent"
+            assert [int(v) for v in page.locator('.response-group-count').all_inner_texts()]==[10,10,9], "Verdict dense : répartition incorrecte"
+            assert page.locator('[data-next-phase]').is_visible(), "Commande manuelle perdue avec 29 répondants"
+            assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), f"Verdict dense débordant à {width}px"
+            assert "Très Grand Prénom" in page.locator('.response-breakdown').inner_text(), "Les noms longs doivent rester visibles"
+            if width==390:
+                page.screenshot(path=str(OUT/'asgq-show-04b-verdict-29-joueurs.png'),full_page=True)
+        page.set_viewport_size({"width":390,"height":844})
+        page.evaluate("(s) => renderReveal(s)",sample)
         assert [v.strip() for v in page.locator('.response-group-count').all_inner_texts()]==["1","1","1"]
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Les noms débordent de l'écran"
         assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement initial altéré"
