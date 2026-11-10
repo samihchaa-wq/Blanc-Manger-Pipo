@@ -273,7 +273,8 @@ assert.match(script,/manyPlayers=participantCount > 12/, 'Dense lobby must adapt
 assert.match(script,/class="launch-hint"/, 'Disabled start button must be explained');
 const rankFn=script.match(/function rankingRows\(s, count = 5\) \{[\s\S]*?\n\}/)?.[0];
 assert.ok(rankFn, 'Ranking renderer missing');
-const renderRank=new Function('const safe=v=>String(v);\n'+rankFn+'\nreturn rankingRows;')();
+const rankHelper=script.match(/function competitionRank\(standings,index\) \{[\s\S]*?\n\}/)?.[0] || '';
+const renderRank=new Function('const safe=v=>String(v);\n'+rankHelper+'\n'+rankFn+'\nreturn rankingRows;')();
 const standings=Array.from({length:7},(_,i)=>({id:'id'+i,name:'Joueur '+i,score:10-i}));
 const belowTop=renderRank({standings,me:{id:'id6'},is_host:false});
 assert.match(belowTop,/personal-rank/, 'A player outside the top five must see their own rank');
