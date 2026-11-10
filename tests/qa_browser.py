@@ -407,7 +407,7 @@ def run(browser, base):
                         "choices":["L'attaquant de pointe","Le gardien","Le défenseur central","Le milieu de terrain"],
                         "correct":0,"my_choice":2,"earned":0}
         }
-        for width in (320,390):
+        for width in (320,360,375,390,430):
             page.set_viewport_size({"width":width,"height":750})
             page.evaluate("(s) => renderQuestion(s)",sample)
             assert page.locator('.question-card-top').is_visible(), "Carte question sans identité club"
@@ -453,7 +453,14 @@ def run(browser, base):
         sample["question"]["waiting_players"]=[
             {"id":"guest","name":"Camille"},{"id":"g2","name":"Nina"},{"id":"g3","name":"Sam"}
         ]
-        page.evaluate("(s) => renderQuestion(s)",sample)
+        sample["phase"]="question"
+        page.evaluate("(s) => { state=s; renderQuestion(s); }",sample)
+        page.locator('[data-next-phase]').click()
+        assert page.locator('#early-reveal-confirm').is_visible(), "Le maître du jeu doit confirmer avant de révéler si des joueurs attendent"
+        assert page.locator('#early-reveal-text').inner_text().startswith("3 joueurs"), "Le message doit refléter les joueurs réellement en attente"
+        assert page.evaluate("() => !window.__qaCalls.some(c=>c.name==='asgq_advance' || c.name==='asgq_rehearsal_advance')"), "Un premier clic ne doit pas révéler la question"
+        page.locator('[data-cancel-reveal]').click()
+        assert page.locator('#early-reveal-confirm').is_hidden(), "La révélation anticipée doit être annulable"
         assert page.locator('#answer-counter .waiting-title').inner_text()=="On attend :", "Le compteur 0/3 doit devenir « On attend : »"
         assert page.locator('#answer-counter .waiting-name').all_inner_texts()==["Camille","Nina","Sam"], "Les noms des joueurs doivent apparaître"
         assert page.locator('#answer-counter').get_attribute('aria-live')=="polite", "État d'attente non accessible"
@@ -464,6 +471,10 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
         assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
+        # No unnecessary safeguard when everyone has answered.
+        page.evaluate("(s) => { state=s; renderQuestion(s); }",sample)
+        page.locator('[data-next-phase]').click()
+        assert page.locator('#early-reveal-confirm').is_hidden(), "La confirmation doit être évitée lorsque tout le monde a répondu"
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Les noms ne doivent pas provoquer de défilement horizontal"
 
 
@@ -549,11 +560,15 @@ def run(browser, base):
 
         page.evaluate("""() => renderHalftime({
           is_host:false,me:{id:'guest',name:'Camille'},
-          standings:[{id:'guest',name:'Camille',score:5}]
+          first_half_count:10,
+          standings:[{id:'guest',name:'Camille',score:5},
+                     {id:'guest2',name:'Nina',score:6},
+                     {id:'guest3',name:'Sam',score:3}]
         })""")
         assert page.locator('.stage-halftime img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Mi-temps : réflexion, pas déception"
         assert page.locator('.halftime-board-title').inner_text().startswith('APRÈS'), "Résumé mi-temps absent"
-        assert page.locator('.halftime-stat-title').inner_text()=='LE CHIFFRE DE LA PREMIÈRE MI-TEMPS', "Encart statistique absent"
+        assert page.locator('.halftime-stat-title').inner_text()=='LA MOYENNE DES JOUEURS', "La statistique de mi-temps ne doit pas répéter le score du leader"
+        assert page.locator('.halftime-stat strong').inner_text().startswith('4,7'), "La moyenne réelle 5+6+3 / 3 doit être calculée sans invention"
         page.screenshot(path=str(OUT/'asgq-show-05-mi-temps.png'),full_page=True)
 
         page.evaluate("""() => renderFinished({
@@ -565,7 +580,15 @@ def run(browser, base):
         assert page.locator('.pod .pod-crown').count()==1, "La couronne du gagnant doit être affichée"
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
         assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
+        assert page.locator('.podium--1 .pod').count()==1, "La finale à un joueur doit rester lisible"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
+        page.evaluate("""() => renderFinished({
+          is_host:false,me:{id:'p2',name:'Noémie'},
+          standings:[{id:'p1',name:'Camille',score:10},{id:'p2',name:'Noémie',score:8}]
+        })""")
+        assert page.locator('.podium--2 .pod').count()==2, "La finale à deux joueurs doit avoir deux marches"
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Le podium à deux joueurs doit rester dans la largeur"
+        page.screenshot(path=str(OUT/'asgq-show-06a-deux-joueurs.png'),full_page=True)
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'p4',name:'Alex'},
           standings:[
@@ -703,6 +726,33 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         no_errors(page,errors,"qcm-creation-admin")
+        checks+=1
+    finally:ctx.close()
+
+    # La vignette QCM laisse le test avec bots intact et propose la reprise
+    # de l'émission officielle sur un chemin distinct, sans créer d'événement.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        assert page.locator('[data-act="resume-grinta-quiz"]').is_hidden(), "Le lien officiel ne doit pas polluer les autres jeux"
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        assert page.locator('[data-act="resume-grinta-quiz"]').is_visible(), "La reprise officielle manque sur Le Soulieteur"
+        page.locator('[data-act="resume-grinta-quiz"]').click()
+        page.wait_for_url("**/grinta-quiz/?action=resume",timeout=10000)
+        assert page.locator('[data-screen="recover-host"]').is_visible(), "La reprise doit ouvrir le formulaire Admin+ sans création"
+        assert page.locator('#player-name').count()==0, "La reprise ne doit pas demander un nouveau joueur"
+        no_errors(page,errors,"qcm-reprise-officielle-depuis-soulieteur")
+        checks+=1
+    finally:ctx.close()
+
+    # L'aperçu d'invitation est celui de l'AS Grinta mais l'accès se fait
+    # toujours directement depuis l'onglet Rejoindre du Soulieteur.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.goto(base+"/grinta-quiz/inviter/?code=87654321",wait_until="load",timeout=20000)
+        page.wait_for_url("**/?code=87654321",timeout=10000)
+        assert page.locator('#pane-join').is_visible(), "L'invitation doit ouvrir Rejoindre dans Le Soulieteur"
+        assert page.locator('#j-code').input_value()=="87654321", "L'invitation doit conserver le code sans deuxième saisie"
+        no_errors(page,errors,"qcm-invitation-as-grinta")
         checks+=1
     finally:ctx.close()
 
