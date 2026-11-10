@@ -1576,3 +1576,70 @@ body{
 .host-access-result small{color:#dfecfb;line-height:1.45}
 .host-access-result button{margin-top:7px;min-height:44px;width:100%}
 @media(max-width:359px){.host-access-players{grid-template-columns:minmax(0,1fr)}}
+
+/* Préparation finale : écrans de transition et sécurisation des commandes manuelles. */
+.scene[data-screen="intro"] .intro-announcement{
+  position:relative;z-index:2;margin:8px 0 16px 29%;width:71%;
+  padding:15px 12px;border:1.5px solid var(--show-gold);
+  border-radius:17px;background:linear-gradient(145deg,#0b3571,#061e43);
+  text-align:center;box-shadow:0 0 20px rgba(247,188,76,.12);
+}
+.intro-announcement span{
+  display:block;color:#f4d697;font:800 10px/1.4 'DM Sans',sans-serif;
+  letter-spacing:.16em;
+}
+.intro-announcement strong{
+  display:block;margin:7px auto;color:#fff0c5;
+  font:italic 900 clamp(24px,6.2vw,34px)/1.1 'Barlow Condensed',sans-serif;
+}
+.intro-announcement p{
+  color:#e4ecf9;margin:11px 0 0;font:600 12px/1.45 'DM Sans',sans-serif;
+}
+.early-reveal-confirm{
+  margin:11px 0;padding:14px;
+  border:1.5px solid #ffcd79;border-radius:13px;
+  background:linear-gradient(145deg,#603a28,#3d2740);
+  box-shadow:0 0 15px rgba(240,180,79,.10);
+}
+.early-reveal-confirm[hidden]{display:none!important}
+.early-reveal-confirm p{
+  margin:0 0 12px;text-align:center;color:#fff3de;
+  font:700 13px/1.5 'DM Sans',sans-serif;
+}
+.early-reveal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.early-reveal-actions button{
+  min-height:48px;padding:10px 8px;border:1px solid #e4bc7b;
+  border-radius:10px;background:#183b66;color:#fff2d4;
+  font:800 12px/1.35 'DM Sans',sans-serif;cursor:pointer;
+}
+.early-reveal-actions [data-confirm-reveal]{
+  background:#c59745;color:#122a48;border-color:#ffe0a4;
+}
+.early-reveal-actions button:focus-visible,.host-next:focus-visible{
+  outline:3px solid #fff5dc;outline-offset:3px;
+}
+.scene[data-screen="finished"] .podium--1{
+  width:57%;justify-content:center;margin-right:0;margin-left:auto;
+}
+.scene[data-screen="finished"] .podium--2{width:72%;justify-content:center}
+.scene[data-screen="finished"] .podium--1 .pod{width:100%;flex:0 1 134px}
+.scene[data-screen="finished"] .podium--2 .pod{flex:1 1 0}
+.scene[data-screen="finished"] .pod .name{
+  max-width:100%;font-size:clamp(11px,3vw,14px);line-height:1.25;
+  overflow-wrap:anywhere;hyphens:auto;
+}
+.scene[data-screen="finished"] .champion-name{text-wrap:balance}
+.scene[data-screen="halftime"] .halftime-stat strong{
+  overflow-wrap:anywhere;font-size:clamp(29px,8vw,49px);
+}
+.scene[data-screen="halftime"] .halftime-stat .stat-caption{
+  overflow-wrap:anywhere;line-height:1.4;
+}
+@media(max-width:359px){
+  .early-reveal-actions{grid-template-columns:1fr}
+  .scene[data-screen="intro"] .intro-announcement{padding:12px 8px}
+  .scene[data-screen="finished"] .podium--1{width:63%}
+}
+@media(prefers-reduced-motion:reduce){
+  .early-reveal-confirm{animation:none!important}
+}
