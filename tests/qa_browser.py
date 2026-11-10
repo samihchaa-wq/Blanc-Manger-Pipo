@@ -532,11 +532,11 @@ def run(browser, base):
         assert presenter_layout['width']>=180 and presenter_layout['height']>=260, f"Animateur de la maquette encore trop petit : {presenter_layout}"
         assert presenter_layout['left'] < presenter_layout['titleLeft']+10, f"Animateur absent de la gauche du vestiaire : {presenter_layout}"
         assert page.evaluate("() => getComputedStyle(document.querySelector('.stage-lobby .presenter-shot')).pointerEvents === 'none'"), "Photo ne doit jamais bloquer les boutons"
-        assert page.evaluate("() => {
+        assert page.evaluate("""() => {
           const r=document.querySelector('.lobby-panel').getBoundingClientRect();
           const b=document.querySelector('.invite-button').getBoundingClientRect();
           return r.left>10 && b.right<=r.right+2;
-        }"), "Le code de salle et le bouton Inviter doivent rester lisibles et à l'intérieur du panneau"
+        }"""), "Le code de salle et le bouton Inviter doivent rester lisibles et à l'intérieur du panneau"
         page.screenshot(path=str(OUT/'asgq-show-02-vestiaire.png'),full_page=True)
         assert page.locator('.roster .avatar').count()==0, "Les joueurs ne doivent plus avoir d'icône ronde"
         assert page.locator('main a.quiet-link').count()==0, "Le lien RETOUR AUX JEUX ne doit plus être affiché"
