@@ -12,6 +12,7 @@ const isRehearsal = new URLSearchParams(location.search).get('repetition') === '
 const storeKey = isRehearsal ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-participant';
 const app = document.getElementById('app');
 const notice = document.getElementById('notice');
+const networkStatus = document.getElementById('network-status');
 const letters = ['A','B','C','D'];
 let token = null;
 let state = null;
@@ -42,6 +43,9 @@ function toast(message) {
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => notice.classList.remove('visible'), 3500);
 }
+function showNetworkProblem(offline) {
+  if(networkStatus) networkStatus.hidden = !offline;
+}
 function fmtError(error) {
   const message=String(error?.message || '');
   if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
@@ -68,6 +72,12 @@ function headerText(overline, title, sub) {
 function shell(html, key) {
   const practiceTag=isRehearsal && key!=='finished' ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
+}
+function renderLostSession() {
+  signature='session-expired';
+  shell(`${stage('<h2>SESSION EXPIRÉE</h2>','puzzled','expired')}
+    <div class="panel lost-session"><p>Cette session ne peut plus être utilisée. Retourne dans Le Soulieteur pour accéder à une partie encore ouverte.</p>
+    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a></div>`, 'expired');
 }
 function renderJoin() {
   signature = 'join-create';
@@ -273,14 +283,17 @@ async function fetchState() {
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
     state=data;
     lastConnectionError=false;
+    showNetworkProblem(false);
     renderState();
   } catch(error) {
     const message=fmtError(error);
     if (/Session expirée|Session introuvable|Session inconnue/i.test(message)) {
       token=null; state=null; try{localStorage.removeItem(storeKey)}catch(_){}
-      renderJoin(); toast('Ta session a expiré. Rejoins de nouveau la partie.');
+      showNetworkProblem(false);
+      renderLostSession(); toast('Session expirée.');
     } else if(!lastConnectionError) {
       lastConnectionError=true;
+      showNetworkProblem(true);
       toast('Connexion momentanément indisponible. Nouvelle tentative automatique.');
     }
   } finally {requesting=false}
@@ -414,6 +427,8 @@ app.addEventListener('click',e=>{
   if(button) void answer(Number(button.dataset.answer));
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
+window.addEventListener('online',()=>{if(token)void fetchState()});
+window.addEventListener('offline',()=>{if(token)showNetworkProblem(true)});
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
 if(token) void fetchState();
 else if(codeFromLink.length===8) {
