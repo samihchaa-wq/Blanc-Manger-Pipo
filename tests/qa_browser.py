@@ -551,7 +551,19 @@ def run(browser, base):
         assert page.evaluate("() => getComputedStyle(document.querySelector('#join-button')).borderRadius === '999px'"), "Bouton doré de la maquette absent"
         page.wait_for_function("() => { const img=document.querySelector('.stage-welcome img.presenter-photo'); return img && img.complete && img.naturalWidth===1024 && img.naturalHeight===1536; }")
         assert page.locator('.stage-welcome .presenter-photo').is_visible(), "Portrait de l'animateur absent de l'accueil"
-        page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
+        # A fully loaded figure must never obscure the name label or form input.
+        for width,height in ((320,640),(360,740),(375,812),(390,844),(430,932)):
+            page.set_viewport_size({"width":width,"height":height})
+            geometry=page.evaluate("""() => {
+              const p=document.querySelector('.stage-welcome .presenter-photo').getBoundingClientRect();
+              const f=document.querySelector('.join-panel .field').getBoundingClientRect();
+              return {photoBottom:p.bottom,formTop:f.top,
+                scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+            }""")
+            assert geometry["photoBottom"]<=geometry["formTop"]-4, f"Le portrait masque le champ Prénom sur {width}px : {geometry}"
+            assert geometry["scrollWidth"]<=geometry["viewport"]+2, f"L'accueil déborde en largeur : {geometry}"
+            if width==390:page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
+        page.set_viewport_size({"width":390,"height":844})
         assert page.locator('[data-entry-mode]').count()==0, "Le quiz ne propose plus un second mode Rejoindre"
         assert page.get_by_text("Entre dans l’émission").count()==0, "Le sous-titre inutile a été retiré"
 
