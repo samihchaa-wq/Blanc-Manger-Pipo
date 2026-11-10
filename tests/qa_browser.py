@@ -449,6 +449,9 @@ def run(browser, base):
         }""")
         assert long_layout['cardWidth']>=long_layout['viewport']*.85, f"La question longue reste trop étroite : {long_layout}"
         assert long_layout['cardTop']>=long_layout['portraitBottom']-20, f"Le portrait recouvre la question longue : {long_layout}"
+        page.set_viewport_size({"width":667,"height":375})
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Paysage : la question longue ne doit pas déborder"
         sample["question"]["text"]="Quel joueur a marqué le but décisif lors du dernier match ?"
         sample["question"]["choices"][2]="Le défenseur central"
         page.set_viewport_size({"width":390,"height":844})
@@ -631,6 +634,14 @@ def run(browser, base):
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire large déborde de l'écran"
         page.set_viewport_size({"width":320,"height":640})
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire 20 personnes déborde à 320 px"
+        page.evaluate("""() => renderLobby({
+          me:{id:'host'},is_host:true,room_code:'00123456',ready:true,max_players:30,
+          players:[{id:'host',name:'Alban',is_host:true},...Array.from({length:29},(_,i)=>({
+            id:'p'+i,name:'Participant '+(i+1),is_host:false
+          }))]
+        })""")
+        assert page.locator('.lobby-roster-panel .roster li').count()==30, "Le vestiaire à capacité maximale perd des joueurs"
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Vestiaire 30 personnes : débordement horizontal"
         page.set_viewport_size({"width":390,"height":844})
         page.evaluate("() => renderLostSession()")
         assert page.locator('.lost-session .recovery-link').is_visible(), "Une session perdue ne doit pas proposer le formulaire Admin+ à l'invité"
@@ -776,6 +787,9 @@ def run(browser, base):
         page.locator('[data-issue-player-code="guest"]').click()
         page.locator('.handoff-code').wait_for(state='visible')
         assert page.locator('.handoff-code').inner_text()=="00112233", "Code unique absent des outils animateur"
+        page.evaluate("() => renderState(true)")
+        assert page.locator('.host-access').evaluate("(el) => el.open"), "Le panneau de secours ne doit pas se refermer après synchronisation"
+        assert page.locator('.handoff-code').inner_text()=="00112233", "Le code de secours disparaît après rafraîchissement"
         assert page.evaluate("() => window.__qaCalls.some(c=>c.name==='asgq_issue_player_handoff' && c.args.p_host_token==='recovered-host-token' && c.args.p_player_id==='guest')"), "Un code de secours doit être délivré par le jeton animateur"
         no_errors(page,errors,"qcm-reprise-animateur")
         checks+=1
