@@ -24,6 +24,7 @@ let noticeTimer = null;
 let lastConnectionError = false;
 let lobbyActionBusy = false;
 let advanceBusy = false;
+let pendingRevealConfirmation = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
 // All joining happens through the main Soulieteur entry screen, including invitations.
 
@@ -59,6 +60,16 @@ const PRESENTER_FILES = Object.freeze({
   confident:'arms', puzzled:'confused', doubt:'skeptical', facepalm:'facepalm',
   victory:'trophy', question:'pointing', cheer:'cheer'
 });
+const preloadedPortraits=new Set();
+function preloadPresenter(pose) {
+  if(navigator.connection?.saveData) return;
+  const file=PRESENTER_FILES[pose];
+  if(!file || preloadedPortraits.has(file)) return;
+  preloadedPortraits.add(file);
+  const image=new Image();
+  image.decoding='async';
+  image.src='./presenters/'+file+'.png';
+}
 const presenter = pose => {
   const file = PRESENTER_FILES[pose] || PRESENTER_FILES.confident;
   return `<div class="presenter-shot presenter-${safe(pose)}"><img class="presenter-photo" src="./presenters/${file}.png" width="1024" height="1536" decoding="async" alt="Animateur AS Grinta" draggable="false"></div>`;
@@ -82,9 +93,22 @@ function hostAccessPanel(s) {
   </details>`;
 }
 function shell(html, key) {
+  const previousAccess=app.querySelector('.host-access');
+  const accessOpen=!!previousAccess?.open;
+  const activeCode=previousAccess?.querySelector('#host-access-result')?.innerHTML || '';
   const practiceTag=isRehearsal && key!=='finished' ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   const access=['join','recover-host','expired'].includes(key) ? '' : hostAccessPanel(state);
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}${access}</section>`;
+  const nextAccess=app.querySelector('.host-access');
+  if(nextAccess) {
+    nextAccess.open=accessOpen;
+    const output=nextAccess.querySelector('#host-access-result');
+    if(output && activeCode) output.innerHTML=activeCode;
+  }
+  const upcoming={join:'arms',lobby:'cheer',intro:'question',question:'confident',
+    reveal:'question',halftime:'question',finished:'victory'};
+  preloadPresenter(upcoming[key]);
+  announceScreen(key);
 }
 function renderLostSession() {
   signature='session-expired';
@@ -146,6 +170,10 @@ function renderLobby(s) {
 }
 function renderIntro(s) {
   shell(`${stage('<h2>1RE MI-TEMPS</h2>','cheer','intro')}
+    <div class="panel intro-announcement">
+      <span class="eyebrow">COUP D'ENVOI</span>
+      <p>${s.is_host?'À toi de lancer la première question. Les joueurs attendent ton signal.':'La partie est lancée. L’animateur va afficher la première question.'}</p>
+    </div>
     ${hostControl(s,'AFFICHER LA QUESTION')}`, 'intro');
 }
 // On the host's question screen, display only participants that have not answered.
@@ -173,7 +201,11 @@ function renderQuestion(s) {
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>
     <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
-    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
+    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${pendingRevealConfirmation ? `<div class="reveal-confirmation" role="alertdialog" aria-labelledby="reveal-confirm-title" aria-describedby="reveal-confirm-desc">
+        <h3 id="reveal-confirm-title">RÉVÉLER MAINTENANT ?</h3>
+        <p id="reveal-confirm-desc">${safe(s.question?.waiting_players?.length ?? 0)} joueur(s) n'ont pas encore répondu. Leurs réponses seront verrouillées.</p>
+        <div class="reveal-confirm-actions"><button type="button" data-cancel-reveal>ATTENDRE</button><button type="button" data-confirm-reveal>RÉVÉLER QUAND MÊME</button></div>
+      </div>` : hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note answer-feedback" role="status" aria-live="polite">${sendingAnswer ? 'Enregistrement…' : choice === null || choice === undefined ? '' : 'Réponse enregistrée · Tu peux changer ton choix.'}</p>`}`, 'question');
 }
 // Equal scores share a rank: 1, 1, 3, 4 (not the order in which they joined).
@@ -249,7 +281,8 @@ function renderReveal(s) {
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  const top=s.standings?.[0];
+  const allPlayers=s.standings || [];
+  const collectivePoints=allPlayers.reduce((sum,p)=>sum+(Number(p.score)||0),0);
   const count=Number(s.first_half_count || 10);
   shell(`${stage('<h2>MI-TEMPS</h2><p>On souffle… mais le match continue.</p>','thinking','halftime')}
     <div class="halftime-board">
@@ -259,8 +292,8 @@ function renderHalftime(s) {
     <div class="halftime-stat">
       <div class="halftime-stat-title">LE CHIFFRE DE LA PREMIÈRE MI-TEMPS</div>
       <span class="stat-target" aria-hidden="true">◎</span>
-      <strong>${Number(top?.score || 0)}<small> / ${count}</small></strong>
-      <span class="stat-caption">points pour le leader</span>
+      <strong>${collectivePoints}<small> PTS</small></strong>
+      <span class="stat-caption">points cumulés par les ${allPlayers.length} joueurs</span>
     </div>
     ${hostControl(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
@@ -279,9 +312,9 @@ function renderFinished(s) {
   const others=standings.slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${competitionRank(standings,i+3)}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
   const championNames=winners.length ? winners.map(p=>safe(p.name)).join(' · ') : 'AS Grinta';
   shell(`${stage(`<h2>${tied?'CHAMPIONS DU QUIZ':'CHAMPION DU QUIZ'}</h2><p>Fin de l’émission · Merci à tous</p>`,'victory','podium')}
-    <h3 class="champion-name">${championNames}</h3>
+    <h3 class="champion-name ${winners.length>2?'many-champions':''}">${championNames}</h3>
     ${tied? `<p class="joint-champions">${winners.length} CHAMPIONS EX ÆQUO</p>` : ''}
-    <div class="podium">${podium}</div>
+    <div class="podium podium--${Math.min(3,top.length)}">${podium}</div>
     ${others ? `<div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${others}</ol></div>` : ''}
     ${isRehearsal && s.is_host ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>REJOUER</button>' : ''}
@@ -319,6 +352,10 @@ async function fetchState() {
     if (error) throw error;
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
     state=data;
+    if(pendingRevealConfirmation && (state.phase!=='question' || !state.question?.waiting_players?.length)) {
+      pendingRevealConfirmation=false;
+      signature='';
+    }
     lastConnectionError=false;
     showNetworkProblem(false);
     renderState();
@@ -419,6 +456,13 @@ async function lobbyCommand(rpcName, botId=null) {
 }
 async function advancePhase() {
   if (!state?.is_host || !['intro','question','reveal','halftime'].includes(state.phase) || advanceBusy) return;
+  const waiting=state.phase==='question' ? state.question?.waiting_players : null;
+  if(!pendingRevealConfirmation && Array.isArray(waiting) && waiting.length>0) {
+    pendingRevealConfirmation=true;
+    renderState(true);
+    return;
+  }
+  pendingRevealConfirmation=false;
   advanceBusy=true;
   const button=document.querySelector('[data-next-phase]');
   if (button) button.disabled=true;
@@ -462,7 +506,7 @@ async function issuePlayerHandoff(playerId,button) {
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
-  const url=new URL('../',location.href);
+  const url=new URL('./',location.href);
   url.searchParams.set('code',code);
   const message='Rejoins le Grand Quiz AS Grinta 2026 ! Code : '+code;
   try {
@@ -509,6 +553,15 @@ app.addEventListener('submit',e=>{
 app.addEventListener('click',e=>{
   if(e.target.closest('[data-host-recovery]')) {renderHostRecovery();return}
   if(e.target.closest('[data-back-to-creation]')) {renderJoin();return}
+  if(e.target.closest('[data-cancel-reveal]')) {
+    pendingRevealConfirmation=false;
+    renderState(true);
+    return;
+  }
+  if(e.target.closest('[data-confirm-reveal]')) {
+    void advancePhase();
+    return;
+  }
   const issue=e.target.closest('[data-issue-player-code]');
   if(issue) {void issuePlayerHandoff(issue.dataset.issuePlayerCode,issue);return}
   const copy=e.target.closest('[data-copy-player-code]');
