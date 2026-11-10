@@ -143,7 +143,7 @@ assert.equal(choosePose(guest(2),false,true),'doubt','The new skeptical face mus
 assert.equal(choosePose(guest(1),false,false),'surprised','A missing answer should be a surprised reaction');
 assert.equal(choosePose(guest(2),false,false),'puzzled','A missing answer can receive a puzzled reaction');
 assert.equal(choosePose(guest(2),false,true),choosePose(guest(2),false,true),'Polling must not randomly change the expression');
-assert.match(script, /stage\('<h2>CHAMPION DU QUIZ<\/h2>/, 'Finale must use the approved champion headline');
+assert.match(script, /tied\?'CHAMPIONS DU QUIZ':'CHAMPION DU QUIZ'/, 'Finale must preserve the original title for a sole winner and pluralize tied champions');
 assert.match(script, /'victory','podium'/, 'Trophy presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
