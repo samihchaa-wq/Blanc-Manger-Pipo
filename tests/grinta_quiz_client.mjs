@@ -314,4 +314,26 @@ assert.match(script,/const winners=winnerScore===undefined \? \[\] : standings\.
 assert.match(script,/CHAMPIONS DU QUIZ/, 'Tied champions need plural podium headline');
 assert.match(script,/championNames=winners\.length/, 'Champion heading must display every tied winner');
 assert.match(script,/class="joint-champions"/, 'Podium must indicate shared first place');
+// Guest session recovery: only the host can issue a short-lived single-use ticket.
+const handoffSql=read('supabase/migrations/20261123040000_asgq_player_session_handoff.sql');
+const handoffQA=read('supabase/tests/qa_as_grinta_player_handoff.sql');
+assert.match(handoffSql,/create or replace function public\.asgq_issue_player_handoff\(p_host_token uuid,p_player_id uuid\)/, 'Host handoff RPC missing');
+assert.match(handoffSql,/ev\.host_token_hash is distinct from host_player\.token_hash/, 'Guest must never issue their own handoff');
+assert.match(handoffSql,/token_hash is distinct from ev\.host_token_hash/, 'Host must never be transferred through guest handoff');
+assert.match(handoffSql,/create or replace function public\.asgq_claim_player_handoff/, 'Guest claim RPC missing');
+assert.match(handoffSql,/p_room_code text,p_player_name text,p_handoff_code text/, 'Claim must require room, player and private handoff code');
+assert.match(handoffSql,/ticket\.expires_at>clock_timestamp\(\)/, 'Handoff must expire');
+assert.match(handoffSql,/delete from asgq_private\.player_handoffs where player_id=target_player\.id/, 'Code must be one-time only');
+assert.match(handoffSql,/v_requests>60 or v_failures>=15/, 'Guest recovery must be rate-limited');
+assert.match(handoffSql,/update asgq_private\.players/, 'Session must rotate the existing player token');
+assert.doesNotMatch(handoffSql,/insert into asgq_private\.players|update asgq_private\.event|delete from asgq_private\.answers/, 'Recovery must never create players or alter event/answers');
+assert.match(handoffQA,/rollback;/, 'Database QA must not mutate the live event');
+assert.match(script,/function hostAccessPanel\(s\)/, 'Host access management UI missing');
+assert.match(script,/if\(isRehearsal \|\| !s\?\.is_host\) return ''/, 'Do not expose access tools to invited players or rehearsal');
+assert.match(script,/asgq_issue_player_handoff/, 'Host must call the handoff RPC');
+assert.match(home,/asgq_claim_player_handoff/, 'Guests must reclaim via Soulieteur');
+assert.match(home,/montrerRecuperationAsgq\(\)/, 'Special claim UI should appear after a failed official join');
+assert.match(home,/quizMode === 'official'/, 'Other games and rehearsals must keep their normal entry');
+assert.match(read('css/app.css'),/#asgq-recovery-panel/, 'Guest recovery input needs a readable style');
+
 console.log('ASGQ frontend / preflight checks OK');
