@@ -54,7 +54,7 @@ begin
         'waiting_players',case when ev.phase='question'
              and player_row.token_hash=ev.host_token_hash then (
           select coalesce(jsonb_agg(jsonb_build_object('id',participant.id,'name',participant.name)
-            order by participant.joined_at,participant.id),'[]'::jsonb)
+            order by participant.name,participant.id),'[]'::jsonb)
           from asgq_private.players participant
           where participant.token_hash is distinct from ev.host_token_hash
             
@@ -133,7 +133,7 @@ begin
         'waiting_players',case when ev.phase='question'
              and player_row.token_hash=ev.host_token_hash then (
           select coalesce(jsonb_agg(jsonb_build_object('id',participant.id,'name',participant.name)
-            order by participant.joined_at,participant.id),'[]'::jsonb)
+            order by participant.name,participant.id),'[]'::jsonb)
           from asgq_rehearsal_private.players participant
           where participant.token_hash is distinct from ev.host_token_hash
             and participant.bot_order is null -- Bots answer automatically on reveal; do not count them as pending.
