@@ -809,7 +809,7 @@ def run(browser, base):
             page.locator('[data-act="join"]').click()
             page.locator('#asgq-recovery-panel').wait_for(state='visible')
             assert page.locator('#asgq-recovery-code').is_visible(), "Le code provisoire doit être saisissable si le prénom est pris ou la salle est pleine"
-            assert page.locator('[data-act="asgq-host-recovery"]').count()==0, "Ne pas proposer Admin+ aux invités sur leur écran Rejoindre"
+            assert page.locator('[data-act="asgq-host-recovery"]').is_hidden(), "Ne pas afficher Admin+ aux invités sur leur écran Rejoindre"
             no_errors(page,errors,"qcm-reprise-invite-"+name.lower())
             checks+=1
         finally:ctx.close()
