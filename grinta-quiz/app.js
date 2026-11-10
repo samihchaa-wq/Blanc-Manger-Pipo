@@ -12,6 +12,7 @@ const isRehearsal = new URLSearchParams(location.search).get('repetition') === '
 const storeKey = isRehearsal ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-participant';
 const app = document.getElementById('app');
 const notice = document.getElementById('notice');
+const networkStatus = document.getElementById('network-status');
 const letters = ['A','B','C','D'];
 let token = null;
 let state = null;
@@ -42,6 +43,9 @@ function toast(message) {
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => notice.classList.remove('visible'), 3500);
 }
+function showNetworkProblem(offline) {
+  if(networkStatus) networkStatus.hidden = !offline;
+}
 function fmtError(error) {
   const message=String(error?.message || '');
   if (/Mot de passe Admin\+ incorrect|Une répétition est en cours|Maximum 20 bots|Le salon est complet|Seul le créateur|Ajoute au moins un bot|La partie a déjà commencé|Le code de la partie|Nom déjà utilisé/i.test(message)) return message;
@@ -69,6 +73,12 @@ function shell(html, key) {
   const practiceTag=isRehearsal && key!=='finished' ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
 }
+function renderLostSession() {
+  signature='session-expired';
+  shell(`${stage('<h2>SESSION EXPIRÉE</h2>','puzzled','expired')}
+    <div class="panel lost-session"><p>Cette session ne peut plus être utilisée. Retourne dans Le Soulieteur pour accéder à une partie encore ouverte.</p>
+    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a></div>`, 'expired');
+}
 function renderJoin() {
   signature = 'join-create';
   let savedName = '';
@@ -89,20 +99,24 @@ function hostControl(s, label) {
 }
 function renderLobby(s) {
   const count=s.players.length;
+  const participantCount=s.players.filter(p => !p.is_host).length;
+  const manyPlayers=participantCount > 12;
   const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span>${safe(p.name)}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
+  const rosterSection=`<div class="section-title"><span class="eyebrow">JOUEURS (${participantCount})</span><small class="host-count">+ 1 animateur</small></div>
+    <ul class="roster">${players}</ul>
+    ${s.is_host && isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}`;
+  const whyDisabled=participantCount<1 ? 'Il faut au moins un joueur pour lancer.' : !s.ready ? 'La partie n’est pas encore prête à démarrer.' : '';
   shell(`
     ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
     <div class="panel lobby-panel">
       <div class="room-invite"><div>${showEmblem}<span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>INVITER</button></div>
-      <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
-      <ul class="roster">${players}</ul>
-      ${s.is_host && isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
+      ${manyPlayers?'':rosterSection}
     </div>
+    ${manyPlayers ? `<div class="panel lobby-roster-panel">${rosterSection}</div>` : ''}
     ${s.is_host
-      ? `<button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>`
+      ? `<button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>${whyDisabled ? `<p class="launch-hint" role="status">${whyDisabled}</p>` : ''}`
       : '<p class="muted center">En attente du maître du jeu…</p>'}
-
   `, 'lobby');
 }
 function renderIntro(s) {
@@ -135,10 +149,14 @@ function renderQuestion(s) {
     </div>
     <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
     ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
-      : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
+      : `<p class="response-note answer-feedback" role="status" aria-live="polite">${sendingAnswer ? 'Enregistrement…' : choice === null || choice === undefined ? '' : 'Réponse enregistrée · Tu peux changer ton choix.'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
-  return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${String(i+1).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
+  const standings=s.standings || [];
+  const makeRow=(p,i,extra='')=>`<li class="${p.id===s.me.id?'you':''} ${extra}"><span class="rank-no">${String(i+1).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`;
+  const top=standings.slice(0,count).map((p,i)=>makeRow(p,i)).join('');
+  const ownIndex=s.is_host ? -1 : standings.findIndex(p=>p.id===s.me.id);
+  return top+(ownIndex>=count ? `<li class="rank-divider" aria-hidden="true">···</li>${makeRow(standings[ownIndex],ownIndex,'personal-rank')}` : '');
 }
 // Correct -> congratulatory; incorrect -> skeptical/facepalm;
 // unanswered -> genuinely surprised or questioning. The host does not answer
@@ -185,12 +203,15 @@ function renderReveal(s) {
   const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
   const resultPose = presenterPoseForReveal(s, success, answered);
   shell(`<div class="kicker result-kicker"><span class="round-chip">LE VERDICT</span><span class="pos">QUESTION <b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div>
-    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'doubt':resultPose,'reveal')}
+    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,resultPose,'reveal')}
+    <div class="reveal-question"><span>LA QUESTION</span><p>${safe(q.text || '')}</p></div>
     <div class="answer-reveal">
       <div class="answer-reveal-label"><span class="answer-reveal-tick" aria-hidden="true">✓</span><span>BONNE RÉPONSE</span></div>
-      <strong>${safe(q.choices?.[q.correct] || '')}</strong>
+      <strong>${safe(q.choices?.[q.correct] ?? '')}</strong>
       ${s.is_host?'':`<b class="answer-reveal-points">+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}
     </div>
+    ${!s.is_host && answered && !success ? `<p class="personal-answer">Tu avais répondu : <strong>${safe(q.choices?.[q.my_choice] ?? '')}</strong></p>` : ''}
+    ${q.explanation ? `<div class="reveal-explanation"><span>POURQUOI ?</span><p>${safe(q.explanation)}</p></div>` : ''}
     ${renderResponseBreakdown(s)}
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
@@ -220,7 +241,7 @@ function renderFinished(s) {
     const tier=position===1?'first':position===3?'third':'second';
     return `<div class="pod ${tier}"><span class="pod-crown" aria-hidden="true">♛</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} pts</span><div class="step">${position}</div></div>`;
   }).join('');
-  const others=(s.standings||[]).slice(3).map((p,i)=>`<li><span class="rank-no">${i+4}e</span><span class="rank-name">${safe(p.name)}</span><b>${p.score} pts</b></li>`).join('');
+  const others=(s.standings||[]).slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+4}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
   shell(`${stage('<h2>CHAMPION DU QUIZ</h2><p>Fin de l’émission · Merci à tous</p>','victory','podium')}
     <h3 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h3>
     <div class="podium">${podium}</div>
@@ -262,14 +283,17 @@ async function fetchState() {
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
     state=data;
     lastConnectionError=false;
+    showNetworkProblem(false);
     renderState();
   } catch(error) {
     const message=fmtError(error);
     if (/Session expirée|Session introuvable|Session inconnue/i.test(message)) {
       token=null; state=null; try{localStorage.removeItem(storeKey)}catch(_){}
-      renderJoin(); toast('Ta session a expiré. Rejoins de nouveau la partie.');
+      showNetworkProblem(false);
+      renderLostSession(); toast('Session expirée.');
     } else if(!lastConnectionError) {
       lastConnectionError=true;
+      showNetworkProblem(true);
       toast('Connexion momentanément indisponible. Nouvelle tentative automatique.');
     }
   } finally {requesting=false}
@@ -403,6 +427,8 @@ app.addEventListener('click',e=>{
   if(button) void answer(Number(button.dataset.answer));
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
+window.addEventListener('online',()=>{if(token)void fetchState()});
+window.addEventListener('offline',()=>{if(token)showNetworkProblem(true)});
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
 if(token) void fetchState();
 else if(codeFromLink.length===8) {

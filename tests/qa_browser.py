@@ -407,6 +407,16 @@ def run(browser, base):
             assert geometry['choicesTop']>=geometry['cardBottom']-1, f"Les réponses chevauchent la question : {geometry}"
             assert all(x['left']>=0 and x['right']<=width+2 and x['width']>=width*.70
                        for x in geometry['buttons']), f"Réponses coupées ou trop étroites : {geometry}"
+        # Long real-world text must scroll vertically rather than be cropped horizontally.
+        page.set_viewport_size({"width":320,"height":690})
+        sample["question"]["text"]="Dans la finale du championnat, quel joueur de l'équipe a marqué le but décisif après une action collective particulièrement longue et un centre venu du côté droit ?"
+        sample["question"]["choices"][2]="Le défenseur central ayant disputé son vingt-cinquième match de la saison"
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Le texte long ne doit pas provoquer de débordement"
+        assert page.locator('.choices > button.choice').count()==4, "Les choix longs restent disponibles"
+        sample["question"]["text"]="Quel joueur a marqué le but décisif lors du dernier match ?"
+        sample["question"]["choices"][2]="Le défenseur central"
+        page.set_viewport_size({"width":390,"height":844})
         sample["is_host"]=True
         sample["question"]["my_choice"]=None
         page.evaluate("(s) => renderQuestion(s)",sample)
@@ -438,6 +448,13 @@ def run(browser, base):
         assert page.locator('.answer-reveal strong').inner_text()=="L'attaquant de pointe", "Texte de bonne réponse modifié"
         assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement façon panneau de score absent"
         assert page.locator('.answer-reveal-tick').is_visible(), "Bonne réponse sans pictogramme"
+        assert page.locator('.reveal-question p').inner_text()==sample['question']['text'], "Le verdict doit rappeler la question"
+        sample["question"]["explanation"]="La bonne réponse se vérifie après la révélation."
+        sample["question"]["my_choice"]=2  # Wrong answer: test the personal correction.
+        page.evaluate("(s) => renderReveal(s)",sample)
+        assert page.locator('.reveal-explanation').is_visible(), "L'explication vérifiée doit apparaître sur le verdict"
+        assert page.locator('.personal-answer strong').inner_text()=="Le défenseur central", "La mauvaise réponse personnelle doit être rappelée"
+        sample["question"]["my_choice"]=0
         # Le classement cumulatif ne doit pas servir à deviner les résultats de la manche.
         assert page.locator('.response-breakdown').count()==0, "Ne rien inventer si le serveur ne fournit pas la liste"
         sample["question"]["responses"]=[
@@ -449,7 +466,7 @@ def run(browser, base):
         assert page.locator('.response-group--correct .response-person').all_inner_texts()==["Camille"], "Joueurs ayant bien répondu incorrects"
         assert page.locator('.response-group--incorrect .response-person').all_inner_texts()==["Sam"], "Joueurs ayant mal répondu incorrects"
         assert page.locator('.response-group--unanswered .response-person').all_inner_texts()==["Nina"], "Joueurs sans réponse absents"
-        assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===3"), "Les trois colonnes de verdict doivent rester alignées sur iPhone"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===1"), "Sur iPhone, les catégories du verdict doivent rester lisibles en pleine largeur"
         page.screenshot(path=str(OUT/'asgq-show-04-verdict.png'),full_page=True)
         assert [v.strip() for v in page.locator('.response-group-count').all_inner_texts()]==["1","1","1"]
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Les noms débordent de l'écran"
@@ -519,8 +536,29 @@ def run(browser, base):
         assert page.locator('.stage-podium img.presenter-photo').get_attribute('src')=='./presenters/trophy.png', "Podium : le trophée du champion"
         assert page.locator('.stage-podium h2').inner_text()=='CHAMPION DU QUIZ', "Le titre de finale ne correspond pas à la maquette"
         assert page.locator('.pod .pod-crown').count()==1, "La couronne du gagnant doit être affichée"
+        assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
+        assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
 
+        # Many-person lobby moves the roster to a full-width panel.
+        page.evaluate("""() => renderLobby({
+          me:{id:'host'},is_host:true,room_code:'00123456',ready:true,max_players:30,
+          players:[{id:'host',name:'Alban',is_host:true},...Array.from({length:20},(_,i)=>({
+            id:'p'+i,name:'Participant '+(i+1),is_host:false
+          }))]
+        })""")
+        assert page.locator('.lobby-roster-panel').is_visible(), "Grand vestiaire non adapté aux 20 joueurs"
+        assert page.locator('.lobby-roster-panel .roster li').count()==21, "Un participant disparaît du vestiaire"
+        assert "JOUEURS (20)" in page.locator('.lobby-roster-panel').inner_text(), "L'animateur ne doit pas compter parmi les joueurs"
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire large déborde de l'écran"
+
+        page.evaluate("() => renderLostSession()")
+        assert page.locator('.lost-session .recovery-link').is_visible(), "Une session perdue ne doit pas proposer le formulaire Admin+ à l'invité"
+        assert page.locator('#admin-password').count()==0, "La récupération d'un invité ne doit pas demander Admin+"
+        page.evaluate("() => showNetworkProblem(true)")
+        assert page.locator('#network-status').is_visible(), "L'état de connexion interrompue doit rester visible"
+        page.evaluate("() => showNetworkProblem(false)")
+        assert page.locator('#network-status').is_hidden(), "Le bandeau doit disparaître après reconnexion"
         no_errors(page,errors,"qcm-expressions-coherentes")
         checks+=1
     finally:ctx.close()
