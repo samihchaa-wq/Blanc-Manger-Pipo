@@ -474,8 +474,8 @@ def run(browser, base):
         assert page.locator('.stage-welcome .entry-title').inner_text().replace('\n',' ').startswith('PRÊT POUR'), "Titre de la maquette d'accueil absent"
         assert page.evaluate("() => getComputedStyle(document.querySelector('#join-button')).borderRadius === '999px'"), "Bouton doré de la maquette absent"
         page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
-        page.locator('[data-entry-mode="join"]').click()
-        assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Accueil rejoindre : expression réfléchie"
+        assert page.locator('[data-entry-mode]').count()==0, "Le quiz ne propose plus un second mode Rejoindre"
+        assert page.get_by_text("Entre dans l’émission").count()==0, "Le sous-titre inutile a été retiré"
 
         for position, choice, expected in [
             (1,0,'amazed'),(2,0,'thumbs'),(3,0,'laughter'),
@@ -588,23 +588,21 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
-    # Les invités de la répétition utilisent le code de salon à 8 chiffres,
-    # sans jamais connaître le mot de passe Admin+.
-    ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
-    page=ctx.new_page()
-    errors=[]
-    page.on("pageerror",lambda e:errors.append(str(e)))
-    page.route("**/vendor/supabase.js",
-               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    # Les invités du quiz utilisent l'onglet Rejoindre du Soulieteur.
+    # Aucune redemande de code ni de mot de passe Admin+ dans le Grand Quiz.
+    ctx,page,errors=open_page(browser,base)
     try:
-        page.goto(base+"/grinta-quiz/?repetition=1&code=00123456",wait_until="load",timeout=20000)
-        assert page.locator('#room-code').input_value()=="00123456"
-        assert page.locator('#admin-password').count()==0
-        page.locator('#player-name').fill('Camille')
-        page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_join_room') === true")
-        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_join_room').args")
-        assert args=={"p_code":"00123456","p_name":"Camille"},args
+        page.locator('[data-act="tab"][data-tab="join"]').click()
+        page.locator('#j-name').fill('Camille')
+        page.locator('#j-code').fill('12345678')
+        page.locator('[data-act="join"]').click()
+        page.wait_for_url("**/grinta-quiz/?repetition=1",timeout=10000)
+        assert page.evaluate("() => localStorage.getItem('asgq-2026-rehearsal-participant')")=="guest-token", "Le joueur doit rejoindre le quiz depuis l'accueil Soulieteur"
+        assert page.locator('#admin-password').count()==0, "Le mot de passe Admin+ n'est pas pour les joueurs"
+        assert page.locator('#room-code').count()==0, "Le code ne doit jamais être redemandé"
+        calls=page.evaluate("() => window.__qaCalls.filter(c=>c.name==='asgq_room_mode' || c.name==='asgq_rehearsal_join_room')")
+        assert calls[0]=={"name":"asgq_room_mode","args":{"p_code":"12345678"}}, calls
+        assert calls[1]=={"name":"asgq_rehearsal_join_room","args":{"p_code":"12345678","p_name":"Camille"}}, calls
         no_errors(page,errors,"qcm-repetition-rejoindre")
         checks+=1
     finally:ctx.close()
@@ -660,7 +658,8 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
-    # Un lien d'invitation sélectionne « Rejoindre » et pré-remplit le code.
+    # Un ancien lien d'invitation au quiz renvoie vers l'accueil Soulieteur
+    # avec son code, puis se connecte directement après le prénom.
     ctx=browser.new_context(viewport={"width":375,"height":812},reduced_motion="reduce",service_workers="block")
     page=ctx.new_page()
     errors=[]
@@ -668,9 +667,14 @@ def run(browser, base):
     page.route("**/vendor/supabase.js",
                lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
     try:
-        page.goto(base+"/grinta-quiz/?code=00012345",wait_until="load",timeout=20000)
-        assert page.locator('#room-code').input_value()=="00012345"
-        assert page.locator('#admin-password').count()==0
+        page.goto(base+"/grinta-quiz/?code=87654321",wait_until="load",timeout=20000)
+        page.wait_for_url("**/?code=87654321",timeout=10000)
+        assert page.locator('#pane-join').is_visible(), "Le lien devrait ouvrir l'onglet rejoindre du Soulieteur"
+        assert page.locator('#j-code').input_value()=="87654321", "L'invitation doit préremplir le code"
+        page.locator('#j-name').fill('Camille')
+        page.locator('[data-act="join"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.evaluate("() => localStorage.getItem('asgq-2026-participant')")=="guest-token", "Participation officielle non transférée"
         no_errors(page,errors,"qcm-invitation-code")
         checks+=1
     finally:ctx.close()
