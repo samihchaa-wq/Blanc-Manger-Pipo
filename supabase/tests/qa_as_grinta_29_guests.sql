@@ -45,9 +45,9 @@ begin
 
   delete from asgq_private.questions where id is not null;
   insert into asgq_private.questions(position,half,prompt,choices,correct_index,points,explanation)
-    select i,case when i<=10 then 1 else 2 end,'CI capacity question '||i,
+    select gs.n,case when gs.n<=10 then 1 else 2 end,'CI capacity question '||gs.n,
       array['A','B','C','D'],0,1,'Exemple privé de test'
-    from generate_series(1,20) i;
+    from generate_series(1,20) as gs(n);
   update asgq_private.event set armed=true where id=1;
   if not asgq_private.ready_for_kickoff() then
     raise exception 'ASGQ_CAPACITY_QA: real pack did not pass preflight';
