@@ -1223,3 +1223,12 @@ body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
   font-size:18px;letter-spacing:.12em;
 }
 .home #asgq-recovery-panel .btn{width:100%;min-height:46px}
+
+/* Grand Quiz: unobtrusive official-host resume entry only when QCM is selected. */
+.home .asgq-official-resume{
+  display:block;width:100%;margin:10px 0 0;padding:8px 10px;
+  border:0;background:transparent;color:#ffe2a6;text-decoration:underline;
+  text-underline-offset:4px;font-size:13px;font-weight:700;line-height:1.45;cursor:pointer;
+}
+.home .asgq-official-resume[hidden]{display:none!important}
+.home .asgq-official-resume:focus-visible{outline:2px solid #ffe2a6;outline-offset:2px}
