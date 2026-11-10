@@ -1513,3 +1513,8 @@ body{
 .scene[data-screen="expired"] .recovery-link{
   display:grid;place-items:center;text-decoration:none;min-height:59px;
 }
+
+.scene[data-screen="lobby"] .host-count{
+  white-space:nowrap;color:#d4e0f6;font:700 10px/1.2 'DM Sans',sans-serif;
+}
+.scene[data-screen="lobby"] .section-title{flex-wrap:wrap;column-gap:9px;row-gap:4px}
