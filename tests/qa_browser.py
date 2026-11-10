@@ -41,12 +41,23 @@ window.supabase = {
           return {data:{error:'Mot de passe Admin+ incorrect.'},error:null};
         return {data:{token:'recovered-host-token',name:'Alban',code:'87654321'},error:null};
       }
+      if (name === 'asgq_issue_player_handoff') {
+        return {data:{name:'Camille',code:'00112233',minutes:10},error:null};
+      }
+      if (name === 'asgq_claim_player_handoff') {
+        if(args.p_room_code==='87654321' && args.p_player_name==='Nina' && args.p_handoff_code==='00112233')
+          return {data:{token:'guest-restored-token',name:'Nina',code:'87654321'},error:null};
+        return {data:{error:'Code de récupération incorrect ou expiré.'},error:null};
+      }
       if (name === 'asgq_state') {
+        const guest=args.p_token==='guest-restored-token';
         return {data:{
           phase:'lobby',title:'Grand Quiz AS Grinta',ready:false,room_code:'87654321',
           first_half_count:10,second_half_count:10,position:0,
-          players:[{id:'host',name:'Alban',is_host:true}],standings:null,max_players:30,
-          me:{id:'host',name:'Alban',score:0},is_host:true
+          players:[{id:'host',name:'Alban',is_host:true},...(guest?[{id:'guest-restored',name:'Nina',is_host:false}]:[])],
+          standings:null,max_players:30,
+          me:guest?{id:'guest-restored',name:'Nina',score:8}:{id:'host',name:'Alban',score:0},
+          is_host:!guest
         },error:null};
       }
       // QCM Grinta: the browser sees the REAL UI; mocked server drives a host lobby.
@@ -55,6 +66,8 @@ window.supabase = {
           : args.p_code === '87654321' ? 'official' : null,error:null};
       }
       if (name === 'asgq_rehearsal_join_room' || name === 'asgq_join_room') {
+        if(name === 'asgq_join_room' && args.p_name==='Nina')
+          return {data:{error:'Les inscriptions sont closes.'},error:null};
         return {data:{token:'guest-token',code:args.p_code},error:null};
       }
       if (name === 'asgq_rehearsal_create') {
@@ -715,7 +728,37 @@ def run(browser, base):
         page.wait_for_function("() => localStorage.getItem('asgq-2026-participant')==='recovered-host-token'")
         assert page.locator('[data-screen="lobby"]').is_visible(), "L'animateur doit retrouver le vestiaire sans recréer une partie"
         assert page.locator('.roster li').count()==1, "La reprise ne doit pas créer de nouveau joueur"
+        # After an existing guest joins, the host can issue a one-time rescue code.
+        page.evaluate("""() => {
+          state.players.push({id:'guest',name:'Camille',is_host:false});
+          renderState(true);
+        }""")
+        page.locator('.host-access summary').click()
+        page.locator('[data-issue-player-code="guest"]').click()
+        page.locator('.handoff-code').wait_for(state='visible')
+        assert page.locator('.handoff-code').inner_text()=="00112233", "Code unique absent des outils animateur"
+        assert page.evaluate("() => window.__qaCalls.some(c=>c.name==='asgq_issue_player_handoff' && c.args.p_host_token==='recovered-host-token' && c.args.p_player_id==='guest')"), "Un code de secours doit être délivré par le jeton animateur"
         no_errors(page,errors,"qcm-reprise-animateur")
+        checks+=1
+    finally:ctx.close()
+
+    # Un joueur perdant son jeton peut retrouver son identite + score avec le
+    # code temporaire emis par l'animateur, sans second formulaire dans le quiz.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.locator('[data-act="tab"][data-tab="join"]').click()
+        page.locator('#j-name').fill('Nina')
+        page.locator('#j-code').fill('87654321')
+        page.locator('[data-act="join"]').click()
+        page.locator('#asgq-recovery-panel').wait_for(state='visible')
+        assert page.locator('#asgq-recovery-code').count()==1, "Le code de secours n'est pas accessible dans Le Soulieteur"
+        page.locator('#asgq-recovery-code').fill('00112233')
+        page.locator('[data-act="asgq-recover"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.evaluate("() => localStorage.getItem('asgq-2026-participant')")=="guest-restored-token", "La session restauree doit etre sauvegardee"
+        assert page.locator('.host-access').count()==0, "Un invite ne doit pas voir les outils de recuperation animateur"
+        assert page.locator('#admin-password').count()==0, "Un invite ne doit jamais demander le mot de passe Admin+"
+        no_errors(page,errors,"qcm-reprise-invite")
         checks+=1
     finally:ctx.close()
 
