@@ -434,6 +434,10 @@ def run(browser, base):
             assert geometry['choicesTop']>=geometry['cardBottom']-1, f"Les réponses chevauchent la question : {geometry}"
             assert all(x['left']>=0 and x['right']<=width+2 and x['width']>=width*.70
                        for x in geometry['buttons']), f"Réponses coupées ou trop étroites : {geometry}"
+        # Landscape must stay horizontally contained on small mobile devices.
+        page.set_viewport_size({"width":812,"height":375})
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Une question ne doit pas déborder en paysage"
         # Long real-world text must scroll vertically rather than be cropped horizontally.
         page.set_viewport_size({"width":320,"height":690})
         sample["question"]["text"]="Dans la finale du championnat, quel joueur de l'équipe a marqué le but décisif après une action collective particulièrement longue et un centre venu du côté droit ?"
@@ -471,6 +475,13 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
         assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
+        page.evaluate("(s) => { state=s; renderState(true); }",sample)
+        assert page.locator('#screen-announcement').inner_text().startswith("Question 3"), "Le lecteur d'écran doit annoncer le changement de question"
+        announcement=page.locator('#screen-announcement').inner_text()
+        sample["question"]["waiting_players"]=[{"id":"g3","name":"Sam"}]
+        page.evaluate("(s) => { state=s; renderState(); }",sample)
+        assert page.locator('#screen-announcement').inner_text()==announcement, "La mise à jour des prénoms ne doit pas réannoncer toute la question"
+        sample["question"]["waiting_players"]=[]
         # No unnecessary safeguard when everyone has answered.
         page.evaluate("(s) => { state=s; renderQuestion(s); }",sample)
         page.locator('[data-next-phase]').click()
