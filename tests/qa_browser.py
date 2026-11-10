@@ -351,6 +351,60 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # Les 12 expressions réelles doivent être montrées sur les bons écrans,
+    # pas uniquement référencées par des chemins de fichiers.
+    ctx=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce",service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e:errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/?repetition=1",wait_until="load",timeout=20000)
+        assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thumbs.png', "Accueil création : expression accueillante"
+        page.locator('[data-entry-mode="join"]').click()
+        assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Accueil rejoindre : expression réfléchie"
+
+        for position, choice, expected in [
+            (1,0,'amazed'),(2,0,'thumbs'),(3,0,'laughter'),
+            (1,1,'facepalm'),(2,1,'skeptical'),
+            (1,None,'surprised'),(2,None,'confused')
+        ]:
+            page.evaluate("""(params) => {
+              const s={
+                phase:'reveal',is_host:false,position:params.position,half:1,
+                first_half_count:10,second_half_count:10,
+                me:{id:'guest',name:'Camille',score:2},
+                players:[{id:'host',name:'Alban',is_host:true},{id:'guest',name:'Camille',is_host:false}],
+                standings:[{id:'guest',name:'Camille',score:2}],
+                question:{text:'Question exemple',choices:['Oui','Non','Peut-être','Jamais'],
+                          correct:0,my_choice:params.choice,earned:params.choice===0?1:0}
+              };
+              renderReveal(s);
+            }""",{"position":position,"choice":choice})
+            picture=page.locator('.stage-reveal img.presenter-photo')
+            assert picture.get_attribute('src')=='./presenters/'+expected+'.png', f"Expression incohérente pour position {position}, réponse {choice} : {expected}"
+            page.wait_for_function("""() => {
+              const photo=document.querySelector('.stage-reveal img.presenter-photo');
+              return photo && photo.complete && photo.naturalWidth===1024 && photo.naturalHeight===1536;
+            }""")
+
+        page.evaluate("""() => renderHalftime({
+          is_host:false,me:{id:'guest',name:'Camille'},
+          standings:[{id:'guest',name:'Camille',score:5}]
+        })""")
+        assert page.locator('.stage-halftime img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Mi-temps : réflexion, pas déception"
+
+        page.evaluate("""() => renderFinished({
+          is_host:false,me:{id:'guest',name:'Camille'},
+          standings:[{id:'guest',name:'Camille',score:10}]
+        })""")
+        assert page.locator('.stage-podium img.presenter-photo').get_attribute('src')=='./presenters/trophy.png', "Podium : le trophée du champion"
+
+        no_errors(page,errors,"qcm-expressions-coherentes")
+        checks+=1
+    finally:ctx.close()
+
     # Partie complète de test : création Admin+, puis bots ajoutés dans le salon.
     ctx,page,errors=open_page(browser,base)
     try:
