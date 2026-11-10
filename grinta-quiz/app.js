@@ -61,7 +61,7 @@ const PRESENTER_FILES = Object.freeze({
 });
 const presenter = pose => {
   const file = PRESENTER_FILES[pose] || PRESENTER_FILES.confident;
-  return `<div class="presenter-shot presenter-${safe(pose)}"><img class="presenter-photo" src="./presenters/${file}.png" width="1024" height="1536" decoding="async" alt="Animateur AS Grinta" draggable="false"></div>`;
+  return `<div class="presenter-shot presenter-${safe(pose)}"><img class="presenter-photo" src="./presenters/${file}.png" width="1024" height="1536" decoding="async" fetchpriority="high" alt="Animateur AS Grinta" draggable="false"></div>`;
 };
 const stage = (title,pose,kind='') =>
   `<div class="stage-head stage-${safe(kind)}">${presenter(pose)}<div class="stage-copy">${title}</div></div>`;
@@ -145,7 +145,15 @@ function renderLobby(s) {
   `, 'lobby');
 }
 function renderIntro(s) {
+  const count=Number(s.first_half_count || 10);
   shell(`${stage('<h2>1RE MI-TEMPS</h2>','cheer','intro')}
+    <div class="intro-announcement">
+      <span>L'ÉMISSION COMMENCE</span>
+      <strong>${count} QUESTIONS POUR PRENDRE L'AVANTAGE</strong>
+      <p>${s.is_host
+        ? 'Présente la première mi-temps, puis donne le coup d’envoi quand tu es prêt.'
+        : 'L’animateur donnera le coup d’envoi de la première question.'}</p>
+    </div>
     ${hostControl(s,'AFFICHER LA QUESTION')}`, 'intro');
 }
 // On the host's question screen, display only participants that have not answered.
@@ -173,7 +181,14 @@ function renderQuestion(s) {
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>
     <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
-    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
+    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}
+      <div class="early-reveal-confirm" id="early-reveal-confirm" role="group" aria-label="Confirmer une révélation anticipée" hidden>
+        <p id="early-reveal-text">Des participants n'ont pas encore répondu. Révéler maintenant clôturera leurs réponses.</p>
+        <div class="early-reveal-actions">
+          <button type="button" data-cancel-reveal>ANNULER</button>
+          <button type="button" data-confirm-reveal>RÉVÉLER MALGRÉ TOUT</button>
+        </div>
+      </div>`
       : `<p class="response-note answer-feedback" role="status" aria-live="polite">${sendingAnswer ? 'Enregistrement…' : choice === null || choice === undefined ? '' : 'Réponse enregistrée · Tu peux changer ton choix.'}</p>`}`, 'question');
 }
 // Equal scores share a rank: 1, 1, 3, 4 (not the order in which they joined).
@@ -249,18 +264,23 @@ function renderReveal(s) {
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  const top=s.standings?.[0];
   const count=Number(s.first_half_count || 10);
+  // Compute this from the real, server-calculated standings; never from invented questions.
+  const players=s.standings || [];
+  const average=players.length
+    ? (players.reduce((sum,p)=>sum+Number(p.score||0),0)/players.length)
+        .toLocaleString('fr-FR',{maximumFractionDigits:1})
+    : '—';
   shell(`${stage('<h2>MI-TEMPS</h2><p>On souffle… mais le match continue.</p>','thinking','halftime')}
     <div class="halftime-board">
       <div class="halftime-board-title">APRÈS ${count} QUESTIONS</div>
       <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,5)}</ol></div>
     </div>
     <div class="halftime-stat">
-      <div class="halftime-stat-title">LE CHIFFRE DE LA PREMIÈRE MI-TEMPS</div>
+      <div class="halftime-stat-title">LA MOYENNE DES JOUEURS</div>
       <span class="stat-target" aria-hidden="true">◎</span>
-      <strong>${Number(top?.score || 0)}<small> / ${count}</small></strong>
-      <span class="stat-caption">points pour le leader</span>
+      <strong>${average}<small> PTS</small></strong>
+      <span class="stat-caption">${players.length} participant${players.length>1?'s':''} · score moyen réel</span>
     </div>
     ${hostControl(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
@@ -281,7 +301,7 @@ function renderFinished(s) {
   shell(`${stage(`<h2>${tied?'CHAMPIONS DU QUIZ':'CHAMPION DU QUIZ'}</h2><p>Fin de l’émission · Merci à tous</p>`,'victory','podium')}
     <h3 class="champion-name">${championNames}</h3>
     ${tied? `<p class="joint-champions">${winners.length} CHAMPIONS EX ÆQUO</p>` : ''}
-    <div class="podium">${podium}</div>
+    <div class="podium podium--${top.length}">${podium}</div>
     ${others ? `<div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${others}</ol></div>` : ''}
     ${isRehearsal && s.is_host ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>REJOUER</button>' : ''}
@@ -528,7 +548,30 @@ app.addEventListener('click',e=>{
   if(removeBot) {void lobbyCommand('asgq_rehearsal_remove_bot',removeBot.dataset.removeBot);return}
   if(e.target.closest('[data-add-bot]')) {void lobbyCommand('asgq_rehearsal_add_bot');return}
   if(e.target.closest('[data-start-quiz]')) {void lobbyCommand(isRehearsal?'asgq_rehearsal_start':'asgq_start');return}
-  if(e.target.closest('[data-next-phase]')) {void advancePhase();return}
+  if(e.target.closest('[data-cancel-reveal]')) {
+    const panel=document.getElementById('early-reveal-confirm');
+    if(panel) panel.hidden=true;
+    return;
+  }
+  if(e.target.closest('[data-confirm-reveal]')) {void advancePhase();return}
+  if(e.target.closest('[data-next-phase]')) {
+    const waiting=state?.question?.waiting_players;
+    if(state?.phase==='question' && state?.is_host &&
+        (!Array.isArray(waiting) || waiting.length>0)) {
+      const panel=document.getElementById('early-reveal-confirm');
+      if(panel) {
+        const note=document.getElementById('early-reveal-text');
+        if(note) note.textContent=Array.isArray(waiting)
+          ? `${waiting.length} joueur${waiting.length>1?'s':''} n'${waiting.length>1?'ont':'a'} pas répondu. Révéler maintenant clôturera les réponses.`
+          : 'Les réponses de tous les joueurs ne sont pas encore confirmées. Révéler maintenant clôturera les réponses.';
+        panel.hidden=false;
+        panel.querySelector('[data-confirm-reveal]')?.focus();
+        return;
+      }
+    }
+    void advancePhase();
+    return;
+  }
   if(e.target.closest('[data-share-room]')) {void shareRoom();return}
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
