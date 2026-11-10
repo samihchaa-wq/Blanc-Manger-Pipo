@@ -247,7 +247,7 @@ assert.match(script,/class="halftime-board"/, 'Halftime ranking board must match
 assert.match(script,/class="halftime-stat"/, 'Halftime should show a genuine leader statistic');
 assert.match(script,/class="pod-crown"/, 'Final podium needs crown motifs');
 assert.match(script,/data-repeat-rehearsal>REJOUER/, 'Rehearsal finale needs the approved replay label');
-assert.match(script,/Number\(top\?\.score \|\| 0\)/, 'Halftime statistic must be derived from a real score');
+assert.match(script,/players\.reduce\(\(sum,p\)=>sum\+Number\(p\.score\|\|0\),0\)\/players\.length/, 'Halftime statistic must use the actual scores of every participant');
 assert.match(script,/\$\{p\.score\} pts/, 'Podium points must come from the real leaderboard');
 assert.match(style,/\.scene\[data-screen="reveal"\] \.response-groups\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/,
   'Reveal must use the three result columns from the mockup');
@@ -336,4 +336,24 @@ assert.match(home,/montrerRecuperationAsgq\(\)/, 'Special claim UI should appear
 assert.match(home,/quizMode === 'official'/, 'Other games and rehearsals must keep their normal entry');
 assert.match(read('css/app.css'),/#asgq-recovery-panel/, 'Guest recovery input needs a readable style');
 
+// Final pre-question polish: manual staging, safe reveal, distinct shared invite.
+const invitation=read('grinta-quiz/inviter/index.html');
+assert.match(invitation,/property="og:title" content="Le Grand Quiz AS Grinta 2026"/, 'The invitation must preview the quiz, not Soulieteur cards');
+assert.match(invitation,/new URL\('\.\.\/\.\.\/',location\.href\)/, 'Invite must route back into Soulieteur, not duplicate the quiz form');
+assert.match(invitation,/target\.searchParams\.set\('code',code\)/, 'The existing eight-digit code must survive the redirect');
+assert.match(script,/new URL\('\.\/inviter\/',location\.href\)/, 'Share must use the AS Grinta-branded invitation');
+assert.match(home,/data-act="resume-grinta-quiz"/, 'Soulieteur must offer explicit official emission recovery');
+assert.match(home,/location\.assign\(url\.href\)/, 'Resume needs a real navigation');
+assert.match(script,/hostResumeRequested/, 'Official host resume must not create a bot rehearsal');
+assert.match(script,/function renderIntro\(s\)/, 'The first-half introduction must remain a manual stage');
+assert.match(script,/INTRODUCTION|L'ÉMISSION COMMENCE/, 'The first-half introduction needs real broadcast copy');
+assert.match(script,/id="early-reveal-confirm"/, 'Host needs an optional confirmation before cutting off unanswered players');
+assert.match(script,/data-confirm-reveal/, 'Host must retain authority to reveal early');
+assert.match(script,/data-cancel-reveal/, 'Host must be able to cancel an accidental reveal');
+assert.match(script,/!Array\.isArray\(waiting\) \|\| waiting\.length>0/, 'Only pending or unknown answers need additional confirmation');
+assert.doesNotMatch(script,/setTimeout\(\(\)=>advancePhase|setInterval\(advancePhase/, 'The quiz must never reveal automatically');
+assert.match(style,/\.early-reveal-confirm\[hidden\]\{display:none!important\}/, 'The safeguard must stay hidden until requested');
+assert.match(script,/class="podium podium--\$\{top\.length\}"/, 'Final podium should adapt to one or two finalists');
+assert.match(style,/\.podium--1/, 'One final participant needs a centered podium style');
+assert.match(style,/\.podium--2/, 'Two finalists need a balanced layout');
 console.log('ASGQ frontend / preflight checks OK');
