@@ -595,13 +595,13 @@ def run(browser, base):
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
         assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
-        assert page.locator('.podium--one').is_visible(), "Un seul finaliste doit avoir une marche lisible"
+        assert page.locator('.podium--1').is_visible(), "Un seul finaliste doit avoir une marche lisible"
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'p2',name:'Un Prénom Très Long'},
           standings:[{id:'p1',name:'Camille',score:7},
                      {id:'p2',name:'Un Prénom Très Long',score:6}]
         })""")
-        assert page.locator('.podium--two .pod').count()==2, "Le podium à 2 joueurs doit rester centré"
+        assert page.locator('.podium--2 .pod').count()==2, "Le podium à 2 joueurs doit rester centré"
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Podium à 2 finalistes débordant"
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'p4',name:'Alex'},
