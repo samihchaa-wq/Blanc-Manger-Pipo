@@ -205,6 +205,7 @@ function waitingPlayersHtml(s) {
 }
 function renderQuestion(s) {
   const q=s.question || {};
+  const isLong=String(q.text||'').length>105;
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
   const choices=(q.choices || []).map((answer,i)=>{
     const content=`<span class="letter" aria-hidden="true">${letters[i]}</span><span class="choice-text">${safe(answer)}</span><span class="choice-indicator" aria-hidden="true"></span>`;
@@ -212,9 +213,9 @@ function renderQuestion(s) {
       ? `<div class="choice readonly">${content}</div>`
       : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}>${content}</button>`;
   }).join('');
-  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">QUESTION</span><span class="pos"><b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div></div>
+  shell(`<div class="question-topline ${isLong?'question-topline--long':''}">${presenter('question')}<div class="kicker"><span class="round-chip">QUESTION</span><span class="pos"><b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div></div>
     ${showProgress(s)}
-    <div class="question-card" role="group" aria-label="Question ${halfNum(s)}">
+    <div class="question-card ${isLong?'question-card--long':''}" role="group" aria-label="Question ${halfNum(s)}">
       <div class="question-card-top" aria-hidden="true"><span>${showEmblem}</span><span class="question-card-index">Q${String(halfNum(s)).padStart(2,'0')}</span></div>
       <h2>${safe(q.text)}</h2>
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
