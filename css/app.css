@@ -1223,3 +1223,16 @@ body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
   font-size:18px;letter-spacing:.12em;
 }
 .home #asgq-recovery-panel .btn{width:100%;min-height:46px}
+
+/* An existing official Grand Quiz token can be resumed without joining again. */
+.home .asgq-resume-link{
+  display:block;width:100%;min-height:43px;margin:10px 0 0;padding:10px 12px;
+  border:1px solid rgba(241,191,108,.65);border-radius:11px;
+  background:rgba(13,47,86,.9);color:#f7e1b0;
+  text-align:center;font-weight:800;font-size:12px;line-height:1.35;
+  letter-spacing:.035em;cursor:pointer;
+}
+.home #asgq-resume-create[hidden]{display:none!important}
+.home .asgq-resume-link:focus-visible{
+  outline:3px solid #f3cf7c;outline-offset:3px;
+}
