@@ -165,4 +165,26 @@ assert.match(lobbyMarkup, /data-remove-bot/, 'Bot removal must remain usable');
 assert.doesNotMatch(script, /RETOUR AUX JEUX/, 'Redundant return-to-games text must be removed from quiz screens');
 assert.match(page, /class="brand-back"/, 'Keep the header exit X when removing text links');
 assert.match(style, /\.brand\{[^}]*background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none/, 'Header must not have a contrasting color bar or blur');
+
+// The quiz screen must have its own premium show design without changing quiz data.
+assert.match(script,/question-card-top/, 'Question needs an AS Grinta identity strip');
+assert.match(script,/question-card-index/, 'Question number should read like a show episode');
+assert.match(script,/class="choice-text"/, 'Each answer should have a dedicated readable text region');
+assert.match(script,/class="choice-indicator"/, 'A selected answer must have an accessible visual indicator');
+assert.match(script,/role="group" aria-label="Choix de réponse"/, 'Answer options should be grouped for accessibility');
+assert.match(script,/answer-reveal-label/, 'Reveal needs an elevated answer panel');
+assert.match(script,/answer-reveal-tick/, 'Correct answer must be visually recognizable');
+assert.match(script,/rank-no/, 'Ranking should preserve readable rank numbers');
+assert.doesNotMatch(script.split('function rankingRows(s, count = 5)')[1]?.split('function presenterPoseForReveal')[0]||'',/class="avatar"/,
+  'Scoreboard should not bring back initials beside player names');
+assert.match(style,/CLUB-NIGHT BROADCAST ART DIRECTION/, 'Grand Quiz custom visual identity is absent');
+assert.match(style,/question-card::before\{[\s\S]*?as-grinta-crest\.webp/, 'Question card should subtly echo the real club crest');
+assert.match(style,/\.scene\[data-screen="question"\] \.choice\.selected/, 'Answer selection should have an unmistakable visual state');
+assert.match(style,/\.scene\[data-screen="reveal"\] \.answer-reveal/, 'Reveal needs a special ceremony panel');
+assert.match(style,/\.stage-intro::after/, 'First-half introduction needs event staging');
+assert.match(style,/\.pod\.first \.step/, 'Champion podium needs a distinct top step');
+assert.doesNotMatch(script,/timeRemaining|timerLine|updateClocks/, 'The redesign must not reintroduce a timer');
+assert.match(script,/hostControl\(s,'RÉVÉLER LA RÉPONSE'\)/, 'Only the master can reveal the answer');
+assert.match(script,/data-answer/, 'Participant choices must remain interactive');
+
 console.log('ASGQ frontend / preflight checks OK');

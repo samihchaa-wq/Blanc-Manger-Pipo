@@ -351,6 +351,66 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # Une question Grinta doit être une vraie séquence de plateau, pas quatre boutons génériques.
+    # Test visuel sur 320 et 390 px ; aucun chronomètre et aucune obstruction des réponses.
+    ctx=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce",service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e:errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/?repetition=1",wait_until="load",timeout=20000)
+        sample={
+            "position":3,"half":1,"first_half_count":10,"second_half_count":10,
+            "is_host":False,"me":{"id":"guest","name":"Camille","score":3},
+            "players":[{"id":"host","name":"Alban","is_host":True},
+                       {"id":"guest","name":"Camille","is_host":False}],
+            "question":{"text":"Quel joueur a marqué le but décisif lors du dernier match ?",
+                        "choices":["L'attaquant de pointe","Le gardien","Le défenseur central","Le milieu de terrain"],
+                        "correct":0,"my_choice":2,"earned":0}
+        }
+        for width in (320,390):
+            page.set_viewport_size({"width":width,"height":750})
+            page.evaluate("(s) => renderQuestion(s)",sample)
+            assert page.locator('.question-card-top').is_visible(), "Carte question sans identité club"
+            assert page.locator('.question-card-index').inner_text()=="Q03", "Numéro de question de type émission manquant"
+            assert page.locator('.choices > button.choice').count()==4, "Les quatre réponses doivent rester disponibles"
+            assert page.locator('button.choice.selected[data-answer="2"]').count()==1, "Sélection du joueur non identifiable"
+            assert page.locator('button.choice[aria-pressed="true"]').count()==1, "État sélectionné incorrect"
+            assert page.locator('[data-next-phase]').count()==0, "Un invité ne doit pas voir les commandes de l'animateur"
+            assert page.locator('.big-timer, .timer-line').count()==0, "Aucun chronomètre autorisé"
+            assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Question débordante sur mobile"
+            geometry=page.evaluate("""() => {
+              const card=document.querySelector('.question-card').getBoundingClientRect();
+              const answer=document.querySelector('.choices').getBoundingClientRect();
+              const buttons=[...document.querySelectorAll('.choices .choice')].map(el=>{
+                const r=el.getBoundingClientRect();
+                return {left:r.left,right:r.right,width:r.width};
+              });
+              return {cardBottom:card.bottom,choicesTop:answer.top,buttons};
+            }""")
+            assert geometry['choicesTop']>=geometry['cardBottom']-1, f"Les réponses chevauchent la question : {geometry}"
+            assert all(x['left']>=0 and x['right']<=width+2 and x['width']>=width*.70
+                       for x in geometry['buttons']), f"Réponses coupées ou trop étroites : {geometry}"
+        sample["is_host"]=True
+        sample["question"]["my_choice"]=None
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.locator('[data-next-phase]').is_visible(), "Le maître du jeu a perdu son bouton de révélation"
+        assert page.locator('.choice.readonly').count()==4, "Le maître du jeu ne doit pas répondre"
+
+        sample["is_host"]=False
+        sample["question"]["my_choice"]=0
+        sample["standings"]=[{"id":"guest","name":"Camille","score":4}]
+        page.evaluate("(s) => renderReveal(s)",sample)
+        assert page.locator('.answer-reveal-label').is_visible(), "Révélation non mise en scène"
+        assert page.locator('.answer-reveal strong').inner_text()=="L'attaquant de pointe", "Texte de bonne réponse modifié"
+        assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement façon panneau de score absent"
+        assert page.locator('.answer-reveal-tick').is_visible(), "Bonne réponse sans pictogramme"
+        no_errors(page,errors,"qcm-plateau-as-grinta")
+        checks+=1
+    finally:ctx.close()
+
     # Les 12 expressions réelles doivent être montrées sur les bons écrans,
     # pas uniquement référencées par des chemins de fichiers.
     ctx=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce",service_workers="block")

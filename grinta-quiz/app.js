@@ -116,18 +116,25 @@ function renderIntro(s) {
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
-  const choices=(q.choices || []).map((answer,i)=> s.is_host
-    ? `<div class="choice readonly"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
-    : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
+  const choices=(q.choices || []).map((answer,i)=>{
+    const content=`<span class="letter" aria-hidden="true">${letters[i]}</span><span class="choice-text">${safe(answer)}</span><span class="choice-indicator" aria-hidden="true"></span>`;
+    return s.is_host
+      ? `<div class="choice readonly">${content}</div>`
+      : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}>${content}</button>`;
+  }).join('');
   const playerCount=s.players.filter(p=>!p.is_host).length;
-  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div></div>
-    <div class="question-card"><h2>${safe(q.text)}</h2></div>
-    <div class="choices">${choices}</div>
+  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">${topText(s.half)}</span><span class="pos">QUESTION <b>${halfNum(s)}</b><small> / ${totalHalf(s)}</small></span></div></div>
+    <div class="question-card" role="group" aria-label="Question ${halfNum(s)}">
+      <div class="question-card-top" aria-hidden="true"><span>AS GRINTA</span><span class="question-card-index">Q${String(halfNum(s)).padStart(2,'0')}</span></div>
+      <h2>${safe(q.text)}</h2>
+      <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+    <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
     ${s.is_host ? `<p class="response-note" id="answer-counter">${q.answered_count || 0} / ${playerCount} réponses</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
-  return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+1}</span><span class="avatar">${firstLetter(p.name)}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
+  return (s.standings || []).slice(0,count).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${String(i+1).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`).join('');
 }
 // Correct -> congratulatory; incorrect -> skeptical/facepalm;
 // unanswered -> genuinely surprised or questioning. The host does not answer
@@ -145,9 +152,13 @@ function renderReveal(s) {
   const answered=q.my_choice !== null && q.my_choice !== undefined;
   const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
   const resultPose = presenterPoseForReveal(s, success, answered);
-  shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
+  shell(`<div class="kicker result-kicker"><span class="round-chip">LE VERDICT</span><span class="pos">QUESTION <b>${halfNum(s)}</b><small> / ${totalHalf(s)}</small></span></div>
     ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,resultPose,'reveal')}
-    <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
+    <div class="answer-reveal">
+      <div class="answer-reveal-label"><span class="answer-reveal-tick" aria-hidden="true">✓</span><span>BONNE RÉPONSE</span></div>
+      <strong>${safe(q.choices?.[q.correct] || '')}</strong>
+      ${s.is_host?'':`<b class="answer-reveal-points">+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}
+    </div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
