@@ -47,8 +47,8 @@ function fmtError(error) {
 }
 // Club photographs, original 1024x1536 cutouts: no compressed sprite or face recreation.
 const PRESENTER_FILES = Object.freeze({
-  welcome:'laughter', thinking:'thinking', excited:'thumbs', surprised:'surprised',
-  confident:'arms', puzzled:'confused', facepalm:'facepalm',
+  welcome:'laughter', thinking:'thinking', excited:'thumbs', amazed:'amazed', surprised:'surprised',
+  confident:'arms', puzzled:'confused', doubt:'skeptical', facepalm:'facepalm',
   victory:'trophy', question:'pointing', cheer:'cheer'
 });
 const presenter = pose => {
@@ -133,15 +133,17 @@ function renderReveal(s) {
   const success=q.my_choice === q.correct && !s.is_host;
   const answered=q.my_choice !== null && q.my_choice !== undefined;
   const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
+  // Alternate two genuine positive expressions across questions, consistently for every refresh.
+  const successPose = (s.position || 0) % 2 === 0 ? 'excited' : 'amazed';
   shell(`<div class="kicker"><span>RÉSULTAT</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>
-    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'confident':success?'excited':answered?'facepalm':'surprised','reveal')}
+    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'confident':success?successPose:answered?'facepalm':'surprised','reveal')}
     <div class="answer-reveal"><span>BONNE RÉPONSE</span><strong>${safe(q.choices?.[q.correct] || '')}</strong>${s.is_host?'':`<b>+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}</div>
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`${stage('<h2>MI-TEMPS</h2>','puzzled','halftime')}
+  shell(`${stage('<h2>MI-TEMPS</h2>','doubt','halftime')}
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
     ${hostControl(s,'REPRENDRE LE QUIZ')}`, 'halftime');
 }
