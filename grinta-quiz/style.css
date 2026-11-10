@@ -1644,3 +1644,22 @@ body{
   .scene[data-screen="question"] .question-topline--long .presenter-photo{width:125px}
   .scene[data-screen="question"] .question-topline--long .presenter-shot{top:68px}
 }
+
+/* Ensure the original full-body presenter never covers the welcome form.
+   Reserve the visual's actual vertical extent instead of cropping the portrait. */
+.scene[data-screen="join"] .stage-welcome{
+  min-height:clamp(285px,92vw,450px);
+}
+@media(max-width:359px){
+  .scene[data-screen="join"] .stage-welcome{
+    min-height:clamp(265px,85vw,310px);
+  }
+}
+@media(max-height:740px){
+  .scene[data-screen="join"] .stage-welcome{
+    min-height:clamp(250px,81vw,350px);
+  }
+  .scene[data-screen="join"] .stage-welcome .presenter-shot{
+    width:min(55%,230px);
+  }
+}
