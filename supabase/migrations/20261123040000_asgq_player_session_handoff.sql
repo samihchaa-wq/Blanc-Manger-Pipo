@@ -100,9 +100,9 @@ begin
       'error','Trop de tentatives. Réessaie dans quelques minutes.');
   end if;
 
-  v_room_code:=pg_catalog.regexp_replace(pg_catalog.coalesce(p_room_code,''),'[^0-9]','','g');
-  v_handoff_code:=pg_catalog.regexp_replace(pg_catalog.coalesce(p_handoff_code,''),'[^0-9]','','g');
-  v_name:=pg_catalog.btrim(pg_catalog.coalesce(p_player_name,''));
+  v_room_code:=pg_catalog.regexp_replace(coalesce(p_room_code,''),'[^0-9]','','g');
+  v_handoff_code:=pg_catalog.regexp_replace(coalesce(p_handoff_code,''),'[^0-9]','','g');
+  v_name:=pg_catalog.btrim(coalesce(p_player_name,''));
 
   select * into ev from asgq_private.event where id=1;
   if ev.created and ev.room_code=v_room_code
