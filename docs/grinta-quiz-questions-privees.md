@@ -31,16 +31,16 @@ Depuis la racine du dépôt, avec Node 22 :
 node tools/asgq-question-pack.mjs /chemin/prive/questions-as-grinta-2026.json /chemin/prive/asgq-import.sql
 ```
 
-Le script refuse les séries incomplètes, les doublons, les choix incorrects et les questions marquées de test. Il génère un fichier SQL **hors du dossier publié**, contenant les bonnes réponses. **Ne jamais le committer, l’envoyer dans un chat collectif ni le placer dans `grinta-quiz/`.**
+Le script refuse les séries incomplètes, les doublons, les choix incorrects et les questions marquées de test. Par sécurité, **le JSON et le fichier SQL généré doivent tous deux être situés hors du dépôt Git entier** : les dossiers `grinta-quiz/`, `js/`, `css/` et d'autres ressources sont publiés. **Ne jamais committer, partager en groupe ou publier les bonnes réponses.**
 
 ## Intégration avant la soirée
 
 1. Faire relire les deux séries et leurs corrections par l’organisateur.
-2. Dans l’éditeur SQL **restreint** du projet Supabase du Soulieteur, exécuter le SQL privé généré, **avant qu’un participant ait rejoint la salle**. Le script fonctionne dans une transaction, refuse de modifier un jeu déjà commencé ou armé, puis vérifie les deux séries.
+2. Dans l’éditeur SQL **restreint** du projet Supabase du Soulieteur, exécuter le SQL privé généré, **après la création de l'émission par l'animateur, mais avant qu'un invité ait rejoint**. L'unique personne déjà inscrite doit être l'animateur officiel. Le script fonctionne dans une transaction : il refuse l'import si l'émission est armée, commencée, privée de son animateur ou si un joueur invité est déjà présent. Les deux séries sont ensuite vérifiées.
 3. Vérifier que `select asgq_private.ready_for_kickoff();` renvoie `true` et que le nombre de questions correspond aux deux mi-temps.
 4. Répéter le parcours avec les tests transactionnels, puis vérifier le lien public sur plusieurs vrais téléphones.
 5. **Avant l’arrivée des joueurs seulement**, activer la soirée via `update asgq_private.event set armed = true where id = 1 and phase = 'lobby';` depuis l’éditeur restreint. Le code d’accès secret est récupéré dans cet éditeur et n’est pas inclus dans l’application.
 
-> Attention : actuellement, après activation, le compte à rebours de deux minutes démarre dès que **deux joueurs** ont rejoint la partie. Ne distribuer le code que lorsque tout le groupe est prêt à entrer. On peut remplacer ce déclencheur par une heure de lancement préprogrammée si la soirée le nécessite, tout en conservant l’absence de régie.
+> **Aucun départ automatique :** même après activation, l'émission reste au vestiaire jusqu'au clic volontaire de l'animateur sur « LANCER LA PARTIE ». La suite est entièrement manuelle : question, révélation, mi-temps et podium ne sont jamais déclenchés par un compte à rebours. Ne lancer l'émission que lorsque les invités sont réellement présents.
 
 Le quiz ne doit être activé ni publié comme « prêt à jouer » tant que la liste réelle des questions, la répétition sur téléphone et la vérification finale ne sont pas terminées.

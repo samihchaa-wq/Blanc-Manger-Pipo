@@ -359,4 +359,14 @@ assert.doesNotMatch(script, /setInterval\(updateClocks|timeRemaining|TEMPS RESTA
 // The broadcast has no time limits: obsolete CSS and unused JS shortcuts must stay gone.
 assert.doesNotMatch(style,/\.timer-line\{|\.big-timer\{|\.countdown-hint\{|\.score-gain\{|\.metric\{|\.pod\.first \.circle\{/, 'No unused legacy countdown, metric or avatar CSS');
 assert.doesNotMatch(script,/function headerText\(|const firstLetter =|const topText =|const totalHalf =/, 'Unused formatting code must not accumulate');
+// Audit regression: invitation recovery must work for the *actual* SQL errors.
+assert.match(home,/prénom est déjà pris/, 'Official lobby duplicate-name error must offer guest recovery');
+assert.match(home,/vestiaire est complet/, 'Full-room returning players must also be able to reclaim their place');
+assert.match(home,/data-act="asgq-host-recovery"/, 'Official host on a new phone needs a dedicated Admin+ route');
+assert.match(home,/url\.searchParams\.set\('action','resume'\)/, 'Admin+ recovery must not select bot rehearsal');
+assert.match(script,/const forceHostRecovery = !isRehearsal/, 'Explicit host recovery must never be treated as a rehearsal');
+assert.match(script,/if\(forceHostRecovery\) \{[\s\S]*?token=null;[\s\S]*?renderHostRecovery\(\);/, 'Host recovery must ignore old guest tokens until Admin+ verification');
+const privatePreparation=read('docs/grinta-quiz-questions-privees.md');
+assert.match(privatePreparation,/Aucun départ automatique/, 'The official question preparation guide must describe manual kickoff');
+assert.doesNotMatch(privatePreparation,/compte à rebours de deux minutes démarre/, 'Obsolete timer instructions could mislead the host');
 console.log('ASGQ frontend / preflight checks OK');

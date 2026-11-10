@@ -46,7 +46,7 @@ Depuis le Soulieteur, sélectionner QCM puis Créer la partie pour accéder à l
 
 ## Avant la soirée officielle
 
-1. Dans l'éditeur SQL restreint de Supabase, remplacer les quatre questions techniques par 10–20 questions AS Grinta (mi-temps 1), puis 10–20 questions de football général (mi-temps 2), avec des positions consécutives.
+1. Une fois l'animateur officiel inscrit, et **avant qu'un invité ait rejoint**, préparer et importer le questionnaire privé (10–20 questions AS Grinta et 10–20 de football général). Le SQL généré accepte exactement cet animateur, refuse tout invité déjà présent et n'arme jamais la partie. Conserver les bonnes réponses hors de Git.
 2. Vérifier `select asgq_private.ready_for_kickoff();` → `true`.
 3. Armer une fois l'événement en vestiaire : `update asgq_private.event set armed=true where id=1 and phase='lobby';`.
 4. Le créateur conserve son appareil et sa session de maître du jeu. Il lance la partie quand les joueurs sont prêts, puis gère chaque révélation et chaque changement d'écran.

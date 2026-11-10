@@ -34,6 +34,10 @@ try {
   assert.match(sql,/FOR UPDATE/,'Database event must be locked before replacement');
   assert.match(sql,/as?gq_private\.ready_for_kickoff\(\)/,'Database readiness must be checked');
   assert.doesNotMatch(sql,/armed\s*=\s*true/iu,'Import must never activate the event');
+  assert.match(sql,/SELECT phase, armed, host_token_hash/, 'Importer must identify the real host row');
+  assert.match(sql,/count\(\*\) FROM asgq_private\.players WHERE event_id=1\) <> 1/, 'Import may continue with exactly one original host only');
+  assert.match(sql,/p\.token_hash=creator_hash/, 'The single allowed account must be the current host');
+  assert.doesNotMatch(sql,/IF EXISTS\(SELECT 1 FROM asgq_private\.players\) THEN/, 'Previous guard blocked every valid official event');
   run(pack(20,20),true);
   run(pack(9,10),false);
   run(pack(10,21),false);
@@ -49,7 +53,17 @@ try {
   const placeholder=pack(10,10);
   placeholder.as_grinta[0].texte='QUESTION DE TEST 1';
   run(placeholder,false);
-  console.log('AS Grinta question pack validation: 8 scenarios OK');
+  // The public app is not the only published folder; reject private answers
+  // anywhere in the checkout (including tools/, js/, root and grinta-quiz/).
+  const repositoryOutput=path.resolve('grinta-quiz/private-answers.sql');
+  const protectedResult=spawnSync(process.execPath,[script,path.join(temp,'questions-1.json'),repositoryOutput],{encoding:'utf8'});
+  assert.notEqual(protectedResult.status,0,'Must reject SQL saved under public app');
+  assert.equal(fs.existsSync(repositoryOutput),false,'SQL must never be created in the repo');
+  const rootOutput=path.resolve('asgq-import-private.sql');
+  const rootResult=spawnSync(process.execPath,[script,path.join(temp,'questions-1.json'),rootOutput],{encoding:'utf8'});
+  assert.notEqual(rootResult.status,0,'Must reject SQL saved at the repository root');
+  assert.equal(fs.existsSync(rootOutput),false,'No SQL answers written into the repository');
+  console.log('AS Grinta question pack validation: 10 scenarios OK');
 } finally {
   fs.rmSync(temp,{recursive:true,force:true});
 }

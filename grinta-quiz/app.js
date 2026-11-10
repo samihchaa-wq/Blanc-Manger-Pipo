@@ -8,7 +8,9 @@ const SUPABASE_URL = 'https://yqfewxadpyulgxehhpcu.supabase.co';
 // Publishable client key, NOT a service-role secret.
 const SUPABASE_KEY = 'sb_publishable_Qdso-n_uVYAH1_YzjSLYlQ_rOWg93tg';
 const api = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const isRehearsal = new URLSearchParams(location.search).get('repetition') === '1';
+const queryParams=new URLSearchParams(location.search);
+const isRehearsal = queryParams.get('repetition') === '1';
+const forceHostRecovery = !isRehearsal && queryParams.get('action') === 'resume';
 const storeKey = isRehearsal ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-participant';
 const app = document.getElementById('app');
 const notice = document.getElementById('notice');
@@ -606,7 +608,12 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetch
 window.addEventListener('online',()=>{if(token)void fetchState()});
 window.addEventListener('offline',()=>{if(token)showNetworkProblem(true)});
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
-if(token) void fetchState();
+if(forceHostRecovery) {
+  // Do not treat a guest token on this device as proof of host ownership.
+  // Host privileges are recovered solely after server-side Admin+ validation.
+  token=null;
+  renderHostRecovery();
+} else if(token) void fetchState();
 else if(codeFromLink.length===8) {
   // Old quiz invitation links also return to the single Soulieteur join screen.
   const url=new URL('../',location.href);

@@ -1236,3 +1236,15 @@ body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
 .home .asgq-resume-link:focus-visible{
   outline:3px solid #f3cf7c;outline-offset:3px;
 }
+
+/* Visible only while QCM is selected; official recovery is never a bot rehearsal. */
+.home #asgq-host-recovery-create[hidden]{display:none!important}
+.home .asgq-admin-recovery-link{
+  display:block;width:100%;min-height:42px;margin:10px 0 0;padding:9px 12px;
+  border:1px solid rgba(243,211,153,.45);border-radius:11px;
+  background:transparent;color:#ffe9ba;text-align:center;
+  font-weight:800;font-size:12px;line-height:1.4;cursor:pointer;
+}
+.home .asgq-admin-recovery-link:focus-visible{
+  outline:3px solid #f3cf7c;outline-offset:3px;
+}
