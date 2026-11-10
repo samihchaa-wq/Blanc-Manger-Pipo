@@ -68,7 +68,7 @@ assert.match(script,/\$\{renderResponseBreakdown\(s\)\}/, 'Show responses on rev
 assert.match(style,/response-group--correct/, 'Correct answer badge missing');
 assert.match(style,/response-group--incorrect/, 'Incorrect answer badge missing');
 assert.match(style,/response-group--unanswered/, 'Unanswered badge missing');
-assert.match(script,/hostControl\(s,'REPRENDRE LE QUIZ'\)/, 'Host needs halftime control');
+assert.match(script,/hostControl\(s,'LANCER LA 2E MI-TEMPS'\)/, 'Host needs halftime control matching the approved mockup');
 assert.match(script,/state\.is_host \|\| sendingAnswer/, 'Host must not submit answers');
 assert.match(script,/asgq_rehearsal_advance/, 'Host phase control must work in rehearsal');
 assert.match(script,/asgq_start/, 'Official kickoff must be host-only');
@@ -88,7 +88,8 @@ assert.doesNotMatch(script+style,/presenter-atlas\.png|data:image\/webp;base64|b
 assert.match(style,/object-fit:contain/, 'Full portrait must preserve aspect ratio');
 assert.match(script, /amazed:'amazed'/, 'Enthusiastic pose must use the uploaded photo');
 assert.match(script, /doubt:'skeptical'/, 'Skeptical pose must use the uploaded photo');
-assert.match(script, /stage\('<h2>MI-TEMPS<\/h2>','thinking','halftime'\)/, 'Halftime needs a thoughtful, not disappointed, pose');
+assert.match(script, /stage\('<h2>MI-TEMPS<\/h2><p>On souffle/, 'Halftime needs the approved subtitle');
+assert.match(script, /'thinking','halftime'/, 'Halftime needs the supplied thoughtful pose');
 assert.match(script, /isCreate\?'excited':'thinking','welcome'/, 'Creation welcomes with thumbs-up, joining uses the thinking pose');
 assert.match(script, /const resultPose = presenterPoseForReveal\(s, success, answered\)/, 'Result screens must select a pose by outcome');
 assert.match(script, /resultPose,'reveal'/, 'Result stage must use the selected reaction');
@@ -106,7 +107,8 @@ assert.equal(choosePose(guest(2),false,true),'doubt','The new skeptical face mus
 assert.equal(choosePose(guest(1),false,false),'surprised','A missing answer should be a surprised reaction');
 assert.equal(choosePose(guest(2),false,false),'puzzled','A missing answer can receive a puzzled reaction');
 assert.equal(choosePose(guest(2),false,true),choosePose(guest(2),false,true),'Polling must not randomly change the expression');
-assert.match(script, /stage\('<h2>PODIUM<\/h2>','victory'/, 'Presenter should accompany finalists');
+assert.match(script, /stage\('<h2>CHAMPION DU QUIZ<\/h2>/, 'Finale must use the approved champion headline');
+assert.match(script, /'victory','podium'/, 'Trophy presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
 assert.match(script, /data-start-quiz/, 'Host cannot start');
 assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
@@ -198,5 +200,27 @@ assert.match(style,/\.pod\.first \.step/, 'Champion podium needs a distinct top 
 assert.doesNotMatch(script,/timeRemaining|timerLine|updateClocks/, 'The redesign must not reintroduce a timer');
 assert.match(script,/hostControl\(s,'RÉVÉLER LA RÉPONSE'\)/, 'Only the master can reveal the answer');
 assert.match(script,/data-answer/, 'Participant choices must remain interactive');
+
+// All six approved sports-broadcast screen layouts must be present in the app.
+assert.match(style,/SIX SCREEN MATCHED MOCKUPS 2026/, 'Approved six-screen direction is missing');
+assert.match(script,/PRÊT POUR<br>LE GRAND<br>QUIZ \?/, 'Welcome should show the approved hero copy');
+assert.match(script,/class="entry-tagline"/, 'Welcome subtitle is missing');
+assert.match(script,/JOUEURS \(\$\{count\}\)/, 'Lobby should count the visible players including the creator');
+assert.match(script,/class="show-progress"/, 'On-screen question progress dots are missing');
+assert.match(script,/allQuestions\(s\)/, 'Question count must show the whole episode');
+assert.match(script,/class="halftime-board"/, 'Halftime ranking board must match the approved layout');
+assert.match(script,/class="halftime-stat"/, 'Halftime should show a genuine leader statistic');
+assert.match(script,/class="pod-crown"/, 'Final podium needs crown motifs');
+assert.match(script,/data-repeat-rehearsal>REJOUER/, 'Rehearsal finale needs the approved replay label');
+assert.match(script,/Number\(top\?\.score \|\| 0\)/, 'Halftime statistic must be derived from a real score');
+assert.match(script,/\$\{p\.score\} pts/, 'Podium points must come from the real leaderboard');
+assert.match(style,/\.scene\[data-screen="reveal"\] \.response-groups\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/,
+  'Reveal must use the three result columns from the mockup');
+assert.match(style,/\.scene\[data-screen="question"\] \.choice\.selected\{[^}]*background:var\(--show-gild\)/,
+  'Selected answers must turn gold');
+assert.match(style,/\.scene\[data-screen="finished"\] \.pod\.first \.step\{[^}]*height:160px/,
+  'Winning podium needs the tallest gold block');
+assert.doesNotMatch(script,/setInterval\(updateClocks|timeRemaining|TEMPS RESTANT|COMPTE À REBOURS/,
+  'No countdown is permitted in this visual redesign');
 
 console.log('ASGQ frontend / preflight checks OK');

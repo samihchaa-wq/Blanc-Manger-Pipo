@@ -32,6 +32,9 @@ const firstLetter = name => safe((name || 'G').trim().slice(0,1).toUpperCase());
 const topText = n => n === 1 ? '1RE MI-TEMPS' : '2E MI-TEMPS';
 const halfNum = s => s.position - (s.half === 2 ? s.first_half_count : 0);
 const totalHalf = s => s.half === 2 ? s.second_half_count : s.first_half_count;
+const allQuestions = s => Number(s.first_half_count || 10) + Number(s.second_half_count || 10);
+const showEmblem = '<span class="show-emblem" aria-hidden="true"><span class="laurel">❧</span><span class="ball">⚽</span><span class="laurel">❧</span></span>';
+const showProgress = s => `<div class="show-progress" role="img" aria-label="Question ${Number(s.position)||1} sur ${allQuestions(s)}">${Array.from({length:Math.min(40,allQuestions(s))},(_,i)=>`<span class="show-progress-dot ${i<Number(s.position||1)?'passed':''}" aria-hidden="true"></span>`).join('')}</div>`;
 
 function toast(message) {
   notice.textContent = message;
@@ -63,7 +66,7 @@ function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
 function shell(html, key) {
-  const practiceTag=isRehearsal ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
+  const practiceTag=isRehearsal && key!=='finished' ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
 }
 function renderJoin() {
@@ -72,7 +75,7 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>',isCreate?'excited':'thinking','welcome')}
+    ${stage('<h1 class="entry-title">PRÊT POUR<br>LE GRAND<br>QUIZ ?</h1><p class="entry-tagline">Entre dans l’émission et<br>prends place sur le plateau.</p>',isCreate?'excited':'thinking','welcome')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -97,15 +100,15 @@ function renderLobby(s) {
   shell(`
     ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
     <div class="panel lobby-panel">
-      <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
-        <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
-      <div class="section-title"><span class="eyebrow">JOUEURS (${count-1})</span></div>
+      <div class="room-invite"><div>${showEmblem}<span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
+        <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>INVITER</button></div>
+      <div class="section-title"><span class="eyebrow">JOUEURS (${count})</span></div>
       <ul class="roster">${players}</ul>
-      ${s.is_host
-        ? `${isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
-           <button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>`
-        : '<p class="muted center">En attente du maître du jeu…</p>'}
+      ${s.is_host && isRehearsal ? `<button type="button" class="add-bot" data-add-bot ${count >= (s.max_players || 30) || s.players.filter(p=>p.is_bot).length >= 20 ? 'disabled' : ''}>+ AJOUTER UN BOT</button>` : ''}
     </div>
+    ${s.is_host
+      ? `<button type="button" class="primary start-quiz" data-start-quiz ${count < 2 || !s.ready ? 'disabled' : ''}>LANCER LA PARTIE</button>`
+      : '<p class="muted center">En attente du maître du jeu…</p>'}
 
   `, 'lobby');
 }
@@ -123,9 +126,10 @@ function renderQuestion(s) {
       : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}>${content}</button>`;
   }).join('');
   const playerCount=s.players.filter(p=>!p.is_host).length;
-  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">${topText(s.half)}</span><span class="pos">QUESTION <b>${halfNum(s)}</b><small> / ${totalHalf(s)}</small></span></div></div>
+  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">QUESTION</span><span class="pos"><b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div></div>
+    ${showProgress(s)}
     <div class="question-card" role="group" aria-label="Question ${halfNum(s)}">
-      <div class="question-card-top" aria-hidden="true"><span>AS GRINTA</span><span class="question-card-index">Q${String(halfNum(s)).padStart(2,'0')}</span></div>
+      <div class="question-card-top" aria-hidden="true"><span>${showEmblem}</span><span class="question-card-index">Q${String(halfNum(s)).padStart(2,'0')}</span></div>
       <h2>${safe(q.text)}</h2>
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>
@@ -180,8 +184,8 @@ function renderReveal(s) {
   const answered=q.my_choice !== null && q.my_choice !== undefined;
   const verdict=s.is_host ? 'RÉPONSE RÉVÉLÉE' : success ? 'BIEN JOUÉ !' : answered ? 'DOMMAGE !' : 'PAS DE RÉPONSE';
   const resultPose = presenterPoseForReveal(s, success, answered);
-  shell(`<div class="kicker result-kicker"><span class="round-chip">LE VERDICT</span><span class="pos">QUESTION <b>${halfNum(s)}</b><small> / ${totalHalf(s)}</small></span></div>
-    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,resultPose,'reveal')}
+  shell(`<div class="kicker result-kicker"><span class="round-chip">LE VERDICT</span><span class="pos">QUESTION <b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div>
+    ${stage(`<div class="result-status ${success?'good':s.is_host?'':'bad'}">${verdict}</div>`,s.is_host?'doubt':resultPose,'reveal')}
     <div class="answer-reveal">
       <div class="answer-reveal-label"><span class="answer-reveal-tick" aria-hidden="true">✓</span><span>BONNE RÉPONSE</span></div>
       <strong>${safe(q.choices?.[q.correct] || '')}</strong>
@@ -193,24 +197,36 @@ function renderReveal(s) {
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');
 }
 function renderHalftime(s) {
-  shell(`${stage('<h2>MI-TEMPS</h2>','thinking','halftime')}
-    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    ${hostControl(s,'REPRENDRE LE QUIZ')}`, 'halftime');
+  const top=s.standings?.[0];
+  const count=Number(s.first_half_count || 10);
+  shell(`${stage('<h2>MI-TEMPS</h2><p>On souffle… mais le match continue.</p>','thinking','halftime')}
+    <div class="halftime-board">
+      <div class="halftime-board-title">APRÈS ${count} QUESTIONS</div>
+      <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,5)}</ol></div>
+    </div>
+    <div class="halftime-stat">
+      <div class="halftime-stat-title">LE CHIFFRE DE LA PREMIÈRE MI-TEMPS</div>
+      <span class="stat-target" aria-hidden="true">◎</span>
+      <strong>${Number(top?.score || 0)}<small> / ${count}</small></strong>
+      <span class="stat-caption">points pour le leader</span>
+    </div>
+    ${hostControl(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
 function renderFinished(s) {
   const top=(s.standings||[]).slice(0,3);
   const order=top.length >= 3 ? [top[1],top[0],top[2]] : top.length===2?[top[1],top[0]]:top;
   const podium=order.map(p=> {
     const position=top.indexOf(p)+1;
-    const tier=position===1?'first':position===3?'third':'';
-    return `<div class="pod ${tier}"><span class="circle">${firstLetter(p.name)}</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} PTS</span><div class="step">${position}</div></div>`;
+    const tier=position===1?'first':position===3?'third':'second';
+    return `<div class="pod ${tier}"><span class="pod-crown" aria-hidden="true">♛</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} pts</span><div class="step">${position}</div></div>`;
   }).join('');
-  shell(`${stage('<h2>PODIUM</h2>','victory','podium')}
-    <h2 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h2>
+  const others=(s.standings||[]).slice(3).map((p,i)=>`<li><span class="rank-no">${i+4}e</span><span class="rank-name">${safe(p.name)}</span><b>${p.score} pts</b></li>`).join('');
+  shell(`${stage('<h2>CHAMPION DU QUIZ</h2><p>Fin de l’émission · Merci à tous</p>','victory','podium')}
+    <h3 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h3>
     <div class="podium">${podium}</div>
-    <div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
-    <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s,30)}</ol></div>
-    ${isRehearsal ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>NOUVELLE PARTIE</button>' : ''}
+    ${others ? `<div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
+    <div class="panel ranking-panel"><ol class="small-list">${others}</ol></div>` : ''}
+    ${isRehearsal && s.is_host ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>REJOUER</button>' : ''}
 `, 'finished');
 }
 function renderState(force=false) {

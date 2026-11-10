@@ -85,7 +85,7 @@ jobs:
       - name: Parcours Chromium sur les neuf jeux
         run: python tests/qa_browser.py
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: qa-browser-captures
           path: test-results/browser/*.png
