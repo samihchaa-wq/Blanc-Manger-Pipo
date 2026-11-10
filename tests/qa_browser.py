@@ -68,7 +68,7 @@ window.supabase = {
       if (name === 'asgq_rehearsal_join_room' || name === 'asgq_join_room') {
         if(name === 'asgq_join_room' && args.p_name==='Nina')
           return {data:{error:'Les inscriptions sont closes.'},error:null};
-        if(name === 'asgq_join_room' && args.p_name==='Camille')
+        if(name === 'asgq_join_room' && args.p_name==='Lina')
           return {data:{error:'Ce prénom est déjà pris dans le vestiaire.'},error:null};
         if(name === 'asgq_join_room' && args.p_name==='Paul')
           return {data:{error:'Le vestiaire est complet.'},error:null};
@@ -800,7 +800,7 @@ def run(browser, base):
 
     # Recovery is offered for the ACTUAL server error 'Ce prénom est déjà pris
     # dans le vestiaire', including while the event has not started.
-    for name in ("Camille","Paul"):
+    for name in ("Lina","Paul"):
         ctx,page,errors=open_page(browser,base)
         try:
             page.locator('[data-act="tab"][data-tab="join"]').click()
