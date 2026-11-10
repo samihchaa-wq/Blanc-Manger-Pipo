@@ -438,6 +438,11 @@ def run(browser, base):
         assert page.locator('.answer-reveal strong').inner_text()=="L'attaquant de pointe", "Texte de bonne réponse modifié"
         assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement façon panneau de score absent"
         assert page.locator('.answer-reveal-tick').is_visible(), "Bonne réponse sans pictogramme"
+        assert page.locator('.reveal-question p').inner_text()==sample['question']['text'], "Le verdict doit rappeler la question"
+        sample["question"]["explanation"]="La bonne réponse se vérifie après la révélation."
+        page.evaluate("(s) => renderReveal(s)",sample)
+        assert page.locator('.reveal-explanation').is_visible(), "L'explication vérifiée doit apparaître sur le verdict"
+        assert page.locator('.personal-answer strong').inner_text()=="Le défenseur central", "La mauvaise réponse personnelle doit être rappelée"
         # Le classement cumulatif ne doit pas servir à deviner les résultats de la manche.
         assert page.locator('.response-breakdown').count()==0, "Ne rien inventer si le serveur ne fournit pas la liste"
         sample["question"]["responses"]=[
@@ -449,7 +454,7 @@ def run(browser, base):
         assert page.locator('.response-group--correct .response-person').all_inner_texts()==["Camille"], "Joueurs ayant bien répondu incorrects"
         assert page.locator('.response-group--incorrect .response-person').all_inner_texts()==["Sam"], "Joueurs ayant mal répondu incorrects"
         assert page.locator('.response-group--unanswered .response-person').all_inner_texts()==["Nina"], "Joueurs sans réponse absents"
-        assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===3"), "Les trois colonnes de verdict doivent rester alignées sur iPhone"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===1"), "Sur iPhone, les catégories du verdict doivent rester lisibles en pleine largeur"
         page.screenshot(path=str(OUT/'asgq-show-04-verdict.png'),full_page=True)
         assert [v.strip() for v in page.locator('.response-group-count').all_inner_texts()]==["1","1","1"]
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Les noms débordent de l'écran"
@@ -519,6 +524,8 @@ def run(browser, base):
         assert page.locator('.stage-podium img.presenter-photo').get_attribute('src')=='./presenters/trophy.png', "Podium : le trophée du champion"
         assert page.locator('.stage-podium h2').inner_text()=='CHAMPION DU QUIZ', "Le titre de finale ne correspond pas à la maquette"
         assert page.locator('.pod .pod-crown').count()==1, "La couronne du gagnant doit être affichée"
+        assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
+        assert page.locator('.champion-name').inner_text()=="Camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
 
         no_errors(page,errors,"qcm-expressions-coherentes")
