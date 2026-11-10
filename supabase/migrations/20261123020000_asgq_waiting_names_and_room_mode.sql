@@ -183,7 +183,7 @@ declare
   checked_at timestamptz:=pg_catalog.clock_timestamp();
   result_mode text;
 begin
-  normalized_code:=pg_catalog.regexp_replace(pg_catalog.coalesce(p_code,''),'[^0-9]','','g');
+  normalized_code:=pg_catalog.regexp_replace(coalesce(p_code,''),'[^0-9]','','g');
   if pg_catalog.length(normalized_code)<>8 then return null; end if;
   v_client_hash:=public._client_hash();
   if v_client_hash is not null then
