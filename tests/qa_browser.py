@@ -801,6 +801,50 @@ def run(browser, base):
         checks+=1
     finally:ctx.close()
 
+    # A stored official player/host can resume from Soulieteur without creating a room.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.evaluate("() => localStorage.setItem('asgq-2026-participant','recovered-host-token')")
+        page.reload(wait_until="load")
+        page.locator('[data-act="tab"][data-tab="join"]').click()
+        assert page.locator('[data-act="asgq-resume"]').is_visible(), "Retour à la session officielle absent"
+        page.locator('[data-act="asgq-resume"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('[data-screen="lobby"]').is_visible(), "Le retour ne reprend pas le vestiaire existant"
+        assert page.evaluate("() => !window.__qaCalls.some(x=>x.name==='asgq_create')"), "La reprise a créé un autre événement"
+        assert page.locator('#screen-announcer').get_attribute('aria-live')=="polite", "Changement d'écran non annoncé"
+        assert page.locator('#app').get_attribute('aria-live')=="off", "Les notifications ne doivent pas relire tout l'écran"
+        no_errors(page,errors,"qcm-reprise-soulieteur")
+        checks+=1
+    finally:ctx.close()
+
+    # WhatsApp previews must describe AS Grinta, while the player still enters
+    # the room code only once from the Soulieteur join page.
+    ctx=browser.new_context(viewport={"width":390,"height":844},service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e: errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/",wait_until="load",timeout=20000)
+        assert page.locator('meta[property="og:title"]').get_attribute('content')=="LE GRAND QUIZ · AS GRINTA", "Le titre de l'aperçu reste générique"
+        assert "/grinta-quiz/" in page.locator('meta[property="og:image"]').get_attribute('content'), "Visuel du Grand Quiz absent"
+        invite=page.evaluate("""async () => {
+          state={room_code:'87654321'};token=null;
+          Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__shared=data}});
+          await shareRoom();
+          return window.__shared;
+        }""")
+        assert "/grinta-quiz/?code=87654321" in invite['url'], "L'invitation doit ouvrir la page dédiée du quiz"
+        page.goto(invite['url'],wait_until="load",timeout=20000)
+        page.wait_for_url("**/?code=87654321",timeout=10000)
+        assert page.locator('#pane-join').is_visible(), "Le parcours d'invité ne doit pas changer"
+        assert page.locator('#j-code').input_value()=="87654321", "Le code invité doit rester prérempli"
+        no_errors(page,errors,"qcm-invitation-sociale")
+        checks+=1
+    finally:ctx.close()
+
     # Changer de jeu depuis un salon ne crée pas non plus de QCM générique.
     ctx,page,errors=open_page(browser,base,game="phrases")
     try:
