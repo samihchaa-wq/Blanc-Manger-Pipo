@@ -375,6 +375,10 @@ def run(browser, base):
             page.evaluate("(s) => renderQuestion(s)",sample)
             assert page.locator('.question-card-top').is_visible(), "Carte question sans identité club"
             assert page.locator('.question-card-index').inner_text()=="Q03", "Numéro de question de type émission manquant"
+            assert page.locator('.show-progress-dot').count()==20, "Le parcours des 20 questions doit être représenté par 20 points"
+            assert page.locator('.show-progress-dot.passed').count()==3, "La progression ne correspond pas à la question affichée"
+            assert page.locator('.question-card .show-emblem').is_visible(), "Emblème de football décoratif absent"
+            if width==390:page.screenshot(path=str(OUT/'asgq-show-03-question.png'),full_page=True)
             assert page.locator('.choices > button.choice').count()==4, "Les quatre réponses doivent rester disponibles"
             assert page.locator('button.choice.selected[data-answer="2"]').count()==1, "Sélection du joueur non identifiable"
             assert page.locator('button.choice[aria-pressed="true"]').count()==1, "État sélectionné incorrect"
@@ -418,6 +422,8 @@ def run(browser, base):
         assert page.locator('.response-group--correct .response-person').all_inner_texts()==["Camille"], "Joueurs ayant bien répondu incorrects"
         assert page.locator('.response-group--incorrect .response-person').all_inner_texts()==["Sam"], "Joueurs ayant mal répondu incorrects"
         assert page.locator('.response-group--unanswered .response-person').all_inner_texts()==["Nina"], "Joueurs sans réponse absents"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.response-groups')).gridTemplateColumns.split(' ').length===3"), "Les trois colonnes de verdict doivent rester alignées sur iPhone"
+        page.screenshot(path=str(OUT/'asgq-show-04-verdict.png'),full_page=True)
         assert [v.strip() for v in page.locator('.response-group-count').all_inner_texts()]==["1","1","1"]
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Les noms débordent de l'écran"
         assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement initial altéré"
@@ -440,6 +446,9 @@ def run(browser, base):
     try:
         page.goto(base+"/grinta-quiz/?repetition=1",wait_until="load",timeout=20000)
         assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thumbs.png', "Accueil création : expression accueillante"
+        assert page.locator('.stage-welcome .entry-title').inner_text().replace('\n',' ').startswith('PRÊT POUR'), "Titre de la maquette d'accueil absent"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('#join-button')).borderRadius === '999px'"), "Bouton doré de la maquette absent"
+        page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
         page.locator('[data-entry-mode="join"]').click()
         assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Accueil rejoindre : expression réfléchie"
 
@@ -472,12 +481,18 @@ def run(browser, base):
           standings:[{id:'guest',name:'Camille',score:5}]
         })""")
         assert page.locator('.stage-halftime img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Mi-temps : réflexion, pas déception"
+        assert page.locator('.halftime-board-title').inner_text().startswith('APRÈS'), "Résumé mi-temps absent"
+        assert page.locator('.halftime-stat-title').inner_text()=='LE CHIFFRE DE LA PREMIÈRE MI-TEMPS', "Encart statistique absent"
+        page.screenshot(path=str(OUT/'asgq-show-05-mi-temps.png'),full_page=True)
 
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'guest',name:'Camille'},
           standings:[{id:'guest',name:'Camille',score:10}]
         })""")
         assert page.locator('.stage-podium img.presenter-photo').get_attribute('src')=='./presenters/trophy.png', "Podium : le trophée du champion"
+        assert page.locator('.stage-podium h2').inner_text()=='CHAMPION DU QUIZ', "Le titre de finale ne correspond pas à la maquette"
+        assert page.locator('.pod .pod-crown').count()==1, "La couronne du gagnant doit être affichée"
+        page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
 
         no_errors(page,errors,"qcm-expressions-coherentes")
         checks+=1
@@ -514,9 +529,15 @@ def run(browser, base):
         }""")
         page.wait_for_function("() => { const img=document.querySelector('.stage-lobby img.presenter-photo'); return img && img.complete && img.naturalWidth===1024 && img.naturalHeight===1536; }")
         assert page.locator('.stage-lobby img[src="./presenters/arms.png"]').is_visible(), "Photo source haute définition non chargée"
-        assert presenter_layout['width']>=125 and presenter_layout['height']>=185, f"Animateur encore trop petit : {presenter_layout}"
-        assert presenter_layout['right']<=presenter_layout['titleLeft']+6, f"Animateur non positionné à gauche : {presenter_layout}"
-        assert presenter_layout['bottom']<=presenter_layout['panelTop']+12, f"Animateur masque la carte du vestiaire : {presenter_layout}"
+        assert presenter_layout['width']>=180 and presenter_layout['height']>=260, f"Animateur de la maquette encore trop petit : {presenter_layout}"
+        assert presenter_layout['left'] < presenter_layout['titleLeft']+10, f"Animateur absent de la gauche du vestiaire : {presenter_layout}"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.stage-lobby .presenter-shot')).pointerEvents === 'none'"), "Photo ne doit jamais bloquer les boutons"
+        assert page.evaluate("() => {
+          const r=document.querySelector('.lobby-panel').getBoundingClientRect();
+          const b=document.querySelector('.invite-button').getBoundingClientRect();
+          return r.left>10 && b.right<=r.right+2;
+        }"), "Le code de salle et le bouton Inviter doivent rester lisibles et à l'intérieur du panneau"
+        page.screenshot(path=str(OUT/'asgq-show-02-vestiaire.png'),full_page=True)
         assert page.locator('.roster .avatar').count()==0, "Les joueurs ne doivent plus avoir d'icône ronde"
         assert page.locator('main a.quiet-link').count()==0, "Le lien RETOUR AUX JEUX ne doit plus être affiché"
         assert page.locator('a.brand-back').is_visible(), "La croix de sortie doit rester accessible"
