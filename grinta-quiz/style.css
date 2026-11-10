@@ -1498,3 +1498,18 @@ body{
     width:72%;font-size:clamp(24px,7vw,34px);
   }
 }
+
+/* Network failures remain visible until a successful state refresh. */
+#network-status:not([hidden]){
+  display:block;position:sticky;top:0;z-index:30;
+  margin:4px 0 12px;padding:12px 14px;border:1px solid #f7bb69;
+  border-radius:10px;background:#6c3629;color:#fff5e1;
+  text-align:center;font:700 13px/1.4 'DM Sans',sans-serif;
+}
+.scene[data-screen="expired"] .lost-session{padding:21px 17px}
+.scene[data-screen="expired"] .lost-session p{
+  margin:0 0 20px;color:#f0f4ff;font:600 15px/1.6 'DM Sans',sans-serif;
+}
+.scene[data-screen="expired"] .recovery-link{
+  display:grid;place-items:center;text-decoration:none;min-height:59px;
+}
