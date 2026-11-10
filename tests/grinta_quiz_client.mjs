@@ -212,7 +212,8 @@ assert.match(script,/class="halftime-board"/, 'Halftime ranking board must match
 assert.match(script,/class="halftime-stat"/, 'Halftime should show a genuine leader statistic');
 assert.match(script,/class="pod-crown"/, 'Final podium needs crown motifs');
 assert.match(script,/data-repeat-rehearsal>REJOUER/, 'Rehearsal finale needs the approved replay label');
-assert.doesNotMatch(script,/data-repeat-rehearsal>REJOUER[^]*?\btrue\b/, 'Do not fabricate real scores');
+assert.match(script,/Number\(top\?\.score \|\| 0\)/, 'Halftime statistic must be derived from a real score');
+assert.match(script,/\$\{p\.score\} pts/, 'Podium points must come from the real leaderboard');
 assert.match(style,/\.scene\[data-screen="reveal"\] \.response-groups\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/,
   'Reveal must use the three result columns from the mockup');
 assert.match(style,/\.scene\[data-screen="question"\] \.choice\.selected\{[^}]*background:var\(--show-gild\)/,
