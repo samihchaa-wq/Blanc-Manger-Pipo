@@ -356,4 +356,11 @@ assert.match(style,/\.early-reveal-confirm\[hidden\]\{display:none!important\}/,
 assert.match(script,/class="podium podium--\$\{top\.length\}"/, 'Final podium should adapt to one or two finalists');
 assert.match(style,/\.podium--1/, 'One final participant needs a centered podium style');
 assert.match(style,/\.podium--2/, 'Two finalists need a balanced layout');
+assert.match(page,/id="screen-announcement"[^>]*aria-live="polite"/, 'Screen reader needs a dedicated phase announcement');
+assert.doesNotMatch(page,/<main id="app" aria-live="polite"/, 'Do not broadcast an entire refreshed game screen repeatedly');
+assert.match(script,/function announceCurrentPhase\(s\)/, 'Announce screen changes only when phase changes');
+assert.match(script,/if\(phaseKey===lastAnnouncedPhase\) return/, 'Avoid repeating a screen reader announcement on each poll');
+assert.match(script,/preloadUpcomingPortrait\(state\.phase\)/, 'Preload the next photo rather than waiting until the next stage');
+assert.match(script,/const warmedPortraits=new Set\(\)/, 'Avoid downloading the same next-stage portrait repeatedly');
+assert.doesNotMatch(style,/\.big-timer\{|\.timer-line\{|\.countdown-hint\{/, 'Old automatic timer styles must be removed');
 console.log('ASGQ frontend / preflight checks OK');
