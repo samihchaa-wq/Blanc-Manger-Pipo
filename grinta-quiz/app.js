@@ -15,10 +15,12 @@ const storeKey = isRehearsal ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-pa
 const app = document.getElementById('app');
 const notice = document.getElementById('notice');
 const networkStatus = document.getElementById('network-status');
+const screenAnnouncement=document.getElementById('screen-announcement');
 const letters = ['A','B','C','D'];
 let token = null;
 let state = null;
 let signature = '';
+let lastAnnouncedPhase = '';
 let requesting = false;
 let sendingAnswer = false;
 let chosenOptimistically = null;
@@ -313,6 +315,21 @@ function renderFinished(s) {
     ${isRehearsal && s.is_host ? '<button type="button" class="primary practice-again" data-repeat-rehearsal>REJOUER</button>' : ''}
 `, 'finished');
 }
+function announceCurrentPhase(s) {
+  if(!screenAnnouncement) return;
+  const phaseKey=s.phase+':'+(s.position||0);
+  if(phaseKey===lastAnnouncedPhase) return;
+  lastAnnouncedPhase=phaseKey;
+  const messages={
+    lobby:'Vestiaire du Grand Quiz. En attente du lancement.',
+    intro:'Première mi-temps. L’animateur va afficher la première question.',
+    question:'Question '+s.position+' sur '+allQuestions(s)+'. '+(s.question?.text || ''),
+    reveal:'Résultat de la question '+s.position+'.',
+    halftime:'Mi-temps. Classement intermédiaire.',
+    finished:'Fin du Grand Quiz. Classement final.'
+  };
+  screenAnnouncement.textContent=messages[s.phase] || 'Changement d’écran du Grand Quiz.';
+}
 function renderState(force=false) {
   if (!state) return;
   const {now: serverNow, ...stable} = state;
@@ -336,6 +353,7 @@ function renderState(force=false) {
     case 'finished': renderFinished(state);break;
     default: app.innerHTML='<p class="muted center">Phase de jeu inconnue.</p>';
   }
+  announceCurrentPhase(state);
 }
 async function fetchState() {
   if (!token || requesting) return;
