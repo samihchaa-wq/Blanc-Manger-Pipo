@@ -68,6 +68,10 @@ window.supabase = {
       if (name === 'asgq_rehearsal_join_room' || name === 'asgq_join_room') {
         if(name === 'asgq_join_room' && args.p_name==='Nina')
           return {data:{error:'Les inscriptions sont closes.'},error:null};
+        if(name === 'asgq_join_room' && args.p_name==='Camille')
+          return {data:{error:'Ce prénom est déjà pris dans le vestiaire.'},error:null};
+        if(name === 'asgq_join_room' && args.p_name==='Paul')
+          return {data:{error:'Le vestiaire est complet.'},error:null};
         return {data:{token:'guest-token',code:args.p_code},error:null};
       }
       if (name === 'asgq_rehearsal_create') {
@@ -773,6 +777,42 @@ def run(browser, base):
         no_errors(page,errors,"qcm-creation-admin")
         checks+=1
     finally:ctx.close()
+
+    # On a NEW device, an official host must recover from Soulieteur without
+    # a saved token. Regular QCM creation still launches a separate rehearsal.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        assert page.locator('[data-act="asgq-host-recovery"]').is_hidden(), "La reprise Admin+ ne doit pas se montrer sur les autres jeux"
+        page.locator('[data-act="mode"][data-v="qcm"]').click()
+        assert page.locator('[data-act="asgq-host-recovery"]').is_visible(), "La reprise officielle est introuvable sur un nouveau téléphone"
+        page.locator('[data-act="asgq-host-recovery"]').click()
+        page.wait_for_url("**/grinta-quiz/?action=resume",timeout=10000)
+        assert page.locator('[data-screen="recover-host"]').is_visible(), "La reprise Admin+ directe doit afficher le formulaire et non une partie de bots"
+        assert page.locator('#player-name').count()==0, "La reprise ne doit pas enregistrer de nouvel animateur"
+        assert page.evaluate("() => !window.__qaCalls.some(c=>c.name==='asgq_create'||c.name==='asgq_rehearsal_create')"), "La reprise Admin+ a créé une nouvelle partie"
+        page.locator('#recovery-admin-password').fill('SECRET-TEST')
+        page.locator('#recover-host-form button[type="submit"]').click()
+        page.wait_for_function("() => localStorage.getItem('asgq-2026-participant')==='recovered-host-token'")
+        assert page.locator('[data-screen="lobby"]').is_visible(), "L'animateur ne retrouve pas sa partie officielle"
+        no_errors(page,errors,"qcm-reprise-admin-plus-nouvel-appareil")
+        checks+=1
+    finally:ctx.close()
+
+    # Recovery is offered for the ACTUAL server error 'Ce prénom est déjà pris
+    # dans le vestiaire', including while the event has not started.
+    for name in ("Camille","Paul"):
+        ctx,page,errors=open_page(browser,base)
+        try:
+            page.locator('[data-act="tab"][data-tab="join"]').click()
+            page.locator('#j-name').fill(name)
+            page.locator('#j-code').fill('87654321')
+            page.locator('[data-act="join"]').click()
+            page.locator('#asgq-recovery-panel').wait_for(state='visible')
+            assert page.locator('#asgq-recovery-code').is_visible(), "Le code provisoire doit être saisissable si le prénom est pris ou la salle est pleine"
+            assert page.locator('[data-act="asgq-host-recovery"]').count()==0, "Ne pas proposer Admin+ aux invités sur leur écran Rejoindre"
+            no_errors(page,errors,"qcm-reprise-invite-"+name.lower())
+            checks+=1
+        finally:ctx.close()
 
     # L'animateur d'une partie officielle déjà créée peut reprendre avec Admin+.
     # Un invité ne reçoit toujours jamais de rôle animateur via le code du salon.
