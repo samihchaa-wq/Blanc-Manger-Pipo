@@ -92,6 +92,25 @@ function hostAccessPanel(s) {
     <div class="host-access-result" id="host-access-result" role="status" aria-live="polite"></div>
   </details>`;
 }
+let lastAnnouncedScreen = '';
+function announceScreen(key) {
+  const announcer=document.getElementById('screen-announcer');
+  const stamp=key+(['question','reveal'].includes(key)?':'+(state?.position || ''):'');
+  if(!announcer || stamp===lastAnnouncedScreen) return;
+  lastAnnouncedScreen=stamp;
+  const label={
+    join:'Accueil du Grand Quiz',
+    lobby:'Vestiaire du Grand Quiz',
+    intro:'Début de la première mi-temps',
+    question:'Question '+(state?.position || '')+' sur '+(state?allQuestions(state):''),
+    reveal:'Verdict de la question '+(state?.position || ''),
+    halftime:'Mi-temps et classement',
+    finished:'Classement final et podium',
+    expired:'Session expirée',
+    'recover-host':'Récupération de la session animateur'
+  };
+  announcer.textContent=label[key] || '';
+}
 function shell(html, key) {
   const previousAccess=app.querySelector('.host-access');
   const accessOpen=!!previousAccess?.open;
@@ -460,6 +479,7 @@ async function advancePhase() {
   if(!pendingRevealConfirmation && Array.isArray(waiting) && waiting.length>0) {
     pendingRevealConfirmation=true;
     renderState(true);
+    app.querySelector('[data-cancel-reveal]')?.focus();
     return;
   }
   pendingRevealConfirmation=false;
@@ -556,6 +576,7 @@ app.addEventListener('click',e=>{
   if(e.target.closest('[data-cancel-reveal]')) {
     pendingRevealConfirmation=false;
     renderState(true);
+    app.querySelector('[data-next-phase]')?.focus();
     return;
   }
   if(e.target.closest('[data-confirm-reveal]')) {
