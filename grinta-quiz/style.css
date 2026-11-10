@@ -1145,7 +1145,8 @@ body{
   letter-spacing:0;text-align:left;
 }
 .scene[data-screen="reveal"] .response-group-count{
-  display:none;
+  display:block;min-width:14px;margin-left:auto;
+  color:#ffe5a1;font:900 17px/1 'Barlow Condensed',sans-serif;
 }
 .scene[data-screen="reveal"] .response-names{
   display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:8px;
