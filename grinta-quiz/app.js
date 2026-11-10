@@ -69,9 +69,22 @@ const stage = (title,pose,kind='') =>
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 }
+// Optional host-only access recovery. Never shown to invited players or bots.
+function hostAccessPanel(s) {
+  if(isRehearsal || !s?.is_host) return '';
+  const players=(s.players||[]).filter(p=>!p.is_host);
+  if(!players.length) return '';
+  return `<details class="host-access">
+    <summary>RÉTABLIR L'ACCÈS D'UN JOUEUR</summary>
+    <p>Si un joueur a perdu sa session, choisis son prénom et donne-lui le code temporaire. Son score sera conservé.</p>
+    <div class="host-access-players">${players.map(p=>`<button type="button" data-issue-player-code="${safe(p.id)}">${safe(p.name)}</button>`).join('')}</div>
+    <div class="host-access-result" id="host-access-result" role="status" aria-live="polite"></div>
+  </details>`;
+}
 function shell(html, key) {
   const practiceTag=isRehearsal && key!=='finished' ? '<div class="rehearsal-banner">RÉPÉTITION AVEC BOTS · SCORES DE TEST</div>' : '';
-  app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
+  const access=['join','recover-host','expired'].includes(key) ? '' : hostAccessPanel(state);
+  app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}${access}</section>`;
 }
 function renderLostSession() {
   signature='session-expired';
@@ -422,6 +435,30 @@ async function advancePhase() {
   } finally { advanceBusy=false; }
 }
 
+async function issuePlayerHandoff(playerId,button) {
+  if(isRehearsal || !state?.is_host || !(state.players||[]).some(p=>p.id===playerId && !p.is_host)) return;
+  if(button) button.disabled=true;
+  try {
+    const {data,error}=await api.rpc('asgq_issue_player_handoff',{
+      p_host_token:token,p_player_id:playerId
+    });
+    if(error) throw error;
+    if(data?.error) throw new Error(data.error);
+    if(!data?.code) throw new Error('Impossible de générer un code de récupération.');
+    const output=document.getElementById('host-access-result');
+    if(output) {
+      output.innerHTML=`<strong>${safe(data.name)}</strong>
+        <span>CODE TEMPORAIRE</span>
+        <b class="handoff-code">${safe(data.code)}</b>
+        <small>Valable 10 minutes et une seule fois. Communique ce code uniquement au joueur concerné.</small>
+        <button type="button" data-copy-player-code="${safe(data.code)}">COPIER LE CODE</button>`;
+    }
+  } catch(error) {
+    toast(fmtError(error));
+  } finally {
+    if(button?.isConnected) button.disabled=false;
+  }
+}
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
@@ -472,6 +509,15 @@ app.addEventListener('submit',e=>{
 app.addEventListener('click',e=>{
   if(e.target.closest('[data-host-recovery]')) {renderHostRecovery();return}
   if(e.target.closest('[data-back-to-creation]')) {renderJoin();return}
+  const issue=e.target.closest('[data-issue-player-code]');
+  if(issue) {void issuePlayerHandoff(issue.dataset.issuePlayerCode,issue);return}
+  const copy=e.target.closest('[data-copy-player-code]');
+  if(copy) {
+    if(navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(copy.dataset.copyPlayerCode).then(()=>toast('Code temporaire copié.'),()=>toast('Sélectionne le code affiché pour le copier.'));
+    } else toast('Sélectionne le code affiché pour le copier.');
+    return;
+  }
   if(isRehearsal && e.target.closest('[data-repeat-rehearsal]')) {
     token=null;state=null;signature='';
     try{localStorage.removeItem(storeKey)}catch(_){}

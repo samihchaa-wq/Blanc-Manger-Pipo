@@ -1203,3 +1203,23 @@ body[data-game] .seg-b.on{background:var(--accent);color:var(--ink)}
 .qe-add{margin-top:4px}
 .qe-delquiz{display:block;margin:26px auto 0}
 @media (max-width:360px){.qe-acts button{width:32px;height:32px}.qe-pts .seg{width:126px}}
+
+/* Exceptional, host-approved Grand Quiz re-entry. Hidden for every normal game. */
+.home #asgq-recovery-panel{
+  margin:14px 0 0;padding:14px 12px;
+  border:1px solid rgba(238,185,92,.8);border-radius:14px;
+  background:linear-gradient(130deg,#0c3768,#061f42);
+}
+.home #asgq-recovery-panel p{
+  color:#f2e4c7;margin:0 0 11px;font-size:13px;line-height:1.5;
+}
+.home #asgq-recovery-panel label{display:block;margin-bottom:11px}
+.home #asgq-recovery-panel label span{
+  display:block;margin-bottom:5px;color:#ffe8b7;font-size:12px;font-weight:700;
+}
+.home #asgq-recovery-panel input{
+  width:100%;min-height:46px;padding:8px 12px;border-radius:8px;
+  border:1px solid #d9ac6b;background:#061e3c;color:#fff;
+  font-size:18px;letter-spacing:.12em;
+}
+.home #asgq-recovery-panel .btn{width:100%;min-height:46px}
