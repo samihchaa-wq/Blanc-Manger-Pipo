@@ -48,20 +48,10 @@ main{flex:1;display:flex;flex-direction:column}.scene{animation:rise .35s cubic-
 .brand-back:active{transform:scale(.96)}
 
 
-/* Club-provided original presenter poses, compact mobile atlas (4 columns, 2 rows).
-   These are the original supplied photographs scaled down without changing facial features. */
-/* Cut-out presenter: transparent PNG, original supplied photos, no card or white backdrop. */
+/* Each club photograph is a separate full-resolution 1024×1536 transparent PNG.
+   No upscaling from a low-resolution sprite, and no white image backgrounds. */
 .presenter-shot{display:flex;justify-content:center;align-items:center;gap:0;min-height:0;margin:2px 0 9px}
-.presenter-photo{flex:none;width:96px;height:144px;border:0;border-radius:0;background-color:transparent;background-image:url("./presenter-atlas.png");background-repeat:no-repeat;background-size:400% 200%;background-position:0 0;box-shadow:none;filter:none}
-.presenter-thinking .presenter-photo{background-position:0% 0%}
-.presenter-excited .presenter-photo{background-position:33.333% 0%}
-.presenter-surprised .presenter-photo{background-position:66.667% 0%}
-.presenter-confident .presenter-photo{background-position:100% 0%}
-.presenter-puzzled .presenter-photo{background-position:0% 100%}
-.presenter-facepalm .presenter-photo{background-position:33.333% 100%}
-.presenter-victory .presenter-photo{background-position:100% 100%}
-.presenter-question .presenter-photo{background-position:33.333% 0%}
-.presenter-cheer .presenter-photo{background-position:0% 100%}
+.presenter-photo{display:block;flex:none;width:96px;height:auto;aspect-ratio:2 / 3;object-fit:contain;object-position:center bottom;border:0;border-radius:0;background:transparent;box-shadow:none;filter:none;image-rendering:auto}
 .presenter-bubble{display:none}
 .scene[data-screen="question"] .presenter-photo{width:64px;height:96px}
 .scene[data-screen="lobby"] .presenter-photo{width:80px;height:120px}
@@ -133,7 +123,7 @@ body{-webkit-text-size-adjust:100%;overscroll-behavior-y:contain}
 .stage-copy h2{font-size:clamp(36px,10vw,52px)}
 .stage-copy .gold{color:var(--gold-2)}
 .stage-head .presenter-shot{justify-content:end;align-items:center;margin:0;overflow:visible;min-width:0}
-.stage-head .presenter-photo{width:112px;height:168px;flex:none;background-size:400% 200%;background-color:transparent;filter:none;border:0;box-shadow:none}
+.stage-head .presenter-photo{width:112px;height:168px;flex:none;background:transparent;object-fit:contain;filter:none;border:0;box-shadow:none}
 .stage-lobby{min-height:119px;margin-bottom:6px}
 .stage-lobby .presenter-photo{width:90px;height:135px}
 .stage-intro .presenter-photo{width:120px;height:180px}
@@ -162,16 +152,6 @@ body{-webkit-text-size-adjust:100%;overscroll-behavior-y:contain}
 .host-next,.start-quiz[data-start-quiz]{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 9px);z-index:3;box-shadow:0 3px 0 #86632e,0 8px 24px #061326bd}
 .primary:focus-visible,.choice:focus-visible,.add-bot:focus-visible{outline:3px solid var(--gold-2);outline-offset:3px}
 /* The presenter atlas positions correspond to the actual supplied gestures. */
-.presenter-welcome .presenter-photo{background-position:0% 0%}
-.presenter-thinking .presenter-photo{background-position:66.667% 0%}
-.presenter-excited .presenter-photo{background-position:0% 100%}
-.presenter-surprised .presenter-photo{background-position:100% 0%}
-.presenter-confident .presenter-photo{background-position:66.667% 100%}
-.presenter-puzzled .presenter-photo{background-position:66.667% 0%}
-.presenter-facepalm .presenter-photo{background-position:33.333% 100%}
-.presenter-victory .presenter-photo{background-position:100% 100%}
-.presenter-question .presenter-photo{background-position:33.333% 0%}
-.presenter-cheer .presenter-photo{background-position:0% 100%}
 @media(max-height:740px){
   .shell{padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
   .brand{min-height:50px;margin-bottom:3px;padding:2px 0}

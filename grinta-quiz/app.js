@@ -45,9 +45,16 @@ function fmtError(error) {
   if (/DELETE requires a WHERE clause|SQL|PostgREST|PGRST\d|syntax error|permission denied|relation .* does not exist|violates .* constraint/i.test(message)) return 'Impossible de terminer cette action. Réessaie.';
   return message.length>120 || !message ? 'Connexion impossible. Réessaie.' : message;
 }
-// Les huit portraits sont fournis par le club : aucun visage n'est généré dans le jeu.
-const presenter = pose =>
-  `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Maître du jeu AS Grinta"></div></div>`;
+// Club photographs, original 1024x1536 cutouts: no compressed sprite or face recreation.
+const PRESENTER_FILES = Object.freeze({
+  welcome:'laughter', thinking:'thinking', excited:'thumbs', surprised:'surprised',
+  confident:'arms', puzzled:'confused', facepalm:'facepalm',
+  victory:'trophy', question:'pointing', cheer:'cheer'
+});
+const presenter = pose => {
+  const file = PRESENTER_FILES[pose] || PRESENTER_FILES.confident;
+  return `<div class="presenter-shot presenter-${safe(pose)}"><img class="presenter-photo" src="./presenters/${file}.png" width="1024" height="1536" decoding="async" alt="Animateur AS Grinta" draggable="false"></div>`;
+};
 const stage = (title,pose,kind='') =>
   `<div class="stage-head stage-${safe(kind)}">${presenter(pose)}<div class="stage-copy">${title}</div></div>`;
 
@@ -64,7 +71,7 @@ function renderJoin() {
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
   const isCreate = entryMode === 'create';
   shell(`
-    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>','welcome','welcome')}
+    ${stage('<h1 class="entry-title">LE GRAND <span class="gold">QUIZ</span></h1>',isCreate?'welcome':'thinking','welcome')}
     <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
       <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
       <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
@@ -87,7 +94,7 @@ function renderLobby(s) {
   const count=s.players.length;
   const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span>${safe(p.name)}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
-    ${stage('<h2>VESTIAIRE</h2>','welcome','lobby')}
+    ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
     <div class="panel lobby-panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
