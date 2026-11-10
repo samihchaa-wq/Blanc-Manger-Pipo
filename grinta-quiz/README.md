@@ -5,7 +5,8 @@ Le Grand Quiz est une page mobile indépendante du Soulieteur, avec un événeme
 ## Créer / rejoindre
 
 - **Créer** : prénom et mot de passe Admin+ habituel. Le serveur crée le code de salon à huit chiffres et associe **le jeton du créateur** au rôle de maître du jeu. Ce jeton est conservé sur son appareil pour retrouver sa session. Le mot de passe n'est pas conservé.
-- **Rejoindre** : prénom et code de salon à huit chiffres, sans Admin+. Le code peut être partagé par lien. Les tentatives de code erroné sont limitées côté serveur.
+- **Rejoindre** : prénom et code de salon à huit chiffres, sans Admin+. Le bouton Inviter partage désormais `grinta-quiz/inviter/?code=...`, dont l'aperçu WhatsApp est aux couleurs du Grand Quiz, puis redirige directement vers l'onglet Rejoindre du Soulieteur avec le code prérempli. Aucun second formulaire dans le quiz.
+- **Reprendre une émission officielle** : depuis Le Soulieteur, choisir la vignette QCM puis « Reprendre l’émission officielle (Admin+) ». Ce parcours ouvre la reprise de l'animateur existant, **sans créer de nouvelle partie et sans affecter les répétitions avec bots**.
 - Le maître du jeu est visible dans le vestiaire, mais **ne répond pas et n'apparaît jamais dans le classement ni sur le podium**.
 - Une partie officielle n'est lançable que lorsque les deux mi-temps sont préparées (10 à 20 questions chacune) et que l'événement a été armé dans la base privée. Les quatre questions techniques d'origine ne peuvent pas lancer la soirée.
 
@@ -17,12 +18,21 @@ Le Grand Quiz est une page mobile indépendante du Soulieteur, avec un événeme
 | --- | --- |
 | Vestiaire | **LANCER LA PARTIE** |
 | Présentation | **AFFICHER LA QUESTION** |
-| Question | **RÉVÉLER LA RÉPONSE** (verrouille les choix et attribue les points une seule fois) |
+| Question | **RÉVÉLER LA RÉPONSE** (si des participants attendent encore, une confirmation peut être annulée ; seule une seconde validation verrouille les réponses et attribue les points une fois) |
 | Résultat | **QUESTION SUIVANTE** (ou pause / podium à la fin d'une mi-temps) |
-| Mi-temps | **REPRENDRE LE QUIZ** |
+| Mi-temps | **LANCER LA 2E MI-TEMPS** |
 | Podium | Classement final, aucune action de progression |
 
 Ces actions sont protégées **côté serveur** par le jeton du créateur, pas seulement par un bouton caché. Chaque appel de progression transmet la phase et la position attendues pour empêcher qu'un double clic ou un appel réseau retardé fasse sauter une étape. Le score est attribué seulement lors de la transition question → révélation. Les joueurs voient uniquement les réponses autorisées pour la phase courante.
+
+## Lisibilité, rythme de l'émission et ergonomie
+
+- La présentation de la première mi-temps est une **véritable étape de lancement**, sans progression automatique ; elle présente le nombre réel de questions avant le clic du maître du jeu.
+- Si un ou plusieurs participants n'ont pas répondu, **la première pression sur Révéler ouvre une confirmation annulable**. Si tous ont répondu, la révélation reste en un clic. Aucune phase ne se ferme toute seule.
+- À la mi-temps, le chiffre affiché est désormais la **moyenne arithmétique des scores présents dans le classement réel renvoyé par Supabase** ; il est recalculé à partir des joueurs, sans inventer de statistiques sur les questions.
+- Le podium est adaptable aux finales à un ou deux joueurs, aux prénoms longs et aux égalités. En cas de scores égaux, les joueurs occupent le même rang.
+- Les dimensions 320/360/375/390/430 px et l'orientation paysage sont couvertes dans les tests Chromium. Un seul portrait HD prévisible est préchargé à chaque étape, sans modifier les photos originales.
+- Un seul message vocal signale chaque nouvelle phase ; les actualisations des joueurs en attente ne font pas relire toute l'interface. Une validation réelle sur VoiceOver/TalkBack reste à effectuer.
 
 ## Récupération sécurisée des sessions
 
