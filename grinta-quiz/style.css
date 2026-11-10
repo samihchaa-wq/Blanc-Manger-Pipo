@@ -202,3 +202,93 @@ body{-webkit-text-size-adjust:100%;overscroll-behavior-y:contain}
   .scene[data-screen="question"] .question-topline .presenter-photo{width:62px;height:93px}
   .scene[data-screen="question"] .question-card h2{font-size:25px}
 }
+
+/* Make the original transparent presenter a leading, readable visual on phones.
+   The image occupies its own column, never covers the answer buttons or room code. */
+.stage-head{
+  grid-template-columns:minmax(0,47%) minmax(0,1fr);
+  column-gap:8px;
+  min-height:220px;
+  align-items:center;
+  isolation:isolate;
+}
+.stage-head .presenter-shot{
+  grid-column:1;
+  grid-row:1;
+  align-self:end;
+  justify-content:flex-start;
+  align-items:flex-end;
+  width:100%;
+  min-width:0;
+  margin:0;
+}
+.stage-head .stage-copy{
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  align-self:center;
+}
+.stage-head .presenter-photo{
+  display:block;
+  width:min(100%,clamp(138px,43vw,180px));
+  height:auto;
+  aspect-ratio:2 / 3;
+  background-size:400% 200%;
+  background-color:transparent;
+}
+.stage-lobby{min-height:228px;margin-bottom:6px}
+.stage-lobby .presenter-photo{width:min(100%,clamp(148px,46vw,190px));height:auto}
+.stage-welcome{min-height:218px}
+.stage-intro{min-height:230px}
+.stage-intro .presenter-photo{width:min(100%,clamp(145px,44vw,180px));height:auto}
+.stage-halftime{min-height:216px}
+.stage-halftime .presenter-photo{width:min(100%,clamp(138px,42vw,175px));height:auto}
+.stage-reveal{min-height:204px;margin-bottom:8px}
+.stage-reveal .presenter-photo{width:min(100%,clamp(134px,41vw,168px));height:auto}
+.stage-podium{min-height:233px}
+.stage-podium .presenter-photo{width:min(100%,clamp(145px,44vw,182px));height:auto}
+/* On question screens the presenter sits LEFT of the question number. */
+.scene[data-screen="question"] .question-topline{
+  display:grid;
+  grid-template-columns:minmax(0,39%) minmax(0,1fr);
+  align-items:center;
+  column-gap:12px;
+  min-height:182px;
+}
+.scene[data-screen="question"] .question-topline .presenter-shot{
+  grid-column:1;
+  grid-row:1;
+  justify-content:flex-start;
+  align-self:end;
+  margin:0;
+}
+.scene[data-screen="question"] .question-topline .presenter-photo{
+  width:min(100%,clamp(115px,36vw,158px));
+  height:auto;
+  aspect-ratio:2 / 3;
+}
+.scene[data-screen="question"] .question-topline .kicker{
+  grid-column:2;
+  grid-row:1;
+  align-items:flex-start;
+  margin:0;
+  min-width:0;
+}
+/* Shorter screens keep a generously sized figure but prioritise controls. */
+@media(max-height:740px){
+  .stage-head{min-height:183px}
+  .stage-head .presenter-photo{width:min(100%,130px);height:auto}
+  .stage-lobby{min-height:190px}
+  .stage-lobby .presenter-photo{width:min(100%,138px);height:auto}
+  .stage-intro,.stage-podium{min-height:201px}
+  .stage-reveal{min-height:174px}
+  .scene[data-screen="question"] .question-topline{min-height:152px}
+  .scene[data-screen="question"] .question-topline .presenter-photo{width:min(100%,107px);height:auto}
+}
+@media(max-width:359px){
+  .stage-head{grid-template-columns:minmax(0,43%) minmax(0,1fr);column-gap:6px}
+  .stage-head .presenter-photo{width:100%;height:auto}
+  .stage-copy h2{font-size:clamp(34px,9vw,43px)}
+  .scene[data-screen="question"] .question-topline{grid-template-columns:minmax(0,36%) minmax(0,1fr);column-gap:8px}
+  .scene[data-screen="question"] .question-topline .presenter-photo{width:100%;height:auto}
+}
