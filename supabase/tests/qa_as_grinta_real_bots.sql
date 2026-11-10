@@ -26,8 +26,9 @@ begin
     raise exception 'ASGQ_TEST: bot count after remove/re-add'; end if;
   guest:=public.asgq_rehearsal_join_room(code,'Camille');
   guest_token:=(guest->>'token')::uuid;
+  perform public.asgq_rehearsal_join_room(code,'Nina'); -- deliberately leaves the question unanswered
   s:=public.asgq_rehearsal_state(host_token);
-  if s->>'phase'<>'lobby' or s->>'is_host'<>'true' or jsonb_array_length(s->'players')<>7 then
+  if s->>'phase'<>'lobby' or s->>'is_host'<>'true' or jsonb_array_length(s->'players')<>8 then
     raise exception 'ASGQ_TEST: host lobby invalid'; end if;
   perform public.asgq_rehearsal_state(guest_token);
   if (select phase from asgq_rehearsal_private.event where id=1)<>'lobby' then
@@ -42,20 +43,37 @@ begin
     raise exception 'ASGQ_TEST: intro deadline exists'; end if;
   perform public.asgq_rehearsal_advance(host_token,'intro',0);
   s:=public.asgq_rehearsal_state(guest_token);
-  if s->>'phase'<>'question' or s->'question'->>'correct' is not null then
+  if s->>'phase'<>'question' or s->'question'->>'correct' is not null
+    or s->'question'->>'responses' is not null then
     raise exception 'ASGQ_TEST: question secret leaked'; end if;
   begin
     perform public.asgq_rehearsal_answer(host_token,0);
     raise exception 'ASGQ_TEST: host answered';
   exception when others then if sqlerrm like 'ASGQ_TEST:%' then raise; end if; end;
   perform public.asgq_rehearsal_answer(guest_token,0);
-  perform public.asgq_rehearsal_state(host_token);
+  s:=public.asgq_rehearsal_state(host_token);
+  if s->'question'->>'responses' is not null then
+    raise exception 'ASGQ_TEST: participant statuses leaked before reveal'; end if;
   if (select phase from asgq_rehearsal_private.event where id=1)<>'question' then
     raise exception 'ASGQ_TEST: answer closed automatically'; end if;
   perform public.asgq_rehearsal_advance(host_token,'question',1);
   s:=public.asgq_rehearsal_state(host_token);
-  if s->>'phase'<>'reveal' or jsonb_array_length(s->'standings')<>6 then
+  if s->>'phase'<>'reveal' or jsonb_array_length(s->'standings')<>7 then
     raise exception 'ASGQ_TEST: host in standings or reveal absent'; end if;
+  if jsonb_array_length(s->'question'->'responses')<>7 then
+    raise exception 'ASGQ_TEST: expected seven distinct participant outcomes'; end if;
+  if (select count(*) from jsonb_array_elements(s->'question'->'responses') item
+        where item->>'name'='Nina' and item->>'status'='unanswered')<>1 then
+    raise exception 'ASGQ_TEST: omitted answer is not identified'; end if;
+  if (select count(*) from jsonb_array_elements(s->'question'->'responses') item
+        where item->>'name'='Camille' and item->>'status'='incorrect')<>1 then
+    raise exception 'ASGQ_TEST: wrong guest answer is not identified'; end if;
+  if (select count(*) from jsonb_array_elements(s->'question'->'responses') item
+        where item->>'status'='correct')<1 then
+    raise exception 'ASGQ_TEST: correct bot answer is not identified'; end if;
+  if (select count(*) from jsonb_array_elements(s->'question'->'responses') item
+        where item->>'name'='Alban')<>0 then
+    raise exception 'ASGQ_TEST: host must not appear in participant outcomes'; end if;
   select count(*) into bot_responses from asgq_rehearsal_private.answers a
     join asgq_rehearsal_private.players p on p.id=a.player_id where p.bot_order is not null;
   if bot_responses<>5 then raise exception 'ASGQ_TEST: bots did not answer at reveal'; end if;

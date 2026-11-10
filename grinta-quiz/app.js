@@ -146,6 +146,34 @@ function presenterPoseForReveal(s, success, answered) {
   if (answered) return position % 2 === 0 ? 'doubt' : 'facepalm';
   return position % 2 === 0 ? 'puzzled' : 'surprised';
 }
+function renderResponseBreakdown(s) {
+  // Only the server-supplied reveal list is authoritative. Never guess from scores.
+  const responses=s.question?.responses;
+  if (!Array.isArray(responses)) return '';
+  const categories=[
+    {status:'correct',label:'ONT BIEN RÉPONDU',symbol:'✓'},
+    {status:'incorrect',label:'SE SONT TROMPÉS',symbol:'×'},
+    {status:'unanswered',label:"N'ONT PAS RÉPONDU",symbol:'—'}
+  ];
+  const groups=categories.map(category=>{
+    const players=responses.filter(p=>p.status===category.status);
+    const names=players.length
+      ? players.map(p=>`<span class="response-person">${safe(p.name)}</span>`).join('')
+      : '<span class="response-empty">Personne</span>';
+    return `<div class="response-group response-group--${category.status}">
+      <div class="response-group-header">
+        <span class="response-symbol" aria-hidden="true">${category.symbol}</span>
+        <span class="response-group-name">${category.label}</span>
+        <strong class="response-group-count">${players.length}</strong>
+      </div>
+      <div class="response-names">${names}</div>
+    </div>`;
+  }).join('');
+  return `<section class="response-breakdown" aria-label="Bilan des réponses des joueurs">
+    <div class="section-title"><span class="eyebrow">RÉPONSES DES JOUEURS</span></div>
+    <div class="response-groups">${groups}</div>
+  </section>`;
+}
 function renderReveal(s) {
   const q=s.question || {};
   const success=q.my_choice === q.correct && !s.is_host;
@@ -159,6 +187,7 @@ function renderReveal(s) {
       <strong>${safe(q.choices?.[q.correct] || '')}</strong>
       ${s.is_host?'':`<b class="answer-reveal-points">+${q.earned ?? 0} PT${q.earned === 1?'':'S'}</b>`}
     </div>
+    ${renderResponseBreakdown(s)}
     <div class="section-title"><span class="eyebrow">CLASSEMENT</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${rankingRows(s)}</ol></div>
     ${hostControl(s,'QUESTION SUIVANTE')}`, 'reveal');

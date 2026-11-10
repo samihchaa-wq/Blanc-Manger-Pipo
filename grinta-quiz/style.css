@@ -676,3 +676,51 @@ body{
 @media(prefers-reduced-motion:reduce){
   .scene[data-screen="question"] .choice{transition:none}
 }
+
+/* Official post-reveal report: all player results, with no countdown or leaks. */
+.scene[data-screen="reveal"] .response-breakdown{margin:13px 0 4px}
+.scene[data-screen="reveal"] .response-breakdown .section-title{margin:14px 0 9px}
+.response-groups{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.response-group{
+  min-width:0;padding:11px 12px 12px;
+  border:1px solid rgba(188,209,231,.21);
+  border-left:3px solid var(--stage-rule);
+  border-radius:11px;
+  background:linear-gradient(107deg,rgba(19,48,78,.96),rgba(8,28,50,.96));
+}
+.response-group--correct{border-left-color:#70d9ae}
+.response-group--incorrect{border-left-color:#ef9898}
+.response-group--unanswered{border-left-color:#9fb3c5}
+.response-group-header{display:flex;align-items:center;gap:9px;min-height:23px}
+.response-symbol{
+  display:grid;place-items:center;flex:none;width:22px;height:22px;
+  border:1px solid currentColor;border-radius:50%;
+  color:#8be6c1;font:900 15px/1 'DM Sans',sans-serif;
+}
+.response-group--incorrect .response-symbol{color:#ffb1b3}
+.response-group--unanswered .response-symbol{color:#b9c9d8}
+.response-group-name{
+  flex:1;min-width:0;color:#eaf1f8;
+  font:900 10px/1.3 'DM Sans',sans-serif;letter-spacing:.11em;
+}
+.response-group-count{
+  min-width:24px;color:#ffdfa0;text-align:right;
+  font:900 22px/1 'Barlow Condensed',sans-serif;
+}
+.response-names{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.response-person{
+  display:inline-flex;align-items:center;max-width:100%;min-height:27px;
+  border:1px solid rgba(189,212,235,.24);border-radius:7px;
+  padding:4px 9px;color:#f4f8ff;background:rgba(4,24,44,.51);
+  font:700 12px/1.3 'DM Sans',sans-serif;overflow-wrap:anywhere;
+}
+.response-group--correct .response-person{border-color:rgba(112,217,174,.40)}
+.response-group--incorrect .response-person{border-color:rgba(239,152,152,.37)}
+.response-empty{color:#aebfd1;font:500 12px/1.5 'DM Sans',sans-serif}
+@media(min-width:740px){
+  .response-groups{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:359px){
+  .response-group{padding:9px 10px}
+  .response-group-name{font-size:9px;letter-spacing:.07em}
+}

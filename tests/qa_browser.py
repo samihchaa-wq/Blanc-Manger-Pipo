@@ -407,6 +407,24 @@ def run(browser, base):
         assert page.locator('.answer-reveal strong').inner_text()=="L'attaquant de pointe", "Texte de bonne réponse modifié"
         assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement façon panneau de score absent"
         assert page.locator('.answer-reveal-tick').is_visible(), "Bonne réponse sans pictogramme"
+        # Le classement cumulatif ne doit pas servir à deviner les résultats de la manche.
+        assert page.locator('.response-breakdown').count()==0, "Ne rien inventer si le serveur ne fournit pas la liste"
+        sample["question"]["responses"]=[
+            {"id":"guest","name":"Camille","status":"correct"},
+            {"id":"g2","name":"Sam","status":"incorrect"},
+            {"id":"g3","name":"Nina","status":"unanswered"}
+        ]
+        page.evaluate("(s) => renderReveal(s)",sample)
+        assert page.locator('.response-group--correct .response-person').all_inner_texts()==["Camille"], "Joueurs ayant bien répondu incorrects"
+        assert page.locator('.response-group--incorrect .response-person').all_inner_texts()==["Sam"], "Joueurs ayant mal répondu incorrects"
+        assert page.locator('.response-group--unanswered .response-person').all_inner_texts()==["Nina"], "Joueurs sans réponse absents"
+        assert [v.strip() for v in page.locator('.response-group-count').all_inner_texts()]==["1","1","1"]
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Les noms débordent de l'écran"
+        assert page.locator('.small-list .rank-no').first.inner_text()=="01", "Classement initial altéré"
+        sample["is_host"]=True
+        page.evaluate("(s) => renderReveal(s)",sample)
+        assert page.locator('[data-next-phase]').is_visible(), "Le maître du jeu doit pouvoir avancer"
+        assert page.locator('.response-breakdown .response-person').count()==3, "Le maître du jeu doit voir tous les résultats"
         no_errors(page,errors,"qcm-plateau-as-grinta")
         checks+=1
     finally:ctx.close()
