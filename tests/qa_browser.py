@@ -407,6 +407,16 @@ def run(browser, base):
             assert geometry['choicesTop']>=geometry['cardBottom']-1, f"Les réponses chevauchent la question : {geometry}"
             assert all(x['left']>=0 and x['right']<=width+2 and x['width']>=width*.70
                        for x in geometry['buttons']), f"Réponses coupées ou trop étroites : {geometry}"
+        # Long real-world text must scroll vertically rather than be cropped horizontally.
+        page.set_viewport_size({"width":320,"height":690})
+        sample["question"]["text"]="Dans la finale du championnat, quel joueur de l'équipe a marqué le but décisif après une action collective particulièrement longue et un centre venu du côté droit ?"
+        sample["question"]["choices"][2]="Le défenseur central ayant disputé son vingt-cinquième match de la saison"
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Le texte long ne doit pas provoquer de débordement"
+        assert page.locator('.choices > button.choice').count()==4, "Les choix longs restent disponibles"
+        sample["question"]["text"]="Quel joueur a marqué le but décisif lors du dernier match ?"
+        sample["question"]["choices"][2]="Le défenseur central"
+        page.set_viewport_size({"width":390,"height":844})
         sample["is_host"]=True
         sample["question"]["my_choice"]=None
         page.evaluate("(s) => renderQuestion(s)",sample)
@@ -528,6 +538,25 @@ def run(browser, base):
         assert page.locator('.champion-name').inner_text()=="Camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
 
+        # Many-person lobby moves the roster to a full-width panel.
+        page.evaluate("""() => renderLobby({
+          me:{id:'host'},is_host:true,room_code:'00123456',ready:true,max_players:30,
+          players:[{id:'host',name:'Alban',is_host:true},...Array.from({length:20},(_,i)=>({
+            id:'p'+i,name:'Participant '+(i+1),is_host:false
+          }))]
+        })""")
+        assert page.locator('.lobby-roster-panel').is_visible(), "Grand vestiaire non adapté aux 20 joueurs"
+        assert page.locator('.lobby-roster-panel .roster li').count()==21, "Un participant disparaît du vestiaire"
+        assert "JOUEURS (20)" in page.locator('.lobby-roster-panel').inner_text(), "L'animateur ne doit pas compter parmi les joueurs"
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire large déborde de l'écran"
+
+        page.evaluate("() => renderLostSession()")
+        assert page.locator('.lost-session .recovery-link').is_visible(), "Une session perdue ne doit pas proposer le formulaire Admin+ à l'invité"
+        assert page.locator('#admin-password').count()==0, "La récupération d'un invité ne doit pas demander Admin+"
+        page.evaluate("() => showNetworkProblem(true)")
+        assert page.locator('#network-status').is_visible(), "L'état de connexion interrompue doit rester visible"
+        page.evaluate("() => showNetworkProblem(false)")
+        assert page.locator('#network-status').is_hidden(), "Le bandeau doit disparaître après reconnexion"
         no_errors(page,errors,"qcm-expressions-coherentes")
         checks+=1
     finally:ctx.close()
