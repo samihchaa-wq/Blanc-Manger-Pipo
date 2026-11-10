@@ -402,6 +402,25 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.locator('[data-next-phase]').is_visible(), "Le maître du jeu a perdu son bouton de révélation"
         assert page.locator('.choice.readonly').count()==4, "Le maître du jeu ne doit pas répondre"
+        # Le vieux compteur 0/3 devient un message d'attente, y compris au polling.
+        sample["players"]=[
+            {"id":"host","name":"Alban","is_host":True},
+            {"id":"guest","name":"Camille","is_host":False},
+            {"id":"g2","name":"Nina","is_host":False},
+            {"id":"g3","name":"Sam","is_host":False}
+        ]
+        sample["question"]["answered_count"]=0
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.locator('#answer-counter').inner_text()=="On attend les réponses…", "Le compteur 0/3 doit être remplacé"
+        assert page.locator('#answer-counter').get_attribute('aria-live')=="polite", "État d'attente non accessible"
+        sample["question"]["answered_count"]=2
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.locator('#answer-counter').inner_text()=="On attend les réponses…", "L'attente doit continuer si un joueur n'a pas répondu"
+        sample["question"]["answered_count"]=3
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
+        assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
+
 
         sample["is_host"]=False
         sample["question"]["my_choice"]=0
