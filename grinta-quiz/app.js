@@ -49,7 +49,7 @@ function fmtError(error) {
 const presenter = pose =>
   `<div class="presenter-shot presenter-${safe(pose)}"><div class="presenter-photo" role="img" aria-label="Maître du jeu AS Grinta"></div></div>`;
 const stage = (title,pose,kind='') =>
-  `<div class="stage-head stage-${safe(kind)}"><div class="stage-copy">${title}</div>${presenter(pose)}</div>`;
+  `<div class="stage-head stage-${safe(kind)}">${presenter(pose)}<div class="stage-copy">${title}</div></div>`;
 
 function headerText(overline, title, sub) {
   return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
@@ -87,7 +87,7 @@ function renderLobby(s) {
   const count=s.players.length;
   const players=s.players.map(p => `<li class="${p.id === s.me.id ? 'me' : ''}"><span>${safe(p.name)}</span>${isRehearsal && s.is_host && p.is_bot ? `<button type="button" class="remove-bot" data-remove-bot="${safe(p.id)}" aria-label="Retirer ${safe(p.name)}" title="Retirer ${safe(p.name)}">×</button>` : ''}</li>`).join('');
   shell(`
-    ${stage('<h2>VESTIAIRE</h2>','confident','lobby')}
+    ${stage('<h2>VESTIAIRE</h2>','welcome','lobby')}
     <div class="panel lobby-panel">
       <div class="room-invite"><div><span class="eyebrow">CODE DE LA PARTIE</span><div class="room-code">${safe(s.room_code || '--------')}</div></div>
         <button type="button" class="invite-button" data-share-room ${s.room_code?'':'disabled'}>Inviter</button></div>
@@ -112,7 +112,7 @@ function renderQuestion(s) {
     ? `<div class="choice readonly"><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></div>`
     : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}><span class="letter">${letters[i]}</span><span>${safe(answer)}</span></button>`).join('');
   const playerCount=s.players.filter(p=>!p.is_host).length;
-  shell(`<div class="question-topline"><div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div>${presenter('question')}</div>
+  shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span>${topText(s.half)}</span><span class="pos">QUESTION ${halfNum(s)} / ${totalHalf(s)}</span></div></div>
     <div class="question-card"><h2>${safe(q.text)}</h2></div>
     <div class="choices">${choices}</div>
     ${s.is_host ? `<p class="response-note" id="answer-counter">${q.answered_count || 0} / ${playerCount} réponses</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
