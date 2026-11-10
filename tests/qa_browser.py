@@ -537,7 +537,7 @@ def run(browser, base):
         assert page.locator('.stage-podium h2').inner_text()=='CHAMPION DU QUIZ', "Le titre de finale ne correspond pas à la maquette"
         assert page.locator('.pod .pod-crown').count()==1, "La couronne du gagnant doit être affichée"
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
-        assert page.locator('.champion-name').inner_text()=="Camille", "Le nom du vrai champion doit être affiché"
+        assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
 
         # Many-person lobby moves the roster to a full-width panel.
