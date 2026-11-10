@@ -91,7 +91,8 @@ window.supabase = {
       }
       if (name === 'asgq_rehearsal_state') {
         const start=window.__qaRehearsalStarted?new Date(Date.now()+60000).toISOString():null;
-        const players=[{id:'host',name:'Alban',is_bot:false},...window.__qaRehearsalBots];
+        const players=[{id:'host',name:'Alban',is_host:true,is_bot:false},
+          ...window.__qaRehearsalBots.map(bot=>({...bot,is_host:false}))];
         return {data:{
           phase:'lobby',title:'Grand Quiz AS Grinta',ready:true,room_code:'00123456',
           now:new Date().toISOString(),starts_at:start,phase_started_at:start,phase_until:null,
@@ -495,6 +496,7 @@ def run(browser, base):
 
         sample["is_host"]=False
         sample["question"]["my_choice"]=0
+        sample["question"]["earned"]=1
         sample["standings"]=[{"id":"guest","name":"Camille","score":4}]
         page.evaluate("(s) => renderReveal(s)",sample)
         assert page.locator('.answer-reveal-label').is_visible(), "Révélation non mise en scène"
@@ -504,10 +506,12 @@ def run(browser, base):
         assert page.locator('.reveal-question p').inner_text()==sample['question']['text'], "Le verdict doit rappeler la question"
         sample["question"]["explanation"]="La bonne réponse se vérifie après la révélation."
         sample["question"]["my_choice"]=2  # Wrong answer: test the personal correction.
+        sample["question"]["earned"]=0
         page.evaluate("(s) => renderReveal(s)",sample)
         assert page.locator('.reveal-explanation').is_visible(), "L'explication vérifiée doit apparaître sur le verdict"
         assert page.locator('.personal-answer strong').inner_text()=="Le défenseur central", "La mauvaise réponse personnelle doit être rappelée"
         sample["question"]["my_choice"]=0
+        sample["question"]["earned"]=1
         # Le classement cumulatif ne doit pas servir à deviner les résultats de la manche.
         assert page.locator('.response-breakdown').count()==0, "Ne rien inventer si le serveur ne fournit pas la liste"
         sample["question"]["responses"]=[
@@ -545,7 +549,21 @@ def run(browser, base):
         assert page.locator('.stage-welcome img.presenter-photo').get_attribute('src')=='./presenters/thumbs.png', "Accueil création : expression accueillante"
         assert page.locator('.stage-welcome .entry-title').inner_text().replace('\n',' ').startswith('PRÊT POUR'), "Titre de la maquette d'accueil absent"
         assert page.evaluate("() => getComputedStyle(document.querySelector('#join-button')).borderRadius === '999px'"), "Bouton doré de la maquette absent"
-        page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
+        page.wait_for_function("() => { const img=document.querySelector('.stage-welcome img.presenter-photo'); return img && img.complete && img.naturalWidth===1024 && img.naturalHeight===1536; }")
+        assert page.locator('.stage-welcome .presenter-photo').is_visible(), "Portrait de l'animateur absent de l'accueil"
+        # A fully loaded figure must never obscure the name label or form input.
+        for width,height in ((320,640),(360,740),(375,812),(390,844),(430,932)):
+            page.set_viewport_size({"width":width,"height":height})
+            geometry=page.evaluate("""() => {
+              const p=document.querySelector('.stage-welcome .presenter-photo').getBoundingClientRect();
+              const f=document.querySelector('.join-panel .field').getBoundingClientRect();
+              return {photoBottom:p.bottom,formTop:f.top,
+                scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+            }""")
+            assert geometry["photoBottom"]<=geometry["formTop"]-4, f"Le portrait masque le champ Prénom sur {width}px : {geometry}"
+            assert geometry["scrollWidth"]<=geometry["viewport"]+2, f"L'accueil déborde en largeur : {geometry}"
+            if width==390:page.screenshot(path=str(OUT/'asgq-show-01-accueil.png'),full_page=True)
+        page.set_viewport_size({"width":390,"height":844})
         assert page.locator('[data-entry-mode]').count()==0, "Le quiz ne propose plus un second mode Rejoindre"
         assert page.get_by_text("Entre dans l’émission").count()==0, "Le sous-titre inutile a été retiré"
 
