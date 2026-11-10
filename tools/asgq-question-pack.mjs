@@ -64,9 +64,16 @@ try {
     });
   }
 
-  const publishedFolder = path.resolve('grinta-quiz') + path.sep;
-  if (path.resolve(output).startsWith(publishedFolder)) {
-    fail('Ne jamais placer les réponses dans grinta-quiz/ : ce dossier est public.');
+  // Reject *any* file inside the repository: several folders besides grinta-quiz
+  // are copied verbatim to the public site, and even unpublished folders can
+  // accidentally be committed to Git. Use private paths outside this checkout.
+  const projectRoot = path.resolve('.');
+  const isInsideRepository = location => {
+    const resolved = path.resolve(location);
+    return resolved === projectRoot || resolved.startsWith(projectRoot + path.sep);
+  };
+  if (isInsideRepository(input) || isInsideRepository(output)) {
+    fail('Le fichier des questions et le SQL doivent rester hors du dépôt Git privé ou public.');
   }
   if (path.resolve(input) === path.resolve(output)) fail('Entrée et sortie identiques.');
 
@@ -74,11 +81,13 @@ try {
     '-- PRIVE: importer dans le SQL Editor Supabase uniquement. NE PAS COMMITTER.',
     'BEGIN;',
     'SET LOCAL standard_conforming_strings = on;',
-    'DO $guard$ DECLARE phase_now text; is_armed boolean; BEGIN',
-    ' SELECT phase, armed INTO phase_now, is_armed FROM asgq_private.event WHERE id=1 FOR UPDATE;',
+    'DO $guard$ DECLARE phase_now text; is_armed boolean; creator_hash text; BEGIN',
+    ' SELECT phase, armed, host_token_hash INTO phase_now, is_armed, creator_hash FROM asgq_private.event WHERE id=1 FOR UPDATE;',
     " IF phase_now IS DISTINCT FROM 'lobby' THEN RAISE EXCEPTION 'Quiz deja commence'; END IF;",
     " IF is_armed THEN RAISE EXCEPTION 'Quiz deja active'; END IF;",
-    " IF EXISTS(SELECT 1 FROM asgq_private.players) THEN RAISE EXCEPTION 'Des joueurs sont deja entres'; END IF;",
+    " IF creator_hash IS NULL OR (SELECT count(*) FROM asgq_private.players WHERE event_id=1) <> 1",
+    "  OR NOT EXISTS(SELECT 1 FROM asgq_private.players p WHERE p.event_id=1 AND p.token_hash=creator_hash)",
+    "  THEN RAISE EXCEPTION 'Import refuse : seul l animateur doit etre inscrit'; END IF;",
     'END $guard$;',
     'DELETE FROM asgq_private.questions;',
     'INSERT INTO asgq_private.questions(position,half,prompt,choices,correct_index,points,explanation) VALUES',
