@@ -21,13 +21,15 @@ class QuietHandler(SimpleHTTPRequestHandler):
         pass
 
 MOCK_SDK = r"""
-window.__qaCalls = [];
+// Preserve mock RPC history across the home-to-quiz page navigation.
+window.__qaCalls = JSON.parse(sessionStorage.getItem('__qaCalls') || '[]');
 window.__qaRehearsalBots = [];
 window.__qaRehearsalStarted = false;
 window.supabase = {
   createClient: () => ({
     rpc: async (name, args) => {
       window.__qaCalls.push({name, args});
+      sessionStorage.setItem('__qaCalls',JSON.stringify(window.__qaCalls));
       if (name === 'get_full_state') {
         return {data:{state:JSON.parse(JSON.stringify(window.__qaState)),
                       white:window.__qaWhite || null,pun:null,
