@@ -1518,3 +1518,27 @@ body{
   white-space:nowrap;color:#d4e0f6;font:700 10px/1.2 'DM Sans',sans-serif;
 }
 .scene[data-screen="lobby"] .section-title{flex-wrap:wrap;column-gap:9px;row-gap:4px}
+
+/* Host rescue is an Admin+ operation, never an alternative guest join route. */
+.scene[data-screen="join"] .host-recovery-link,
+.scene[data-screen="expired"] .host-recovery-link,
+.scene[data-screen="recover-host"] .quiet-link {
+  display:block;width:100%;border:0;padding:12px 5px;margin:15px 0 0;
+  background:transparent;color:#ffdf9d;text-align:center;cursor:pointer;
+  font:italic 800 13px/1.4 'DM Sans',sans-serif;
+}
+.scene[data-screen="recover-host"] .stage-welcome{min-height:220px}
+.scene[data-screen="recover-host"] .stage-copy h2{
+  color:#ffe4a3;font:italic 900 clamp(30px,8vw,46px)/1.04 'Barlow Condensed',sans-serif;
+}
+.scene[data-screen="recover-host"] .host-recovery-description{
+  margin:0 0 17px;color:#edf3ff;font:600 14px/1.55 'DM Sans',sans-serif;
+}
+.scene[data-screen="finished"] .joint-champions{
+  position:relative;z-index:3;width:70%;margin:-2px 0 15px auto;
+  text-align:center;color:#f8d187;font:900 12px/1.4 'DM Sans',sans-serif;
+  letter-spacing:.1em;
+}
+@media(max-width:359px){
+  .scene[data-screen="finished"] .joint-champions{width:72%;font-size:11px}
+}
