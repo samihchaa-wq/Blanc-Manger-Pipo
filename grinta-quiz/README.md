@@ -53,6 +53,12 @@ Depuis le Soulieteur, sélectionner QCM puis Créer la partie pour accéder à l
 
 **Ne pas réinitialiser l'événement officiel ni ses joueurs en production.** Les modifications de la répétition restent isolées.
 
+## Capacité et sécurité des soirées
+
+La salle comporte **30 places au total : l'animateur + 29 invités**, et non 30 invités en plus de l'animateur. Les invités partagent le même code de salle, tandis que la commande de chaque écran reste réservée au jeton animateur.
+
+Les tests SQL isolés vérifient désormais 29 invités, le refus d'un trentième invité, le bilan de **10 bonnes réponses, 10 mauvaises et 9 absences**, l'attribution des points et l'absence de double passage. Ces tests ne mesurent pas la charge réseau de 29 appareils réels ; celle-ci reste à vérifier sur place.
+
 ## Tests
 
 - `node tests/grinta_quiz_client.mjs` vérifie l'interface, les boutons du maître du jeu, l'absence de chronomètre et les contrôles de sécurité attendus.

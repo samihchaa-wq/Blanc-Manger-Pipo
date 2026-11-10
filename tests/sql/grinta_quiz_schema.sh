@@ -34,6 +34,7 @@ sql < supabase/tests/qa_as_grinta_host_recovery.sql
 sql < supabase/tests/qa_as_grinta_player_handoff.sql
 sql < supabase/tests/qa_as_grinta_quiz_2026.sql
 sql < supabase/tests/qa_as_grinta_real_bots.sql
+sql < supabase/tests/qa_as_grinta_29_guests.sql
 
 # End-to-end test of the actual private question-pack SQL against an official
 # event that already has its (single) creator. The database is disposable CI.
