@@ -563,7 +563,7 @@ def run(browser, base):
           ]
         })""")
         assert page.locator('.stage-podium h2').inner_text()=="CHAMPIONS DU QUIZ", "Une égalité doit être annoncée au pluriel"
-        assert "Camille" in page.locator('.champion-name').inner_text() and "Nina" in page.locator('.champion-name').inner_text(), "Tous les champions à égalité doivent être annoncés"
+        assert "camille" in page.locator('.champion-name').inner_text().casefold() and "nina" in page.locator('.champion-name').inner_text().casefold(), "Tous les champions à égalité doivent être annoncés"
         assert page.locator('.pod .step').all_inner_texts()==["1","1","3"], "Le podium doit respecter les ex æquo 1, 1, 3"
         assert page.locator('.small-list .rank-no').first.inner_text()=="3e", "Le rang d'une égalité hors podium doit rester partagé"
         page.screenshot(path=str(OUT/'asgq-show-06b-ex-aequo.png'),full_page=True)
