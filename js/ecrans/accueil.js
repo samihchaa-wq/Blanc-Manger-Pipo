@@ -38,6 +38,7 @@ function home(){
         </div>
         <!-- le réglage propre à chaque jeu se fait dans le salon : l'accueil tient sur un écran -->
         <button class="btn" data-act="create">Créer la partie</button>
+        <button type="button" class="asgq-official-resume" data-act="resume-grinta-quiz" ${jeu === 'qcm' ? '' : 'hidden'}>Reprendre l’émission officielle (Admin+)</button>
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
@@ -142,6 +143,8 @@ surAction('mode', el => {
     const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
   });
   const p = document.getElementById('c-pitch'); if (p) p.innerHTML = pitch(el.dataset.v);
+  const resume=document.querySelector('[data-act="resume-grinta-quiz"]');
+  if(resume) resume.hidden=el.dataset.v!=='qcm';
 }, { marque:false });
 surAction('create', () => {
   const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
@@ -153,6 +156,14 @@ surAction('create', () => {
   }
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
+});
+surAction('resume-grinta-quiz', () => {
+  // A dedicated, authenticated host resume. It never creates a new event.
+  const n=val('c-name');
+  if(n) try { localStorage.setItem('pdcat-name',n) } catch {}
+  const url=new URL('./grinta-quiz/',location.href);
+  url.searchParams.set('action','resume');
+  location.assign(url.href);
 });
 // A lost official quiz session requires an ephemeral code issued by the host.
 // Only expose this exceptional route AFTER a failed official-room join.
