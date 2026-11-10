@@ -1,0 +1,6 @@
+# Answers for the one-night Grand Quiz must never enter Git history or Pages.
+# The importer additionally requires both input and output outside this repo.
+**/questions-as-grinta-*.json
+**/asgq-import*.sql
+**/*grand-quiz-private*.json
+**/*grand-quiz-private*.sql
