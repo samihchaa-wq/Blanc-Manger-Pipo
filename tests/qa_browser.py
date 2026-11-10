@@ -372,7 +372,7 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         page.locator('[data-add-bot]').wait_for(state='visible')
-        assert page.locator('.stage-lobby .presenter-welcome .presenter-photo').is_visible(), "L'animateur du vestiaire est absent"
+        assert page.locator('.stage-lobby .presenter-confident .presenter-photo').is_visible(), "L'animateur du vestiaire est absent"
         presenter_layout=page.evaluate("""() => {
           const portrait=document.querySelector('.stage-lobby .presenter-photo').getBoundingClientRect();
           const title=document.querySelector('.stage-lobby .stage-copy').getBoundingClientRect();
@@ -380,6 +380,8 @@ def run(browser, base):
           return {width:portrait.width,height:portrait.height,left:portrait.left,right:portrait.right,
                   titleLeft:title.left,bottom:portrait.bottom,panelTop:panel.top};
         }""")
+        page.wait_for_function("() => { const img=document.querySelector('.stage-lobby img.presenter-photo'); return img && img.complete && img.naturalWidth===1024 && img.naturalHeight===1536; }")
+        assert page.locator('.stage-lobby img[src="./presenters/arms.png"]').is_visible(), "Photo source haute définition non chargée"
         assert presenter_layout['width']>=125 and presenter_layout['height']>=185, f"Animateur encore trop petit : {presenter_layout}"
         assert presenter_layout['right']<=presenter_layout['titleLeft']+6, f"Animateur non positionné à gauche : {presenter_layout}"
         assert presenter_layout['bottom']<=presenter_layout['panelTop']+12, f"Animateur masque la carte du vestiaire : {presenter_layout}"

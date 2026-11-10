@@ -60,13 +60,20 @@ assert.match(script,/hostControl\(s,'REPRENDRE LE QUIZ'\)/, 'Host needs halftime
 assert.match(script,/state\.is_host \|\| sendingAnswer/, 'Host must not submit answers');
 assert.match(script,/asgq_rehearsal_advance/, 'Host phase control must work in rehearsal');
 assert.match(script,/asgq_start/, 'Official kickoff must be host-only');
-const presenterAsset=path.join(root,'grinta-quiz/presenter-atlas.png');
-assert.ok(fs.statSync(presenterAsset).size > 25000, 'Original transparent presenter PNG missing');
-assert.match(style, /presenter-atlas\.png/, 'Presenter CSS must use PNG with alpha');
-assert.doesNotMatch(style, /data:image\/webp;base64|\.presenter-photo\{[^}]*background-color:#fff/, 'No compressed white-backed presenter thumbnail');
-for (const pose of ['thinking','excited','surprised','confident','puzzled','facepalm','victory','question']) {
-  assert.ok(style.includes('.presenter-' + pose), 'Presenter pose missing: '+pose);
+const presenterNames=['trophy','thumbs','confused','pointing','laughter','cheer','facepalm','thinking','arms','surprised'];
+for (const name of presenterNames) {
+  const asset=path.join(root,'grinta-quiz/presenters',name+'.png');
+  const bytes=fs.readFileSync(asset);
+  assert.ok(bytes.length>150000, 'Full-resolution cutout missing: '+name);
+  assert.equal(bytes.subarray(1,4).toString(), 'PNG', 'Not a PNG: '+name);
+  assert.equal(bytes.readUInt32BE(16),1024,'Cutout width changed: '+name);
+  assert.equal(bytes.readUInt32BE(20),1536,'Cutout height changed: '+name);
+  assert.equal(bytes[25],6,'Transparent RGBA PNG required: '+name);
+  assert.match(script,new RegExp("[\\'\\\"]"+name+"[\\'\\\"]"),'Pose not mapped: '+name);
 }
+assert.match(script,/class="presenter-photo" src="\.\/presenters\//, 'Use a sharp separate transparent image per pose');
+assert.doesNotMatch(script+style,/presenter-atlas\.png|data:image\/webp;base64|background-image:url\("\.\/presenter-atlas/, 'Never use the tiny atlas again');
+assert.match(style,/object-fit:contain/, 'Full portrait must preserve aspect ratio');
 assert.match(script, /success\?'excited':answered\?'facepalm'/, 'Presenter should react to player results');
 assert.match(script, /stage\('<h2>PODIUM<\/h2>','victory'/, 'Presenter should accompany finalists');
 assert.match(script, /data-add-bot/, 'Host cannot add bots');
@@ -118,14 +125,14 @@ assert.match(page, /as-grinta-crest\.webp/, 'Show the real club crest on every s
 assert.doesNotMatch(page, /<span>AG<\/span>/, 'Fake AG club badge must be removed');
 assert.match(style, /safe-area-inset-top/, 'iPhone notch and upper controls must remain reachable');
 assert.match(style, /stage-head/, 'Full-body presenter stage layout is required');
-assert.match(style, /presenter-welcome/, 'Presenter positions should match the actual transparent image');
+assert.match(script, /PRESENTER_FILES/, 'Each pose must reference one of the full-quality uploaded photographs');
 assert.match(script, /question-topline/, 'Place the cut-out presenter beside question metadata');
 const stageSource=script.split('const stage = (title,pose,kind=')[1]?.split('function headerText')[0];
 assert.ok(stageSource, 'Host stage renderer must exist');
 assert.ok(stageSource.indexOf('${presenter(pose)}') < stageSource.indexOf('class="stage-copy"'), 'Presenter must be on the left of the screen heading');
 const questionSource=script.split('function renderQuestion(s) {')[1]?.split('function rankingRows')[0];
 assert.ok(questionSource.indexOf('${presenter(\'question\')}') < questionSource.indexOf('class="kicker"'), 'Presenter must be left of the question counter');
-assert.match(script, /stage\('<h2>VESTIAIRE<\/h2>','welcome','lobby'\)/, 'Use prominent upper-body presenter in lobby');
+assert.match(script, /stage\('<h2>VESTIAIRE<\/h2>','confident','lobby'\)/, 'Use a confident original photo in lobby');
 assert.match(style, /\.stage-lobby\{min-height:228px/, 'Give the presenter enough room without covering the lobby panel');
 assert.match(style, /\.stage-lobby \.presenter-photo\{width:min\(100%,clamp\(148px,46vw,190px\)\)/, 'Lobby presenter should be much larger than before');
 assert.match(style, /\.scene\[data-screen="question"\] \.question-topline\{[\s\S]*?display:grid;[\s\S]*?grid-template-columns/, 'Question portrait must have a dedicated left column');
