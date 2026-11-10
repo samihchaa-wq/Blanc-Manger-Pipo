@@ -44,6 +44,11 @@ function home(){
         <!-- le réglage propre à chaque jeu se fait dans le salon : l'accueil tient sur un écran -->
         <button class="btn" data-act="create">Créer la partie</button>
         ${hasOfficialQuizSession ? `<div id="asgq-resume-create" ${jeu==='qcm'?'':'hidden'}>${resumeQuiz}</div>` : ''}
+        <div id="asgq-host-recovery-create" ${jeu==='qcm'?'':'hidden'}>
+          <button type="button" class="asgq-admin-recovery-link" data-act="asgq-host-recovery">
+            REPRENDRE L’ÉMISSION OFFICIELLE (ADMIN+)
+          </button>
+        </div>
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
@@ -151,6 +156,8 @@ surAction('mode', el => {
   const p = document.getElementById('c-pitch'); if (p) p.innerHTML = pitch(el.dataset.v);
   const resume=document.getElementById('asgq-resume-create');
   if(resume) resume.hidden=el.dataset.v!=='qcm';
+  const recovery=document.getElementById('asgq-host-recovery-create');
+  if(recovery) recovery.hidden=el.dataset.v!=='qcm';
 }, { marque:false });
 surAction('create', () => {
   const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
@@ -169,6 +176,13 @@ surAction('asgq-resume',()=>{
   try {stored=!!localStorage.getItem('asgq-2026-participant')} catch {}
   if(!stored) return toast('Aucune session du Grand Quiz sur cet appareil.');
   location.assign(new URL('./grinta-quiz/',location.href).href);
+});
+// Admin+-authenticated recovery is available even on a brand new device
+// with no local token. This must never open a rehearsal or create an event.
+surAction('asgq-host-recovery',()=>{
+  const url=new URL('./grinta-quiz/',location.href);
+  url.searchParams.set('action','resume');
+  location.assign(url.href);
 });
 // A lost official quiz session requires an ephemeral code issued by the host.
 // Only expose this exceptional route AFTER a failed official-room join.
@@ -214,7 +228,7 @@ surAction('join', async () => {
         return;
       }
     } catch(e) {
-      if(quizMode === 'official' && /Nom déjà utilisé|déjà inscrit|commenc|inscriptions|inscription/i.test(e.message || '')) {
+      if(quizMode === 'official' && /Nom déjà utilisé|prénom est déjà pris|déjà inscrit|commenc|inscriptions|inscription|vestiaire est complet/i.test(e.message || '')) {
         montrerRecuperationAsgq();
       }
       toast(e.message || 'Impossible de rejoindre le Grand Quiz.');
