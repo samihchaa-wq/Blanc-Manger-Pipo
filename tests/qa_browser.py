@@ -441,6 +441,17 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Le texte long ne doit pas provoquer de débordement"
         assert page.locator('.choices > button.choice').count()==4, "Les choix longs restent disponibles"
+        assert page.locator('.question-card--long').is_visible(), "Une question longue doit utiliser une carte adaptée"
+        long_layout=page.evaluate("""() => {
+          const portrait=document.querySelector('.question-topline--long .presenter-photo').getBoundingClientRect();
+          const card=document.querySelector('.question-card--long').getBoundingClientRect();
+          return {portraitBottom:portrait.bottom,cardTop:card.top,cardWidth:card.width,viewport:innerWidth};
+        }""")
+        assert long_layout['cardWidth']>=long_layout['viewport']*.85, f"La question longue reste trop étroite : {long_layout}"
+        assert long_layout['cardTop']>=long_layout['portraitBottom']-20, f"Le portrait recouvre la question longue : {long_layout}"
+        page.set_viewport_size({"width":667,"height":375})
+        page.evaluate("(s) => renderQuestion(s)",sample)
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Paysage : la question longue ne doit pas déborder"
         sample["question"]["text"]="Quel joueur a marqué le but décisif lors du dernier match ?"
         sample["question"]["choices"][2]="Le défenseur central"
         page.set_viewport_size({"width":390,"height":844})
@@ -465,7 +476,22 @@ def run(browser, base):
         assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
         assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Les noms ne doivent pas provoquer de défilement horizontal"
-
+        # Confirmation only when the server still reports a missing answer.
+        sample["question"]["waiting_players"]=[{"id":"g3","name":"Sam"}]
+        page.evaluate("""(s) => {
+          token=null;state={...s,phase:'question'};pendingRevealConfirmation=false;
+          renderState(true);
+        }""",sample)
+        page.locator('[data-next-phase]').click()
+        assert page.locator('.reveal-confirmation').is_visible(), "Alerte de révélation prématurée absente"
+        assert page.locator('[data-next-phase]').count()==0, "Révélation immédiate encore possible"
+        assert page.evaluate("() => !window.__qaCalls.some(x=>x.name==='asgq_rehearsal_advance')"), "Révélation envoyée sans confirmation"
+        page.locator('[data-cancel-reveal]').click()
+        assert page.locator('.reveal-confirmation').count()==0, "Annulation de la révélation ineffective"
+        page.locator('[data-next-phase]').click()
+        page.locator('[data-confirm-reveal]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_rehearsal_advance')")
+        sample["question"]["waiting_players"]=[]
 
         sample["is_host"]=False
         sample["question"]["my_choice"]=0
@@ -549,8 +575,14 @@ def run(browser, base):
 
         page.evaluate("""() => renderHalftime({
           is_host:false,me:{id:'guest',name:'Camille'},
-          standings:[{id:'guest',name:'Camille',score:5}]
+          standings:[
+            {id:'guest',name:'Camille',score:5},
+            {id:'guest2',name:'Nina',score:4},
+            {id:'guest3',name:'Sam',score:2}
+          ]
         })""")
+        assert page.locator('.halftime-stat strong').inner_text().startswith('11'), "Le total collectif doit venir des 3 scores"
+        assert '3 joueurs' in page.locator('.halftime-stat .stat-caption').inner_text(), "Le nombre de joueurs doit venir du classement"
         assert page.locator('.stage-halftime img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Mi-temps : réflexion, pas déception"
         assert page.locator('.halftime-board-title').inner_text().startswith('APRÈS'), "Résumé mi-temps absent"
         assert page.locator('.halftime-stat-title').inner_text()=='LE CHIFFRE DE LA PREMIÈRE MI-TEMPS', "Encart statistique absent"
@@ -566,6 +598,14 @@ def run(browser, base):
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
         assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
+        assert page.locator('.podium--1').is_visible(), "Un seul finaliste doit avoir une marche lisible"
+        page.evaluate("""() => renderFinished({
+          is_host:false,me:{id:'p2',name:'Un Prénom Très Long'},
+          standings:[{id:'p1',name:'Camille',score:7},
+                     {id:'p2',name:'Un Prénom Très Long',score:6}]
+        })""")
+        assert page.locator('.podium--2 .pod').count()==2, "Le podium à 2 joueurs doit rester centré"
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Podium à 2 finalistes débordant"
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'p4',name:'Alex'},
           standings:[
@@ -592,7 +632,17 @@ def run(browser, base):
         assert page.locator('.lobby-roster-panel .roster li').count()==21, "Un participant disparaît du vestiaire"
         assert "JOUEURS (20)" in page.locator('.lobby-roster-panel').inner_text(), "L'animateur ne doit pas compter parmi les joueurs"
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire large déborde de l'écran"
-
+        page.set_viewport_size({"width":320,"height":640})
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire 20 personnes déborde à 320 px"
+        page.evaluate("""() => renderLobby({
+          me:{id:'host'},is_host:true,room_code:'00123456',ready:true,max_players:30,
+          players:[{id:'host',name:'Alban',is_host:true},...Array.from({length:29},(_,i)=>({
+            id:'p'+i,name:'Participant '+(i+1),is_host:false
+          }))]
+        })""")
+        assert page.locator('.lobby-roster-panel .roster li').count()==30, "Le vestiaire à capacité maximale perd des joueurs"
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Vestiaire 30 personnes : débordement horizontal"
+        page.set_viewport_size({"width":390,"height":844})
         page.evaluate("() => renderLostSession()")
         assert page.locator('.lost-session .recovery-link').is_visible(), "Une session perdue ne doit pas proposer le formulaire Admin+ à l'invité"
         assert page.locator('#admin-password').count()==0, "La récupération d'un invité ne doit pas demander Admin+"
@@ -737,6 +787,9 @@ def run(browser, base):
         page.locator('[data-issue-player-code="guest"]').click()
         page.locator('.handoff-code').wait_for(state='visible')
         assert page.locator('.handoff-code').inner_text()=="00112233", "Code unique absent des outils animateur"
+        page.evaluate("() => renderState(true)")
+        assert page.locator('.host-access').evaluate("(el) => el.open"), "Le panneau de secours ne doit pas se refermer après synchronisation"
+        assert page.locator('.handoff-code').inner_text()=="00112233", "Le code de secours disparaît après rafraîchissement"
         assert page.evaluate("() => window.__qaCalls.some(c=>c.name==='asgq_issue_player_handoff' && c.args.p_host_token==='recovered-host-token' && c.args.p_player_id==='guest')"), "Un code de secours doit être délivré par le jeton animateur"
         no_errors(page,errors,"qcm-reprise-animateur")
         checks+=1
@@ -759,6 +812,50 @@ def run(browser, base):
         assert page.locator('.host-access').count()==0, "Un invite ne doit pas voir les outils de recuperation animateur"
         assert page.locator('#admin-password').count()==0, "Un invite ne doit jamais demander le mot de passe Admin+"
         no_errors(page,errors,"qcm-reprise-invite")
+        checks+=1
+    finally:ctx.close()
+
+    # A stored official player/host can resume from Soulieteur without creating a room.
+    ctx,page,errors=open_page(browser,base)
+    try:
+        page.evaluate("() => localStorage.setItem('asgq-2026-participant','recovered-host-token')")
+        page.reload(wait_until="load")
+        page.locator('[data-act="tab"][data-tab="join"]').click()
+        assert page.locator('#pane-join [data-act="asgq-resume"]').is_visible(), "Retour à la session officielle absent"
+        page.locator('#pane-join [data-act="asgq-resume"]').click()
+        page.wait_for_url("**/grinta-quiz/",timeout=10000)
+        assert page.locator('[data-screen="lobby"]').is_visible(), "Le retour ne reprend pas le vestiaire existant"
+        assert page.evaluate("() => !window.__qaCalls.some(x=>x.name==='asgq_create')"), "La reprise a créé un autre événement"
+        assert page.locator('#screen-announcer').get_attribute('aria-live')=="polite", "Changement d'écran non annoncé"
+        assert page.locator('#app').get_attribute('aria-live')=="off", "Les notifications ne doivent pas relire tout l'écran"
+        no_errors(page,errors,"qcm-reprise-soulieteur")
+        checks+=1
+    finally:ctx.close()
+
+    # WhatsApp previews must describe AS Grinta, while the player still enters
+    # the room code only once from the Soulieteur join page.
+    ctx=browser.new_context(viewport={"width":390,"height":844},service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e: errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/",wait_until="load",timeout=20000)
+        assert page.locator('meta[property="og:title"]').get_attribute('content')=="LE GRAND QUIZ · AS GRINTA", "Le titre de l'aperçu reste générique"
+        assert "/grinta-quiz/" in page.locator('meta[property="og:image"]').get_attribute('content'), "Visuel du Grand Quiz absent"
+        invite=page.evaluate("""async () => {
+          state={room_code:'87654321'};token=null;
+          Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__shared=data}});
+          await shareRoom();
+          return window.__shared;
+        }""")
+        assert "/grinta-quiz/?code=87654321" in invite['url'], "L'invitation doit ouvrir la page dédiée du quiz"
+        page.goto(invite['url'],wait_until="load",timeout=20000)
+        page.wait_for_url("**/?code=87654321",timeout=10000)
+        assert page.locator('#pane-join').is_visible(), "Le parcours d'invité ne doit pas changer"
+        assert page.locator('#j-code').input_value()=="87654321", "Le code invité doit rester prérempli"
+        no_errors(page,errors,"qcm-invitation-sociale")
         checks+=1
     finally:ctx.close()
 

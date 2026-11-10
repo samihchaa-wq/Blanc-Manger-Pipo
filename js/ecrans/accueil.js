@@ -18,6 +18,11 @@ function home(){
   if (homeCode === null) homeCode = code;
   const join = !!code;            // arrivé par un lien d'invitation : on ouvre le bon onglet
   const jeu = dernierJeu();       // la vignette du dernier jeu choisi sur ce téléphone
+  let hasOfficialQuizSession=false;
+  try { hasOfficialQuizSession=!!localStorage.getItem('asgq-2026-participant') } catch {}
+  const resumeQuiz=hasOfficialQuizSession
+    ? '<button type="button" class="asgq-resume-link" data-act="asgq-resume">REPRENDRE LE GRAND QUIZ</button>'
+    : '';
   return `
     <div class="home">
       <h1><button type="button" class="logo" data-act="logo" aria-label="Le Soulièteur"><img src="design-studio/logo-officiel.webp" width="800" height="637" alt="Le Soulièteur" decoding="async" fetchpriority="high"></button><span class="shift" aria-hidden="true"></span></h1>
@@ -38,12 +43,14 @@ function home(){
         </div>
         <!-- le réglage propre à chaque jeu se fait dans le salon : l'accueil tient sur un écran -->
         <button class="btn" data-act="create">Créer la partie</button>
+        ${hasOfficialQuizSession ? `<div id="asgq-resume-create" ${jeu==='qcm'?'':'hidden'}>${resumeQuiz}</div>` : ''}
       </section>
 
       <section class="panel pane" id="pane-join" ${join ? '' : 'hidden'}>
         <label class="inline"><span>Pseudo :</span><input id="j-name" maxlength="20" autocomplete="nickname" placeholder="Ton prénom ou surnom" value="${esc(homeName)}"></label>
         <label><span>Code de la partie</span><input id="j-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="one-time-code" spellcheck="false" placeholder="•••• ••••" value="${esc(homeCode)}"></label>
         <button class="btn" data-act="join">Rejoindre la partie</button>
+        ${hasOfficialQuizSession ? resumeQuiz : ''}
       </section>
     </div>`;
 }
@@ -142,6 +149,8 @@ surAction('mode', el => {
     const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
   });
   const p = document.getElementById('c-pitch'); if (p) p.innerHTML = pitch(el.dataset.v);
+  const resume=document.getElementById('asgq-resume-create');
+  if(resume) resume.hidden=el.dataset.v!=='qcm';
 }, { marque:false });
 surAction('create', () => {
   const n = val('c-name'); if (!n) return toast('Choisis un pseudo.');
@@ -153,6 +162,13 @@ surAction('create', () => {
   }
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
+});
+// This resumes an existing authenticated session. It never creates a new quiz.
+surAction('asgq-resume',()=>{
+  let stored=false;
+  try {stored=!!localStorage.getItem('asgq-2026-participant')} catch {}
+  if(!stored) return toast('Aucune session du Grand Quiz sur cet appareil.');
+  location.assign(new URL('./grinta-quiz/',location.href).href);
 });
 // A lost official quiz session requires an ephemeral code issued by the host.
 // Only expose this exceptional route AFTER a failed official-room join.
