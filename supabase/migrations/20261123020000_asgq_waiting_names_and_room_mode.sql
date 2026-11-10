@@ -80,7 +80,7 @@ begin
         ) else null end)
       else null end
   );
-end $fn$
+end $fn$;
 
 create or replace function public.asgq_rehearsal_state(p_token uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $fn$
@@ -159,51 +159,62 @@ begin
         ) else null end)
       else null end
   );
-end $fn$
+end $fn$;
 
--- Recognition returns only the event mode for a real 8-digit room code.
--- Does not create participants, expose private tables, or reveal any state.
--- Reuses the existing IP-hash-based join_attempts limiter to resist code guessing.
+
+-- Room-code recognition is distinct from joining a quiz. A separate limiter
+-- avoids counting one guest twice against the official AS Grinta join quota,
+-- especially when teammates share a Wi-Fi IP address.
+create table if not exists asgq_private.route_attempts(
+  client_hash text primary key,
+  window_started_at timestamptz not null default pg_catalog.clock_timestamp(),
+  attempts integer not null default 0,
+  failures integer not null default 0
+);
+revoke all on table asgq_private.route_attempts from public,anon,authenticated;
+
 create or replace function public.asgq_room_mode(p_code text)
-returns text language plpgsql security definer set search_path = '' as $fn$
+returns text language plpgsql security definer set search_path = '' as $route$
 declare
-  normalized_code text := pg_catalog.regexp_replace(coalesce(p_code,''),'[^0-9]','','g');
+  normalized_code text;
   v_client_hash text;
   v_requests integer;
   v_failures integer;
+  checked_at timestamptz:=pg_catalog.clock_timestamp();
+  result_mode text;
 begin
+  normalized_code:=pg_catalog.regexp_replace(pg_catalog.coalesce(p_code,''),'[^0-9]','','g');
   if pg_catalog.length(normalized_code)<>8 then return null; end if;
   v_client_hash:=public._client_hash();
   if v_client_hash is not null then
     perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('asgq-mode:'||v_client_hash,0));
-    insert into asgq_private.join_attempts(client_hash,window_started_at,attempts,failures)
-      values(v_client_hash,pg_catalog.clock_timestamp(),1,0)
-    on conflict on constraint join_attempts_pkey do update set
+    insert into asgq_private.route_attempts(client_hash,window_started_at,attempts,failures)
+      values(v_client_hash,checked_at,1,0)
+    on conflict (client_hash) do update set
       attempts=case
-        when asgq_private.join_attempts.window_started_at < pg_catalog.clock_timestamp()-interval '10 minutes'
-          then 1 else asgq_private.join_attempts.attempts+1 end,
+        when asgq_private.route_attempts.window_started_at < checked_at-interval '10 minutes'
+          then 1 else asgq_private.route_attempts.attempts+1 end,
       failures=case
-        when asgq_private.join_attempts.window_started_at < pg_catalog.clock_timestamp()-interval '10 minutes'
-          then 0 else asgq_private.join_attempts.failures end,
+        when asgq_private.route_attempts.window_started_at < checked_at-interval '10 minutes'
+          then 0 else asgq_private.route_attempts.failures end,
       window_started_at=case
-        when asgq_private.join_attempts.window_started_at < pg_catalog.clock_timestamp()-interval '10 minutes'
-          then pg_catalog.clock_timestamp() else asgq_private.join_attempts.window_started_at end
+        when asgq_private.route_attempts.window_started_at < checked_at-interval '10 minutes'
+          then checked_at else asgq_private.route_attempts.window_started_at end
     returning attempts,failures into v_requests,v_failures;
-    if v_requests>48 or v_failures>=8 then return null; end if;
+    if v_requests>200 or v_failures>=12 then return null; end if;
   end if;
   if exists(select 1 from asgq_private.event e
       where e.id=1 and e.created and e.room_code=normalized_code) then
-    return 'official';
-  end if;
-  if exists(select 1 from asgq_rehearsal_private.event e
+    result_mode:='official';
+  elsif exists(select 1 from asgq_rehearsal_private.event e
       where e.id=1 and e.created and e.room_code=normalized_code) then
-    return 'rehearsal';
+    result_mode:='rehearsal';
   end if;
-  if v_client_hash is not null then
-    update asgq_private.join_attempts set failures=failures+1
-      where client_hash=v_client_hash;
+  if result_mode is null and v_client_hash is not null then
+    update asgq_private.route_attempts
+      set failures=failures+1 where client_hash=v_client_hash;
   end if;
-  return null;
-end $fn$;
+  return result_mode;
+end $route$;
 revoke all on function public.asgq_room_mode(text) from public;
-grant execute on function public.asgq_room_mode(text) to anon, authenticated, service_role;
+grant execute on function public.asgq_room_mode(text) to anon,authenticated,service_role;
