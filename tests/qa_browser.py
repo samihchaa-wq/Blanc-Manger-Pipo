@@ -441,6 +441,14 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Le texte long ne doit pas provoquer de débordement"
         assert page.locator('.choices > button.choice').count()==4, "Les choix longs restent disponibles"
+        assert page.locator('.question-card--long').is_visible(), "Une question longue doit utiliser une carte adaptée"
+        long_layout=page.evaluate("""() => {
+          const portrait=document.querySelector('.question-topline--long .presenter-photo').getBoundingClientRect();
+          const card=document.querySelector('.question-card--long').getBoundingClientRect();
+          return {portraitBottom:portrait.bottom,cardTop:card.top,cardWidth:card.width,viewport:innerWidth};
+        }""")
+        assert long_layout['cardWidth']>=long_layout['viewport']*.85, f"La question longue reste trop étroite : {long_layout}"
+        assert long_layout['cardTop']>=long_layout['portraitBottom']-20, f"Le portrait recouvre la question longue : {long_layout}"
         sample["question"]["text"]="Quel joueur a marqué le but décisif lors du dernier match ?"
         sample["question"]["choices"][2]="Le défenseur central"
         page.set_viewport_size({"width":390,"height":844})
@@ -465,7 +473,22 @@ def run(browser, base):
         assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
         assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
         assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Les noms ne doivent pas provoquer de défilement horizontal"
-
+        # Confirmation only when the server still reports a missing answer.
+        sample["question"]["waiting_players"]=[{"id":"g3","name":"Sam"}]
+        page.evaluate("""(s) => {
+          token=null;state={...s,phase:'question'};pendingRevealConfirmation=false;
+          renderState(true);
+        }""",sample)
+        page.locator('[data-next-phase]').click()
+        assert page.locator('.reveal-confirmation').is_visible(), "Alerte de révélation prématurée absente"
+        assert page.locator('[data-next-phase]').count()==0, "Révélation immédiate encore possible"
+        assert page.evaluate("() => !window.__qaCalls.some(x=>x.name==='asgq_rehearsal_advance')"), "Révélation envoyée sans confirmation"
+        page.locator('[data-cancel-reveal]').click()
+        assert page.locator('.reveal-confirmation').count()==0, "Annulation de la révélation ineffective"
+        page.locator('[data-next-phase]').click()
+        page.locator('[data-confirm-reveal]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_rehearsal_advance')")
+        sample["question"]["waiting_players"]=[]
 
         sample["is_host"]=False
         sample["question"]["my_choice"]=0
@@ -549,8 +572,14 @@ def run(browser, base):
 
         page.evaluate("""() => renderHalftime({
           is_host:false,me:{id:'guest',name:'Camille'},
-          standings:[{id:'guest',name:'Camille',score:5}]
+          standings:[
+            {id:'guest',name:'Camille',score:5},
+            {id:'guest2',name:'Nina',score:4},
+            {id:'guest3',name:'Sam',score:2}
+          ]
         })""")
+        assert page.locator('.halftime-stat strong').inner_text().startswith('11'), "Le total collectif doit venir des 3 scores"
+        assert '3 joueurs' in page.locator('.halftime-stat .stat-caption').inner_text(), "Le nombre de joueurs doit venir du classement"
         assert page.locator('.stage-halftime img.presenter-photo').get_attribute('src')=='./presenters/thinking.png', "Mi-temps : réflexion, pas déception"
         assert page.locator('.halftime-board-title').inner_text().startswith('APRÈS'), "Résumé mi-temps absent"
         assert page.locator('.halftime-stat-title').inner_text()=='LE CHIFFRE DE LA PREMIÈRE MI-TEMPS', "Encart statistique absent"
@@ -566,6 +595,14 @@ def run(browser, base):
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
         assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
+        assert page.locator('.podium--one').is_visible(), "Un seul finaliste doit avoir une marche lisible"
+        page.evaluate("""() => renderFinished({
+          is_host:false,me:{id:'p2',name:'Un Prénom Très Long'},
+          standings:[{id:'p1',name:'Camille',score:7},
+                     {id:'p2',name:'Un Prénom Très Long',score:6}]
+        })""")
+        assert page.locator('.podium--two .pod').count()==2, "Le podium à 2 joueurs doit rester centré"
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Podium à 2 finalistes débordant"
         page.evaluate("""() => renderFinished({
           is_host:false,me:{id:'p4',name:'Alex'},
           standings:[
@@ -592,7 +629,9 @@ def run(browser, base):
         assert page.locator('.lobby-roster-panel .roster li').count()==21, "Un participant disparaît du vestiaire"
         assert "JOUEURS (20)" in page.locator('.lobby-roster-panel').inner_text(), "L'animateur ne doit pas compter parmi les joueurs"
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire large déborde de l'écran"
-
+        page.set_viewport_size({"width":320,"height":640})
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth+2"), "Le vestiaire 20 personnes déborde à 320 px"
+        page.set_viewport_size({"width":390,"height":844})
         page.evaluate("() => renderLostSession()")
         assert page.locator('.lost-session .recovery-link').is_visible(), "Une session perdue ne doit pas proposer le formulaire Admin+ à l'invité"
         assert page.locator('#admin-password').count()==0, "La récupération d'un invité ne doit pas demander Admin+"
