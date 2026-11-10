@@ -120,6 +120,16 @@ assert.match(style, /safe-area-inset-top/, 'iPhone notch and upper controls must
 assert.match(style, /stage-head/, 'Full-body presenter stage layout is required');
 assert.match(style, /presenter-welcome/, 'Presenter positions should match the actual transparent image');
 assert.match(script, /question-topline/, 'Place the cut-out presenter beside question metadata');
+const stageSource=script.split('const stage = (title,pose,kind=')[1]?.split('function headerText')[0];
+assert.ok(stageSource, 'Host stage renderer must exist');
+assert.ok(stageSource.indexOf('${presenter(pose)}') < stageSource.indexOf('class="stage-copy"'), 'Presenter must be on the left of the screen heading');
+const questionSource=script.split('function renderQuestion(s) {')[1]?.split('function rankingRows')[0];
+assert.ok(questionSource.indexOf('${presenter(\'question\')}') < questionSource.indexOf('class="kicker"'), 'Presenter must be left of the question counter');
+assert.match(script, /stage\('<h2>VESTIAIRE<\/h2>','welcome','lobby'\)/, 'Use prominent upper-body presenter in lobby');
+assert.match(style, /\.stage-lobby\{min-height:228px/, 'Give the presenter enough room without covering the lobby panel');
+assert.match(style, /\.stage-lobby \.presenter-photo\{width:min\(100%,clamp\(148px,46vw,190px\)\)/, 'Lobby presenter should be much larger than before');
+assert.match(style, /\.scene\[data-screen="question"\] \.question-topline\{[\s\S]*?display:grid;[\s\S]*?grid-template-columns/, 'Question portrait must have a dedicated left column');
+assert.match(style, /@media\(max-height:740px\)/, 'Presenter should remain responsive on short screens');
 const lobbyMarkup=script.split('function renderLobby(s) {')[1]?.split('function renderIntro(s) {')[0];
 assert.ok(lobbyMarkup, 'Lobby screen missing');
 assert.doesNotMatch(lobbyMarkup, /class="avatar"/, 'No circular letter icon in the lobby player list');

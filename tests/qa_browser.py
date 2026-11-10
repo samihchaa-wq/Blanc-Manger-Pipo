@@ -372,6 +372,17 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         page.locator('[data-add-bot]').wait_for(state='visible')
+        assert page.locator('.stage-lobby .presenter-welcome .presenter-photo').is_visible(), "L'animateur du vestiaire est absent"
+        presenter_layout=page.evaluate("""() => {
+          const portrait=document.querySelector('.stage-lobby .presenter-photo').getBoundingClientRect();
+          const title=document.querySelector('.stage-lobby .stage-copy').getBoundingClientRect();
+          const panel=document.querySelector('.lobby-panel').getBoundingClientRect();
+          return {width:portrait.width,height:portrait.height,left:portrait.left,right:portrait.right,
+                  titleLeft:title.left,bottom:portrait.bottom,panelTop:panel.top};
+        }""")
+        assert presenter_layout['width']>=125 and presenter_layout['height']>=185, f"Animateur encore trop petit : {presenter_layout}"
+        assert presenter_layout['right']<=presenter_layout['titleLeft']+6, f"Animateur non positionné à gauche : {presenter_layout}"
+        assert presenter_layout['bottom']<=presenter_layout['panelTop']+12, f"Animateur masque la carte du vestiaire : {presenter_layout}"
         assert page.locator('.roster .avatar').count()==0, "Les joueurs ne doivent plus avoir d'icône ronde"
         assert page.locator('main a.quiet-link').count()==0, "Le lien RETOUR AUX JEUX ne doit plus être affiché"
         assert page.locator('a.brand-back').is_visible(), "La croix de sortie doit rester accessible"
