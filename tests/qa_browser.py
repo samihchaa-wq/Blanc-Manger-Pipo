@@ -34,6 +34,13 @@ window.supabase = {
                       qcm:window.__qaState.qcm ? JSON.parse(JSON.stringify(window.__qaState.qcm)) : null},error:null};
       }
       // QCM Grinta: the browser sees the REAL UI; mocked server drives a host lobby.
+      if (name === 'asgq_room_mode') {
+        return {data:args.p_code === '12345678' ? 'rehearsal'
+          : args.p_code === '87654321' ? 'official' : null,error:null};
+      }
+      if (name === 'asgq_rehearsal_join_room' || name === 'asgq_join_room') {
+        return {data:{token:'guest-token',code:args.p_code},error:null};
+      }
       if (name === 'asgq_rehearsal_create') {
         window.__qaRehearsalBots=[];
         window.__qaRehearsalStarted=false;
@@ -331,22 +338,23 @@ def run(browser, base):
         assert page.locator('#admin-password[type="password"]').count()==1
         assert page.locator('#room-code').count()==0
         assert "ADMIN+" in page.locator("main").inner_text()
-        page.locator('[data-entry-mode="join"]').click()
-        assert page.locator('#admin-password').count()==0
-        assert page.locator('#room-code[inputmode="numeric"]').count()==1
-        page.locator('#room-code').fill('12345678')
-        page.locator('#player-name').fill('Alban')
-        page.locator('#join-button').click()
-        page.wait_for_function("() => window.__qaCalls?.some(c=>c.name==='asgq_rehearsal_join_room') === true")
-        args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_join_room').args")
-        assert args=={"p_code":"12345678","p_name":"Alban"},args
+        assert page.locator('[data-entry-mode]').count()==0, "Plus d'option Rejoindre sur l'écran AS Grinta"
+        assert page.get_by_text("Entre dans l’émission").count()==0, "L'ancienne phrase doit disparaître"
         assert page.locator('[data-act="qcm-new"]').count()==0
-        # Le bouton X est accessible depuis la page de connexion, sans commencer la partie.
         page.locator('a.brand-back').click()
         page.wait_for_url(base+'/',timeout=10000)
         assert page.locator('#c-mode').input_value()=='qcm'
         assert page.locator('.seg.games button.on[data-v="qcm"]').count()==1
-        assert page.locator('[data-act="create"]').is_visible()
+
+        # Guests enter exclusively through the original Soulieteur join pane.
+        page.locator('[data-act="tab"][data-tab="join"]').click()
+        page.locator('#j-name').fill('Alban')
+        page.locator('#j-code').fill('12345678')
+        page.locator('[data-act="join"]').click()
+        page.wait_for_url("**/grinta-quiz/?repetition=1",timeout=10000)
+        assert page.evaluate("() => localStorage.getItem('asgq-2026-rehearsal-participant')")=="guest-token", "Code du Soulieteur non rattaché au quiz"
+        assert page.locator('#room-code').count()==0, "Pas de deuxième écran de saisie du code"
+        assert page.locator('[data-entry-mode]').count()==0, "Pas de mode Rejoindre dans le quiz"
         no_errors(page,errors,"qcm-acces-as-grinta")
         checks+=1
     finally:ctx.close()
@@ -402,24 +410,22 @@ def run(browser, base):
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.locator('[data-next-phase]').is_visible(), "Le maître du jeu a perdu son bouton de révélation"
         assert page.locator('.choice.readonly').count()==4, "Le maître du jeu ne doit pas répondre"
-        # Le vieux compteur 0/3 devient un message d'attente, y compris au polling.
-        sample["players"]=[
-            {"id":"host","name":"Alban","is_host":True},
-            {"id":"guest","name":"Camille","is_host":False},
-            {"id":"g2","name":"Nina","is_host":False},
-            {"id":"g3","name":"Sam","is_host":False}
+        # The host receives exact server-computed pending names, without guessing from scores.
+        sample["question"]["waiting_players"]=[
+            {"id":"guest","name":"Camille"},{"id":"g2","name":"Nina"},{"id":"g3","name":"Sam"}
         ]
-        sample["question"]["answered_count"]=0
         page.evaluate("(s) => renderQuestion(s)",sample)
-        assert page.locator('#answer-counter').inner_text()=="On attend les réponses…", "Le compteur 0/3 doit être remplacé"
+        assert page.locator('#answer-counter .waiting-title').inner_text()=="On attend :", "Le compteur 0/3 doit devenir « On attend : »"
+        assert page.locator('#answer-counter .waiting-name').all_inner_texts()==["Camille","Nina","Sam"], "Les noms des joueurs doivent apparaître"
         assert page.locator('#answer-counter').get_attribute('aria-live')=="polite", "État d'attente non accessible"
-        sample["question"]["answered_count"]=2
+        sample["question"]["waiting_players"]=[{"id":"g3","name":"Sam"}]
         page.evaluate("(s) => renderQuestion(s)",sample)
-        assert page.locator('#answer-counter').inner_text()=="On attend les réponses…", "L'attente doit continuer si un joueur n'a pas répondu"
-        sample["question"]["answered_count"]=3
+        assert page.locator('#answer-counter .waiting-name').all_inner_texts()==["Sam"], "Les joueurs ayant répondu doivent disparaître de l'attente"
+        sample["question"]["waiting_players"]=[]
         page.evaluate("(s) => renderQuestion(s)",sample)
         assert page.locator('#answer-counter').inner_text()=="Tout le monde a répondu !", "Message de fin d'attente absent"
         assert page.locator('[data-next-phase]').is_visible(), "Révélation toujours sous contrôle de l'animateur"
+        assert page.evaluate("() => document.documentElement.scrollWidth<=innerWidth+2"), "Les noms ne doivent pas provoquer de défilement horizontal"
 
 
         sample["is_host"]=False
