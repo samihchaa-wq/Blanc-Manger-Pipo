@@ -24,6 +24,16 @@ let sendingAnswer = false;
 let chosenOptimistically = null;
 let noticeTimer = null;
 let lastConnectionError = false;
+const warmedPortraits=new Set();
+function preloadUpcomingPortrait(phase) {
+  // One predictable next pose only, avoiding loading all twelve HD photos.
+  const nextFile={lobby:'cheer',intro:'pointing',question:'arms',reveal:'pointing',halftime:'pointing'}[phase];
+  if(!nextFile || warmedPortraits.has(nextFile)) return;
+  warmedPortraits.add(nextFile);
+  const photo=new Image();
+  photo.decoding='async';
+  photo.src='./presenters/'+nextFile+'.png';
+}
 let lobbyActionBusy = false;
 let advanceBusy = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
@@ -31,10 +41,7 @@ const codeFromLink = (new URLSearchParams(location.search).get('code') || '').re
 
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const firstLetter = name => safe((name || 'G').trim().slice(0,1).toUpperCase());
-const topText = n => n === 1 ? '1RE MI-TEMPS' : '2E MI-TEMPS';
 const halfNum = s => s.position - (s.half === 2 ? s.first_half_count : 0);
-const totalHalf = s => s.half === 2 ? s.second_half_count : s.first_half_count;
 const allQuestions = s => Number(s.first_half_count || 10) + Number(s.second_half_count || 10);
 const showEmblem = '<span class="show-emblem" aria-hidden="true"><span class="laurel">❧</span><span class="ball">⚽</span><span class="laurel">❧</span></span>';
 const showProgress = s => `<div class="show-progress" role="img" aria-label="Question ${Number(s.position)||1} sur ${allQuestions(s)}">${Array.from({length:Math.min(40,allQuestions(s))},(_,i)=>`<span class="show-progress-dot ${i<Number(s.position||1)?'passed':''}" aria-hidden="true"></span>`).join('')}</div>`;
@@ -68,9 +75,6 @@ const presenter = pose => {
 const stage = (title,pose,kind='') =>
   `<div class="stage-head stage-${safe(kind)}">${presenter(pose)}<div class="stage-copy">${title}</div></div>`;
 
-function headerText(overline, title, sub) {
-  return `<div class="hero"><div class="eyebrow">${overline}</div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
-}
 // Optional host-only access recovery. Never shown to invited players or bots.
 function hostAccessPanel(s) {
   if(isRehearsal || !s?.is_host) return '';
@@ -341,6 +345,7 @@ async function fetchState() {
     if (error) throw error;
     if (!data || !data.me) throw new Error('Réponse du serveur invalide.');
     state=data;
+    preloadUpcomingPortrait(state.phase);
     lastConnectionError=false;
     showNetworkProblem(false);
     renderState();
