@@ -450,9 +450,11 @@ def run(browser, base):
         assert page.locator('.answer-reveal-tick').is_visible(), "Bonne réponse sans pictogramme"
         assert page.locator('.reveal-question p').inner_text()==sample['question']['text'], "Le verdict doit rappeler la question"
         sample["question"]["explanation"]="La bonne réponse se vérifie après la révélation."
+        sample["question"]["my_choice"]=2  # Wrong answer: test the personal correction.
         page.evaluate("(s) => renderReveal(s)",sample)
         assert page.locator('.reveal-explanation').is_visible(), "L'explication vérifiée doit apparaître sur le verdict"
         assert page.locator('.personal-answer strong').inner_text()=="Le défenseur central", "La mauvaise réponse personnelle doit être rappelée"
+        sample["question"]["my_choice"]=0
         # Le classement cumulatif ne doit pas servir à deviner les résultats de la manche.
         assert page.locator('.response-breakdown').count()==0, "Ne rien inventer si le serveur ne fournit pas la liste"
         sample["question"]["responses"]=[
