@@ -56,6 +56,27 @@ assert.match(manual,/Bots answer when the host closes the question/, 'Bot answer
 assert.match(manual,/where p\.token_hash is distinct from ev\.host_token_hash/, 'Host must be excluded from standings');
 assert.doesNotMatch(script,/timerLine|timeRemaining|updateClocks|TEMPS RESTANT|TEMPS ÉCOULÉ|SUITE DANS|REPRISE DANS|setInterval\(updateClocks/, 'Quiz must not show any countdown');
 assert.match(script,/hostControl\(s,'RÉVÉLER LA RÉPONSE'\)/, 'Host needs a reveal button');
+// The host's response indicator is a conversational message, never a numeric fraction.
+const waitingFn=script.match(/function answerWaitingText\(s\) \{[\s\S]*?\n\}/)?.[0];
+assert.ok(waitingFn,'Missing friendly answer-waiting helper');
+const answerWaitingText=new Function(waitingFn+'\nreturn answerWaitingText;')();
+const samplePlayers=[
+  {id:'host',is_host:true},{id:'alice',is_host:false},
+  {id:'bob',is_host:false},{id:'chloe',is_host:false}
+];
+assert.equal(answerWaitingText({players:samplePlayers,question:{answered_count:0}}),
+  'On attend les réponses…','Do not display a 0/3 fraction');
+assert.equal(answerWaitingText({players:samplePlayers,question:{answered_count:2}}),
+  'On attend les réponses…','Keep waiting while somebody still has not answered');
+assert.equal(answerWaitingText({players:samplePlayers,question:{answered_count:3}}),
+  'Tout le monde a répondu !','Show all-answered status without automatically revealing');
+assert.match(script,/id="answer-counter" role="status" aria-live="polite"/,
+  'Waiting label must be accessible and updated in place');
+assert.match(script,/counter\.textContent=answerWaitingText\(state\)/,
+  'Polling must refresh the label without restarting the question');
+assert.doesNotMatch(script,/\$\{q\.answered_count \|\| 0\} \/ \$\{playerCount\} réponses/,
+  'Old numeric 0/3-style counter must be removed');
+
 const roundMigration=read('supabase/migrations/20261123010000_asgq_reveal_player_outcomes.sql');
 assert.equal((roundMigration.match(/'responses',case when ev\.phase='reveal'/g)||[]).length,2,
   'Both state endpoints must hide all player outcomes until manual reveal');
