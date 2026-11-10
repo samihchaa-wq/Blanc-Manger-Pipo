@@ -1542,3 +1542,37 @@ body{
 @media(max-width:359px){
   .scene[data-screen="finished"] .joint-champions{width:72%;font-size:11px}
 }
+
+/* Only the authenticated host sees these optional one-time player access tools. */
+.host-access{
+  margin:24px 0 8px;padding:10px 13px;
+  border:1px solid rgba(248,208,125,.4);border-radius:12px;
+  background:rgba(4,25,55,.78);color:#e7edfa;
+}
+.host-access summary{
+  padding:6px 4px;cursor:pointer;color:#ffe1a4;text-align:center;
+  font:italic 800 13px/1.35 'Barlow Condensed',sans-serif;
+  letter-spacing:.065em;
+}
+.host-access p{font:600 12px/1.5 'DM Sans',sans-serif;color:#c9dcf3;margin:13px 0 12px}
+.host-access-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.host-access-players button,.host-access-result button{
+  min-height:42px;padding:8px 10px;border:1px solid #d7ae65;border-radius:9px;
+  background:#123c71;color:#fff4d0;font:700 13px/1.35 'DM Sans',sans-serif;
+  cursor:pointer;overflow-wrap:anywhere;
+}
+.host-access-players button:disabled{opacity:.55;cursor:wait}
+.host-access-result:not(:empty){
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  margin-top:15px;padding:12px;border-radius:12px;
+  border:1px solid rgba(251,213,145,.78);background:#082d58;text-align:center;
+}
+.host-access-result strong{color:#ffe6aa;font-size:16px}
+.host-access-result span{font:800 10px 'DM Sans',sans-serif;letter-spacing:.1em}
+.host-access-result .handoff-code{
+  color:#fff1bf;font:900 clamp(29px,9vw,43px)/1 'Barlow Condensed',sans-serif;
+  letter-spacing:.12em;
+}
+.host-access-result small{color:#dfecfb;line-height:1.45}
+.host-access-result button{margin-top:7px;min-height:44px;width:100%}
+@media(max-width:359px){.host-access-players{grid-template-columns:minmax(0,1fr)}}
