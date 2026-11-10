@@ -35,6 +35,20 @@ window.supabase = {
                       white:window.__qaWhite || null,pun:null,
                       qcm:window.__qaState.qcm ? JSON.parse(JSON.stringify(window.__qaState.qcm)) : null},error:null};
       }
+      // Official recovery restores the original host; a wrong password changes nothing.
+      if (name === 'asgq_recover_host') {
+        if (args.p_password !== 'SECRET-TEST')
+          return {data:{error:'Mot de passe Admin+ incorrect.'},error:null};
+        return {data:{token:'recovered-host-token',name:'Alban',code:'87654321'},error:null};
+      }
+      if (name === 'asgq_state') {
+        return {data:{
+          phase:'lobby',title:'Grand Quiz AS Grinta',ready:false,room_code:'87654321',
+          first_half_count:10,second_half_count:10,position:0,
+          players:[{id:'host',name:'Alban',is_host:true}],standings:null,max_players:30,
+          me:{id:'host',name:'Alban',score:0},is_host:true
+        },error:null};
+      }
       // QCM Grinta: the browser sees the REAL UI; mocked server drives a host lobby.
       if (name === 'asgq_room_mode') {
         return {data:args.p_code === '12345678' ? 'rehearsal'
@@ -539,6 +553,20 @@ def run(browser, base):
         assert page.locator('.champion-name').is_visible(), "Le nom du champion doit être mis en valeur"
         assert page.locator('.champion-name').inner_text().casefold()=="camille", "Le nom du vrai champion doit être affiché"
         page.screenshot(path=str(OUT/'asgq-show-06-podium.png'),full_page=True)
+        page.evaluate("""() => renderFinished({
+          is_host:false,me:{id:'p4',name:'Alex'},
+          standings:[
+            {id:'p1',name:'Camille',score:12},
+            {id:'p2',name:'Nina',score:12},
+            {id:'p3',name:'Sam',score:10},
+            {id:'p4',name:'Alex',score:10}
+          ]
+        })""")
+        assert page.locator('.stage-podium h2').inner_text()=="CHAMPIONS DU QUIZ", "Une égalité doit être annoncée au pluriel"
+        assert "camille" in page.locator('.champion-name').inner_text().casefold() and "nina" in page.locator('.champion-name').inner_text().casefold(), "Tous les champions à égalité doivent être annoncés"
+        assert page.locator('.pod .step').all_inner_texts()==["1","1","3"], "Le podium doit respecter les ex æquo 1, 1, 3"
+        assert page.locator('.small-list .rank-no').first.inner_text()=="3e", "Le rang d'une égalité hors podium doit rester partagé"
+        page.screenshot(path=str(OUT/'asgq-show-06b-ex-aequo.png'),full_page=True)
 
         # Many-person lobby moves the roster to a full-width panel.
         page.evaluate("""() => renderLobby({
@@ -662,6 +690,32 @@ def run(browser, base):
         args=page.evaluate("() => window.__qaCalls.find(c=>c.name==='asgq_rehearsal_create').args")
         assert args=={"p_bots":0,"p_password":"SECRET-TEST","p_name":"Alban"},args
         no_errors(page,errors,"qcm-creation-admin")
+        checks+=1
+    finally:ctx.close()
+
+    # L'animateur d'une partie officielle déjà créée peut reprendre avec Admin+.
+    # Un invité ne reçoit toujours jamais de rôle animateur via le code du salon.
+    ctx=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce",service_workers="block")
+    page=ctx.new_page()
+    errors=[]
+    page.on("pageerror",lambda e: errors.append(str(e)))
+    page.route("**/vendor/supabase.js",
+               lambda route:route.fulfill(status=200,content_type="application/javascript",body=MOCK_SDK))
+    try:
+        page.goto(base+"/grinta-quiz/",wait_until="load",timeout=20000)
+        page.locator('[data-host-recovery]').click()
+        assert page.locator('[data-screen="recover-host"]').is_visible(), "Reprise animateur non accessible"
+        assert page.locator('#player-name').count()==0, "La reprise ne doit pas créer de nouveau pseudo"
+        page.locator('#recovery-admin-password').fill('BAD')
+        page.locator('#recover-host-form button[type="submit"]').click()
+        page.wait_for_function("() => window.__qaCalls.some(x=>x.name==='asgq_recover_host' && x.args.p_password==='BAD')")
+        assert page.evaluate("() => localStorage.getItem('asgq-2026-participant')") is None, "Un mot de passe incorrect ne doit pas récupérer l'animateur"
+        page.locator('#recovery-admin-password').fill('SECRET-TEST')
+        page.locator('#recover-host-form button[type="submit"]').click()
+        page.wait_for_function("() => localStorage.getItem('asgq-2026-participant')==='recovered-host-token'")
+        assert page.locator('[data-screen="lobby"]').is_visible(), "L'animateur doit retrouver le vestiaire sans recréer une partie"
+        assert page.locator('.roster li').count()==1, "La reprise ne doit pas créer de nouveau joueur"
+        no_errors(page,errors,"qcm-reprise-animateur")
         checks+=1
     finally:ctx.close()
 

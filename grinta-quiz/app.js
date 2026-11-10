@@ -77,7 +77,8 @@ function renderLostSession() {
   signature='session-expired';
   shell(`${stage('<h2>SESSION EXPIRÉE</h2>','puzzled','expired')}
     <div class="panel lost-session"><p>Cette session ne peut plus être utilisée. Retourne dans Le Soulieteur pour accéder à une partie encore ouverte.</p>
-    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a></div>`, 'expired');
+    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a>
+      ${!isRehearsal?'<button type="button" class="quiet-link host-recovery-link" data-host-recovery>REPRENDRE L’ÉMISSION (ADMIN+)</button>':''}</div>`, 'expired');
 }
 function renderJoin() {
   signature = 'join-create';
@@ -91,8 +92,19 @@ function renderJoin() {
       <button type="submit" class="primary" id="join-button">CRÉER LA PARTIE</button>
       <p class="entry-hint">Admin+ : création uniquement</p>
     </form>
-    ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
+    ${!isRehearsal ? '<button type="button" class="quiet-link host-recovery-link" data-host-recovery>REPRENDRE L’ÉMISSION (ADMIN+)</button><a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
+}
+function renderHostRecovery() {
+  shell(`
+    ${stage('<h2>REPRENDRE L’ÉMISSION</h2>','confident','welcome')}
+    <form class="panel join-panel" id="recover-host-form" autocomplete="off">
+      <p class="host-recovery-description">Tu peux récupérer ton rôle d’animateur depuis un nouvel appareil. L’ancien accès sera déconnecté.</p>
+      <label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="recovery-admin-password" type="password" required autocomplete="off" placeholder="••••••••"></label>
+      <button type="submit" class="primary">REPRENDRE L’ANIMATION</button>
+    </form>
+    <button type="button" class="quiet-link" data-back-to-creation>RETOUR À L’ACCUEIL</button>
+  `, 'recover-host');
 }
 function hostControl(s, label) {
   return s.is_host ? `<button type="button" class="primary host-next" data-next-phase>${label}</button>` : '';
@@ -151,9 +163,15 @@ function renderQuestion(s) {
     ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note answer-feedback" role="status" aria-live="polite">${sendingAnswer ? 'Enregistrement…' : choice === null || choice === undefined ? '' : 'Réponse enregistrée · Tu peux changer ton choix.'}</p>`}`, 'question');
 }
+// Equal scores share a rank: 1, 1, 3, 4 (not the order in which they joined).
+function competitionRank(standings,index) {
+  const score=Number(standings[index]?.score ?? 0);
+  const first=standings.findIndex(player=>Number(player.score)===score);
+  return first>=0 ? first+1 : index+1;
+}
 function rankingRows(s, count = 5) {
   const standings=s.standings || [];
-  const makeRow=(p,i,extra='')=>`<li class="${p.id===s.me.id?'you':''} ${extra}"><span class="rank-no">${String(i+1).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`;
+  const makeRow=(p,i,extra='')=>`<li class="${p.id===s.me.id?'you':''} ${extra}"><span class="rank-no">${String(competitionRank(standings,i)).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`;
   const top=standings.slice(0,count).map((p,i)=>makeRow(p,i)).join('');
   const ownIndex=s.is_host ? -1 : standings.findIndex(p=>p.id===s.me.id);
   return top+(ownIndex>=count ? `<li class="rank-divider" aria-hidden="true">···</li>${makeRow(standings[ownIndex],ownIndex,'personal-rank')}` : '');
@@ -234,16 +252,22 @@ function renderHalftime(s) {
     ${hostControl(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
 function renderFinished(s) {
-  const top=(s.standings||[]).slice(0,3);
+  const standings=s.standings||[];
+  const top=standings.slice(0,3);
+  const winnerScore=top[0]?.score;
+  const winners=winnerScore===undefined ? [] : standings.filter(p=>Number(p.score)===Number(winnerScore));
+  const tied=winners.length>1;
   const order=top.length >= 3 ? [top[1],top[0],top[2]] : top.length===2?[top[1],top[0]]:top;
   const podium=order.map(p=> {
-    const position=top.indexOf(p)+1;
-    const tier=position===1?'first':position===3?'third':'second';
+    const position=competitionRank(standings,standings.indexOf(p));
+    const tier=position===1?'first':position===2?'second':'third';
     return `<div class="pod ${tier}"><span class="pod-crown" aria-hidden="true">♛</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} pts</span><div class="step">${position}</div></div>`;
   }).join('');
-  const others=(s.standings||[]).slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+4}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
-  shell(`${stage('<h2>CHAMPION DU QUIZ</h2><p>Fin de l’émission · Merci à tous</p>','victory','podium')}
-    <h3 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h3>
+  const others=standings.slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${competitionRank(standings,i+3)}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
+  const championNames=winners.length ? winners.map(p=>safe(p.name)).join(' · ') : 'AS Grinta';
+  shell(`${stage(`<h2>${tied?'CHAMPIONS DU QUIZ':'CHAMPION DU QUIZ'}</h2><p>Fin de l’émission · Merci à tous</p>`,'victory','podium')}
+    <h3 class="champion-name">${championNames}</h3>
+    ${tied? `<p class="joint-champions">${winners.length} CHAMPIONS EX ÆQUO</p>` : ''}
     <div class="podium">${podium}</div>
     ${others ? `<div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${others}</ol></div>` : ''}
@@ -329,6 +353,38 @@ async function join(event) {
     if(button.isConnected) {button.disabled=false;button.textContent='CRÉER LA PARTIE'}
   }
 }
+async function recoverHost(event) {
+  event.preventDefault();
+  if(isRehearsal) return;
+  const form=event.currentTarget;
+  const button=form.querySelector('button[type=submit]');
+  if(button.disabled) return;
+  const password=form.querySelector('#recovery-admin-password').value;
+  if(!password) return toast('Entre le mot de passe Admin+.');
+  button.disabled=true;
+  button.textContent='RÉCUPÉRATION…';
+  try {
+    const {data,error}=await api.rpc('asgq_recover_host',{p_password:password});
+    if(error) throw error;
+    if(data?.error) throw new Error(data.error);
+    if(!data?.token) throw new Error('Impossible de retrouver la session animateur.');
+    token=data.token;
+    state=null;
+    signature='';
+    try {
+      localStorage.setItem(storeKey,token);
+      if(data.name) localStorage.setItem('pdcat-name',data.name);
+    } catch(_){}
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+  } finally {
+    if(button.isConnected) {
+      button.disabled=false;
+      button.textContent='REPRENDRE L’ANIMATION';
+    }
+  }
+}
 async function lobbyCommand(rpcName, botId=null) {
   if (!state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
   if (!isRehearsal && rpcName!=='asgq_start') return;
@@ -409,8 +465,13 @@ async function answer(index) {
   }
 }
 
-app.addEventListener('submit',e=>{if(e.target.id==='join-form') void join(e)});
+app.addEventListener('submit',e=>{
+  if(e.target.id==='join-form') void join(e);
+  else if(e.target.id==='recover-host-form') void recoverHost(e);
+});
 app.addEventListener('click',e=>{
+  if(e.target.closest('[data-host-recovery]')) {renderHostRecovery();return}
+  if(e.target.closest('[data-back-to-creation]')) {renderJoin();return}
   if(isRehearsal && e.target.closest('[data-repeat-rehearsal]')) {
     token=null;state=null;signature='';
     try{localStorage.removeItem(storeKey)}catch(_){}

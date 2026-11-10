@@ -28,6 +28,8 @@ sql < supabase/migrations/20261122192000_asgq_reuse_bot_numbers.sql
 sql < supabase/migrations/20261122200000_asgq_host_manual_control.sql
 sql < supabase/migrations/20261123010000_asgq_reveal_player_outcomes.sql
 sql < supabase/migrations/20261123020000_asgq_waiting_names_and_room_mode.sql
+sql < supabase/migrations/20261123030000_asgq_host_session_recovery.sql
+sql < supabase/tests/qa_as_grinta_host_recovery.sql
 sql < supabase/tests/qa_as_grinta_quiz_2026.sql
 sql < supabase/tests/qa_as_grinta_real_bots.sql
 echo "ASGQ_QA: scenario transactionnel OK (deux mi-temps, sécurité et podium)."
