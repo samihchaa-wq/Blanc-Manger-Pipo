@@ -116,6 +116,15 @@ function renderIntro(s) {
   shell(`${stage('<h2>1RE MI-TEMPS</h2>','cheer','intro')}
     ${hostControl(s,'AFFICHER LA QUESTION')}`, 'intro');
 }
+// The host sees a friendly status rather than a numeric response fraction.
+// This does not change when the host is allowed to reveal a question.
+function answerWaitingText(s) {
+  const participantCount=(s.players || []).filter(p=>!p.is_host).length;
+  const answeredCount=Number(s.question?.answered_count) || 0;
+  return participantCount > 0 && answeredCount >= participantCount
+    ? 'Tout le monde a répondu !'
+    : 'On attend les réponses…';
+}
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
@@ -125,7 +134,6 @@ function renderQuestion(s) {
       ? `<div class="choice readonly">${content}</div>`
       : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}>${content}</button>`;
   }).join('');
-  const playerCount=s.players.filter(p=>!p.is_host).length;
   shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">QUESTION</span><span class="pos"><b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div></div>
     ${showProgress(s)}
     <div class="question-card" role="group" aria-label="Question ${halfNum(s)}">
@@ -134,7 +142,7 @@ function renderQuestion(s) {
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>
     <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
-    ${s.is_host ? `<p class="response-note" id="answer-counter">${q.answered_count || 0} / ${playerCount} réponses</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
+    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${answerWaitingText(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
@@ -239,7 +247,7 @@ function renderState(force=false) {
   const next=JSON.stringify(stable);
   if (!force && next===signature) {
     const counter=document.getElementById('answer-counter');
-    if(counter) counter.textContent=`${state.question?.answered_count || 0} / ${state.players.filter(p=>!p.is_host).length} réponses`;
+    if(counter) counter.textContent=answerWaitingText(state);
     return;
   }
   signature=next;
