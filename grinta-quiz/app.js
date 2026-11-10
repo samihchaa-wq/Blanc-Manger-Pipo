@@ -77,7 +77,8 @@ function renderLostSession() {
   signature='session-expired';
   shell(`${stage('<h2>SESSION EXPIRÉE</h2>','puzzled','expired')}
     <div class="panel lost-session"><p>Cette session ne peut plus être utilisée. Retourne dans Le Soulieteur pour accéder à une partie encore ouverte.</p>
-    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a></div>`, 'expired');
+    <a class="primary recovery-link" href="../">RETOUR AU SOULIETEUR</a>
+      ${!isRehearsal?'<button type="button" class="quiet-link host-recovery-link" data-host-recovery>REPRENDRE L’ÉMISSION (ADMIN+)</button>':''}</div>`, 'expired');
 }
 function renderJoin() {
   signature = 'join-create';
@@ -91,8 +92,19 @@ function renderJoin() {
       <button type="submit" class="primary" id="join-button">CRÉER LA PARTIE</button>
       <p class="entry-hint">Admin+ : création uniquement</p>
     </form>
-    ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
+    ${!isRehearsal ? '<button type="button" class="quiet-link host-recovery-link" data-host-recovery>REPRENDRE L’ÉMISSION (ADMIN+)</button><a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
+}
+function renderHostRecovery() {
+  shell(`
+    ${stage('<h2>REPRENDRE L’ÉMISSION</h2>','confident','welcome')}
+    <form class="panel join-panel" id="recover-host-form" autocomplete="off">
+      <p class="host-recovery-description">Tu peux récupérer ton rôle d’animateur depuis un nouvel appareil. L’ancien accès sera déconnecté.</p>
+      <label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="recovery-admin-password" type="password" required autocomplete="off" placeholder="••••••••"></label>
+      <button type="submit" class="primary">REPRENDRE L’ANIMATION</button>
+    </form>
+    <button type="button" class="quiet-link" data-back-to-creation>RETOUR À L’ACCUEIL</button>
+  `, 'recover-host');
 }
 function hostControl(s, label) {
   return s.is_host ? `<button type="button" class="primary host-next" data-next-phase>${label}</button>` : '';
@@ -329,6 +341,38 @@ async function join(event) {
     if(button.isConnected) {button.disabled=false;button.textContent='CRÉER LA PARTIE'}
   }
 }
+async function recoverHost(event) {
+  event.preventDefault();
+  if(isRehearsal) return;
+  const form=event.currentTarget;
+  const button=form.querySelector('button[type=submit]');
+  if(button.disabled) return;
+  const password=form.querySelector('#recovery-admin-password').value;
+  if(!password) return toast('Entre le mot de passe Admin+.');
+  button.disabled=true;
+  button.textContent='RÉCUPÉRATION…';
+  try {
+    const {data,error}=await api.rpc('asgq_recover_host',{p_password:password});
+    if(error) throw error;
+    if(data?.error) throw new Error(data.error);
+    if(!data?.token) throw new Error('Impossible de retrouver la session animateur.');
+    token=data.token;
+    state=null;
+    signature='';
+    try {
+      localStorage.setItem(storeKey,token);
+      if(data.name) localStorage.setItem('pdcat-name',data.name);
+    } catch(_){}
+    await fetchState();
+  } catch(error) {
+    toast(fmtError(error));
+  } finally {
+    if(button.isConnected) {
+      button.disabled=false;
+      button.textContent='REPRENDRE L’ANIMATION';
+    }
+  }
+}
 async function lobbyCommand(rpcName, botId=null) {
   if (!state?.is_host || state.phase!=='lobby' || lobbyActionBusy) return;
   if (!isRehearsal && rpcName!=='asgq_start') return;
@@ -409,8 +453,13 @@ async function answer(index) {
   }
 }
 
-app.addEventListener('submit',e=>{if(e.target.id==='join-form') void join(e)});
+app.addEventListener('submit',e=>{
+  if(e.target.id==='join-form') void join(e);
+  else if(e.target.id==='recover-host-form') void recoverHost(e);
+});
 app.addEventListener('click',e=>{
+  if(e.target.closest('[data-host-recovery]')) {renderHostRecovery();return}
+  if(e.target.closest('[data-back-to-creation]')) {renderJoin();return}
   if(isRehearsal && e.target.closest('[data-repeat-rehearsal]')) {
     token=null;state=null;signature='';
     try{localStorage.removeItem(storeKey)}catch(_){}
