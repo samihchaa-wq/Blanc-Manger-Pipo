@@ -356,4 +356,7 @@ assert.match(home, /localStorage\.getItem\('asgq-2026-participant'\)/, 'Resumpti
 assert.match(page, /id="screen-announcer"/, 'Accessible phase changes must be announced separately');
 assert.match(page, /<main id="app" aria-live="off"/, 'Polling should not reread the entire page to assistive technology');
 assert.doesNotMatch(script, /setInterval\(updateClocks|timeRemaining|TEMPS RESTANT|COMPTE À REBOURS/, 'Quiz remains entirely manual');
+// The broadcast has no time limits: obsolete CSS and unused JS shortcuts must stay gone.
+assert.doesNotMatch(style,/\.timer-line\{|\.big-timer\{|\.countdown-hint\{|\.score-gain\{|\.metric\{|\.pod\.first \.circle\{/, 'No unused legacy countdown, metric or avatar CSS');
+assert.doesNotMatch(script,/function headerText\(|const firstLetter =|const topText =|const totalHalf =/, 'Unused formatting code must not accumulate');
 console.log('ASGQ frontend / preflight checks OK');

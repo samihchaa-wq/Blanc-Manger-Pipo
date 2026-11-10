@@ -407,7 +407,7 @@ def run(browser, base):
                         "choices":["L'attaquant de pointe","Le gardien","Le défenseur central","Le milieu de terrain"],
                         "correct":0,"my_choice":2,"earned":0}
         }
-        for width in (320,390):
+        for width in (320,360,375,390,430):
             page.set_viewport_size({"width":width,"height":750})
             page.evaluate("(s) => renderQuestion(s)",sample)
             assert page.locator('.question-card-top').is_visible(), "Carte question sans identité club"
