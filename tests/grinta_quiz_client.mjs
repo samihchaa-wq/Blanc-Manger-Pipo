@@ -66,8 +66,8 @@ assert.match(waitingMigration,/participant.bot_order is null/, 'Bot simulations 
 assert.match(waitingMigration,/not exists\(/, 'Only players with no stored answer are pending');
 assert.match(waitingMigration,/public\.asgq_room_mode\(p_code text\)/, 'The main Soulieteur home must recognize AS Grinta codes');
 assert.match(waitingMigration,/v_requests>200 or v_failures>=12/, 'Router must be rate limited without exhausting legitimate shared-WiFi guest joins');
-assert.match(waitingMigration,/asgq_private\\.route_attempts/, 'Router must have an independent quota');
-assert.equal((waitingMigration.match(/end \\$fn\\$;/g)||[]).length,2,'Terminate both RPC definitions before the router');
+assert.match(waitingMigration,/asgq_private\.route_attempts/, 'Router must have an independent quota');
+assert.equal((waitingMigration.match(/end \$fn\$;/g)||[]).length,2,'Terminate both RPC definitions before the router');
 const waitingFn=script.match(/function waitingPlayersHtml\(s\) \{[\s\S]*?\n\}/)?.[0];
 assert.ok(waitingFn,'Missing host waiting list renderer');
 const waitingPlayersHtml=new Function('const safe=(v)=>String(v).replace(/</g,"&lt;");\n'+waitingFn+'\nreturn waitingPlayersHtml;')();
