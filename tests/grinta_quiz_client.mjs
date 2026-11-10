@@ -265,7 +265,7 @@ assert.match(script,/class="reveal-question"/, 'Verdict must recall the question
 assert.match(script,/class="reveal-explanation"/, 'Verdict must show the server-provided explanation');
 assert.match(script,/class="personal-answer"/, 'Players should be reminded of their own wrong answer');
 assert.match(script,/sendingAnswer \? 'Enregistrement…'/, 'Answer confirmation must wait for server completion');
-assert.match(script,/class="champion-name"/, 'Final must name the champion');
+assert.match(script,/class="champion-name(?: |")/, 'Final must name the champion, including shared wins');
 assert.match(style,/AUDIT GRAND QUIZ 2026/, 'Missing audited responsive adjustments');
 assert.match(style,/@media\(max-width:620px\)\{[\s\S]*?\.scene\[data-screen="reveal"\] \.response-groups/, 'Outcome groups must stack on phones');
 assert.match(style,/\.scene\[data-screen="finished"\] \.champion-name\{\s*display:block/, 'Champion must not remain hidden');
