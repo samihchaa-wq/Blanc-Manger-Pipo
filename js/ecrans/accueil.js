@@ -154,10 +154,38 @@ surAction('create', () => {
   retenirJeu(jeu);
   return enter(() => rpc('create_room', { p_name:n, p_target:5, p_mode:jeu, p_turns:2 }), n);
 });
-surAction('join', () => {
+// The main Soulieteur join screen is the ONLY entry for invited Quiz players.
+// Look up the type of the 8-digit room before creating any participant.
+// Regular Soulieteur rooms continue using their original RPC untouched.
+surAction('join', async () => {
   const c = val('j-code').replace(/\D/g,''), n = val('j-name');
   if (c.length !== 4 && c.length !== 8) return toast('Le code fait 8 chiffres (ou 4 pour les anciens salons).');
   if (!n) return toast('Choisis un pseudo.');
+  if (busy) return;
+  if (c.length === 8) {
+    busy = true;
+    try {
+      const quizMode = await rpc('asgq_room_mode', {p_code:c});
+      if (quizMode === 'official' || quizMode === 'rehearsal') {
+        const name=quizMode === 'rehearsal' ? 'asgq_rehearsal_join_room' : 'asgq_join_room';
+        const joined=await rpc(name,{p_code:c,p_name:n});
+        if(joined?.error) throw Error(joined.error);
+        if(!joined?.token) throw Error('Session du Grand Quiz introuvable.');
+        try {
+          localStorage.setItem(quizMode === 'rehearsal'
+            ? 'asgq-2026-rehearsal-participant' : 'asgq-2026-participant',joined.token);
+          localStorage.setItem('pdcat-name',n);
+        } catch {}
+        const url=new URL('./grinta-quiz/',location.href);
+        if(quizMode === 'rehearsal') url.searchParams.set('repetition','1');
+        location.assign(url.href);
+        return;
+      }
+    } catch(e) {
+      toast(e.message || 'Impossible de rejoindre le Grand Quiz.');
+      return;
+    } finally {busy = false}
+  }
   return enter(() => rpc('join_room',{ p_code:c, p_name:n }), n);
 });
 document.addEventListener('input', e => {

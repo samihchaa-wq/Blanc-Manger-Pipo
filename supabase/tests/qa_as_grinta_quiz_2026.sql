@@ -10,6 +10,8 @@ begin
   creator:=public.asgq_create('CI-TEST-ONLY-PASSWORD','Alban');
   host_token:=(creator->>'token')::uuid;
   code:=creator->>'code';
+  if public.asgq_room_mode(code) is distinct from 'official' then
+    raise exception 'ASGQ_QA: official quiz room detection failed'; end if;
   guest:=public.asgq_join_room(code,'Camille');
   guest_token:=(guest->>'token')::uuid;
   s:=public.asgq_state(host_token);
@@ -48,6 +50,10 @@ begin
   if s->>'phase'<>'question' or s->'question'->>'correct' is not null
     or s->'question'->>'responses' is not null then
     raise exception 'ASGQ_QA: answer leaked before reveal'; end if;
+  if jsonb_array_length(s->'question'->'waiting_players')<>1
+    or s->'question'->'waiting_players'->0->>'name'<>'Camille'
+    or public.asgq_state(guest_token)->'question'->>'waiting_players' is not null then
+    raise exception 'ASGQ_QA: pending names missing or leaked to guest'; end if;
   begin
     perform public.asgq_answer(host_token,0);
     raise exception 'ASGQ_QA: host submitted an answer';
@@ -57,6 +63,8 @@ begin
   s:=public.asgq_state(host_token);
   if s->'question'->>'responses' is not null then
     raise exception 'ASGQ_QA: player results leaked before host reveal'; end if;
+  if jsonb_array_length(s->'question'->'waiting_players')<>0 then
+    raise exception 'ASGQ_QA: answered player still appears as pending'; end if;
   perform public.asgq_state(guest_token);
   if (select phase from asgq_private.event where id=1)<>'question' then
     raise exception 'ASGQ_QA: polling closed an answer'; end if;

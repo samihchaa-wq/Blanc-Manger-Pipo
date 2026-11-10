@@ -24,7 +24,7 @@ let lastConnectionError = false;
 let lobbyActionBusy = false;
 let advanceBusy = false;
 const codeFromLink = (new URLSearchParams(location.search).get('code') || '').replace(/[^0-9]/g,'').slice(0,8);
-let entryMode = codeFromLink.length === 8 ? 'join' : 'create';
+// All joining happens through the main Soulieteur entry screen, including invitations.
 
 try { token = localStorage.getItem(storeKey); } catch (_) {}
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -70,23 +70,16 @@ function shell(html, key) {
   app.innerHTML = `<section class="scene" data-screen="${key}">${practiceTag}${html}</section>`;
 }
 function renderJoin() {
-  signature = 'join-' + entryMode;
+  signature = 'join-create';
   let savedName = '';
   try { savedName = localStorage.getItem('pdcat-name') || '' } catch (_) {}
-  const isCreate = entryMode === 'create';
   shell(`
-    ${stage('<h1 class="entry-title">PRÊT POUR<br>LE GRAND<br>QUIZ ?</h1><p class="entry-tagline">Entre dans l’émission et<br>prends place sur le plateau.</p>',isCreate?'excited':'thinking','welcome')}
-    <div class="entry-tabs" role="tablist" aria-label="Accès au quiz">
-      <button type="button" data-entry-mode="create" role="tab" aria-selected="${isCreate}" class="${isCreate?'on':''}">Créer</button>
-      <button type="button" data-entry-mode="join" role="tab" aria-selected="${!isCreate}" class="${!isCreate?'on':''}">Rejoindre</button>
-    </div>
+    ${stage('<h1 class="entry-title">PRÊT POUR<br>LE GRAND<br>QUIZ ?</h1>','excited','welcome')}
     <form class="panel join-panel" id="join-form" autocomplete="off">
       <label class="field"><span>TON PRÉNOM</span><input id="player-name" maxlength="22" minlength="2" required placeholder="Ton prénom" autocomplete="nickname" value="${safe(savedName)}"></label>
-      ${isCreate
-        ? '<label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>'
-        : `<label class="field"><span>CODE DE LA PARTIE</span><input class="code" id="room-code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="8 chiffres" value="${safe(codeFromLink)}" aria-label="Code de la partie à 8 chiffres"></label>`}
-      <button type="submit" class="primary" id="join-button">${isCreate?'CRÉER LA PARTIE':'REJOINDRE'}</button>
-      ${isCreate ? '<p class="entry-hint">Admin+ : création uniquement</p>' : ''}
+      <label class="field"><span>MOT DE PASSE ADMIN+</span><input class="code" id="admin-password" type="password" required autocomplete="off" placeholder="••••••••" aria-label="Mot de passe Admin+"></label>
+      <button type="submit" class="primary" id="join-button">CRÉER LA PARTIE</button>
+      <p class="entry-hint">Admin+ : création uniquement</p>
     </form>
     ${!isRehearsal ? '<a class="quiet-link" href="./?repetition=1">TESTER AVEC DES BOTS</a>' : ''}
   `, 'join');
@@ -116,6 +109,14 @@ function renderIntro(s) {
   shell(`${stage('<h2>1RE MI-TEMPS</h2>','cheer','intro')}
     ${hostControl(s,'AFFICHER LA QUESTION')}`, 'intro');
 }
+// On the host's question screen, display only participants that have not answered.
+// This comes from the authenticated server, never inferred from the total count.
+function waitingPlayersHtml(s) {
+  const waiting=s.question?.waiting_players;
+  if (!Array.isArray(waiting)) return '<span class="waiting-title">On attend les réponses…</span>';
+  if (!waiting.length) return '<span class="waiting-complete">Tout le monde a répondu !</span>';
+  return `<span class="waiting-title">On attend :</span><span class="waiting-names">${waiting.map(p=>`<span class="waiting-name">${safe(p.name)}</span>`).join('')}</span>`;
+}
 function renderQuestion(s) {
   const q=s.question || {};
   const choice=chosenOptimistically !== null ? chosenOptimistically : q.my_choice;
@@ -125,7 +126,6 @@ function renderQuestion(s) {
       ? `<div class="choice readonly">${content}</div>`
       : `<button class="choice ${choice === i ? 'selected' : ''}" data-answer="${i}" aria-pressed="${choice === i}" type="button" ${sendingAnswer ? 'disabled' : ''}>${content}</button>`;
   }).join('');
-  const playerCount=s.players.filter(p=>!p.is_host).length;
   shell(`<div class="question-topline">${presenter('question')}<div class="kicker"><span class="round-chip">QUESTION</span><span class="pos"><b>${s.position}</b><small> / ${allQuestions(s)}</small></span></div></div>
     ${showProgress(s)}
     <div class="question-card" role="group" aria-label="Question ${halfNum(s)}">
@@ -134,7 +134,7 @@ function renderQuestion(s) {
       <div class="question-card-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
     </div>
     <div class="choices" role="group" aria-label="Choix de réponse">${choices}</div>
-    ${s.is_host ? `<p class="response-note" id="answer-counter">${q.answered_count || 0} / ${playerCount} réponses</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
+    ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note" aria-live="polite">${choice === null || choice === undefined ? '' : 'Réponse enregistrée'}</p>`}`, 'question');
 }
 function rankingRows(s, count = 5) {
@@ -234,12 +234,12 @@ function renderState(force=false) {
   const {now: serverNow, ...stable} = state;
   // Other players' answer counts should not restart the whole screen animation.
   if (stable.phase==='question' && stable.question) {
-    stable.question={...stable.question,answered_count:null};
+    stable.question={...stable.question,answered_count:null,waiting_players:null};
   }
   const next=JSON.stringify(stable);
   if (!force && next===signature) {
     const counter=document.getElementById('answer-counter');
-    if(counter) counter.textContent=`${state.question?.answered_count || 0} / ${state.players.filter(p=>!p.is_host).length} réponses`;
+    if(counter) counter.innerHTML=waitingPlayersHtml(state);
     return;
   }
   signature=next;
@@ -281,17 +281,13 @@ async function join(event) {
   const button=form.querySelector('button[type=submit]');
   if(button.disabled) return;
   const name=form.querySelector('#player-name').value.trim();
-  const creating=entryMode==='create';
-  const password=creating ? form.querySelector('#admin-password').value : '';
-  const roomCode=creating ? '' : form.querySelector('#room-code').value.replace(/[^0-9]/g,'');
-  if(name.length<2 || (creating && !password) || (!creating && roomCode.length!==8)) {
-    return toast(creating ? 'Entre ton prénom et le code Admin+.' : 'Entre ton prénom et le code de partie à 8 chiffres.');
-  }
+  const password=form.querySelector('#admin-password').value;
+  if(name.length<2 || !password) return toast('Entre ton prénom et le code Admin+.');
   button.disabled=true;
-  button.textContent=creating ? 'CRÉATION EN COURS…' : 'ENTRÉE EN COURS…';
+  button.textContent='CRÉATION EN COURS…';
   try {
-    const rpcName=creating ? (isRehearsal ? 'asgq_rehearsal_create' : 'asgq_create') : (isRehearsal ? 'asgq_rehearsal_join_room' : 'asgq_join_room');
-    const args=creating ? {...(isRehearsal?{p_bots:0}:{}),p_password:password,p_name:name} : {p_code:roomCode,p_name:name};
+    const rpcName=isRehearsal ? 'asgq_rehearsal_create' : 'asgq_create';
+    const args={...(isRehearsal?{p_bots:0}:{}),p_password:password,p_name:name};
     const {data,error}=await api.rpc(rpcName,args);
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
@@ -306,7 +302,7 @@ async function join(event) {
   } catch(error) {
     toast(fmtError(error));
   } finally {
-    if(button.isConnected) {button.disabled=false;button.textContent=creating?'CRÉER LA PARTIE':'REJOINDRE LA PARTIE'}
+    if(button.isConnected) {button.disabled=false;button.textContent='CRÉER LA PARTIE'}
   }
 }
 async function lobbyCommand(rpcName, botId=null) {
@@ -349,7 +345,7 @@ async function advancePhase() {
 async function shareRoom() {
   const code=state?.room_code;
   if(!code) return;
-  const url=new URL(location.href);
+  const url=new URL('../',location.href);
   url.searchParams.set('code',code);
   const message='Rejoins le Grand Quiz AS Grinta 2026 ! Code : '+code;
   try {
@@ -392,16 +388,8 @@ async function answer(index) {
 app.addEventListener('submit',e=>{if(e.target.id==='join-form') void join(e)});
 app.addEventListener('click',e=>{
   if(isRehearsal && e.target.closest('[data-repeat-rehearsal]')) {
-    token=null;state=null;signature='';entryMode='create';
+    token=null;state=null;signature='';
     try{localStorage.removeItem(storeKey)}catch(_){}
-    renderJoin();
-    return;
-  }
-  const mode=e.target.closest('[data-entry-mode]');
-  if(mode) {
-    const name=document.getElementById('player-name')?.value.trim();
-    if(name) try { localStorage.setItem('pdcat-name',name) } catch(_){}
-    entryMode=mode.dataset.entryMode==='join'?'join':'create';
     renderJoin();
     return;
   }
@@ -414,9 +402,12 @@ app.addEventListener('click',e=>{
   const button=e.target.closest('[data-answer]');
   if(button) void answer(Number(button.dataset.answer));
 });
-app.addEventListener('input',e=>{
-  if(e.target.id==='room-code') e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,8);
-});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void fetchState()});
 setInterval(()=>{if(token && !requesting)void fetchState()},1800);
-if(token) void fetchState(); else renderJoin();
+if(token) void fetchState();
+else if(codeFromLink.length===8) {
+  // Old quiz invitation links also return to the single Soulieteur join screen.
+  const url=new URL('../',location.href);
+  url.searchParams.set('code',codeFromLink);
+  location.replace(url.href);
+} else renderJoin();

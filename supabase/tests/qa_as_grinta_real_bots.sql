@@ -16,6 +16,8 @@ begin
   exception when others then if sqlerrm like 'ASGQ_TEST:%' then raise; end if; end;
   creator:=public.asgq_rehearsal_create('CI-TEST-ONLY-PASSWORD','Alban',0);
   host_token:=(creator->>'token')::uuid; code:=creator->>'code';
+  if public.asgq_room_mode(code) is distinct from 'rehearsal' then
+    raise exception 'ASGQ_TEST: rehearsal room not detected'; end if;
   if (select count(*) from asgq_rehearsal_private.players)<>1 then
     raise exception 'ASGQ_TEST: creation should add host only'; end if;
   for idx in 1..5 loop perform public.asgq_rehearsal_add_bot(host_token); end loop;
@@ -46,6 +48,12 @@ begin
   if s->>'phase'<>'question' or s->'question'->>'correct' is not null
     or s->'question'->>'responses' is not null then
     raise exception 'ASGQ_TEST: question secret leaked'; end if;
+  s:=public.asgq_rehearsal_state(host_token);
+  if jsonb_array_length(s->'question'->'waiting_players')<>2
+    or s->'question'->'waiting_players'->0->>'name'<>'Camille'
+    or s->'question'->'waiting_players'->1->>'name'<>'Nina'
+    or public.asgq_rehearsal_state(guest_token)->'question'->>'waiting_players' is not null then
+    raise exception 'ASGQ_TEST: pending humans must include Camille/Nina, not bots, never exposed to guest'; end if;
   begin
     perform public.asgq_rehearsal_answer(host_token,0);
     raise exception 'ASGQ_TEST: host answered';
@@ -54,6 +62,9 @@ begin
   s:=public.asgq_rehearsal_state(host_token);
   if s->'question'->>'responses' is not null then
     raise exception 'ASGQ_TEST: participant statuses leaked before reveal'; end if;
+  if jsonb_array_length(s->'question'->'waiting_players')<>1
+    or s->'question'->'waiting_players'->0->>'name'<>'Nina' then
+    raise exception 'ASGQ_TEST: the host must see only Nina after Camille responds'; end if;
   if (select phase from asgq_rehearsal_private.event where id=1)<>'question' then
     raise exception 'ASGQ_TEST: answer closed automatically'; end if;
   perform public.asgq_rehearsal_advance(host_token,'question',1);

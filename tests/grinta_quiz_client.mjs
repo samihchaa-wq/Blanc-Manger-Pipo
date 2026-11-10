@@ -43,7 +43,7 @@ assert.doesNotMatch(script, /Ajoute tes bots dans le vestiaire|Les 20 questions 
 assert.match(read('js/ecrans/accueil.js'), /repetition.*'1'/, 'The normal QCM create path must be repeatable until finalized');
 assert.match(script, /asgq_rehearsal_state/, 'Test must read server-side state');
 assert.match(script, /asgq_rehearsal_answer/, 'Test must submit answers to server');
-assert.match(script, /asgq_rehearsal_join_room/, 'Rehearsal code join missing');
+assert.match(home, /asgq_rehearsal_join_room/, 'Rehearsal join must happen from Soulieteur');
 assert.doesNotMatch(serverBots,/delete from asgq_private\.|update asgq_private\./, 'Rehearsal cannot touch official event tables');
 
 const manual=read('supabase/migrations/20261122200000_asgq_host_manual_control.sql');
@@ -56,6 +56,42 @@ assert.match(manual,/Bots answer when the host closes the question/, 'Bot answer
 assert.match(manual,/where p\.token_hash is distinct from ev\.host_token_hash/, 'Host must be excluded from standings');
 assert.doesNotMatch(script,/timerLine|timeRemaining|updateClocks|TEMPS RESTANT|TEMPS ÉCOULÉ|SUITE DANS|REPRISE DANS|setInterval\(updateClocks/, 'Quiz must not show any countdown');
 assert.match(script,/hostControl\(s,'RÉVÉLER LA RÉPONSE'\)/, 'Host needs a reveal button');
+// The host sees the actual player names still awaiting an answer, not 0/3.
+const waitingMigration=read('supabase/migrations/20261123020000_asgq_waiting_names_and_room_mode.sql');
+assert.equal((waitingMigration.match(/'waiting_players',case when ev.phase='question'/g)||[]).length,2,
+ 'Both quiz modes must return a pending list during a question only');
+assert.equal((waitingMigration.match(/player_row.token_hash=ev.host_token_hash/g)||[]).length,2,
+ 'Pending names must only be returned to the host');
+assert.match(waitingMigration,/participant.bot_order is null/, 'Bot simulations cannot be treated as real pending players');
+assert.match(waitingMigration,/not exists\(/, 'Only players with no stored answer are pending');
+assert.match(waitingMigration,/public\.asgq_room_mode\(p_code text\)/, 'The main Soulieteur home must recognize AS Grinta codes');
+assert.match(waitingMigration,/v_requests>200 or v_failures>=12/, 'Router must be rate limited without exhausting legitimate shared-WiFi guest joins');
+assert.match(waitingMigration,/asgq_private\.route_attempts/, 'Router must have an independent quota');
+assert.equal((waitingMigration.match(/end \$fn\$;/g)||[]).length,2,'Terminate both RPC definitions before the router');
+const waitingFn=script.match(/function waitingPlayersHtml\(s\) \{[\s\S]*?\n\}/)?.[0];
+assert.ok(waitingFn,'Missing host waiting list renderer');
+const waitingPlayersHtml=new Function('const safe=(v)=>String(v).replace(/</g,"&lt;");\n'+waitingFn+'\nreturn waitingPlayersHtml;')();
+assert.match(waitingPlayersHtml({question:{waiting_players:[{name:'Camille'},{name:'Nina'}]}}),
+  /On attend :[\s\S]*Camille[\s\S]*Nina/, 'List pending participant names');
+assert.match(waitingPlayersHtml({question:{waiting_players:[]}}),
+  /Tout le monde a répondu !/, 'Show all-answered status without auto advancing');
+assert.match(waitingPlayersHtml({question:{waiting_players:null}}),
+  /On attend les réponses/, 'Do not fabricate names without server data');
+assert.doesNotMatch(waitingPlayersHtml({question:{waiting_players:[{name:'<script>'}]}}),
+  /<script>/, 'Names must remain escaped');
+assert.match(script,/counter\.innerHTML=waitingPlayersHtml\(state\)/,
+  'Polling must refresh the pending names without reanimating the screen');
+assert.match(script,/waiting_players:null/, 'Names changing during polling must not rerender the question');
+assert.match(script,/id="answer-counter" role="status" aria-live="polite"/,
+  'The list is an accessible live status');
+assert.doesNotMatch(script,/\$\{q\.answered_count \|\| 0\} \/ \$\{playerCount\} réponses/,
+  'Old numeric 0/3-style counter must be gone');
+assert.doesNotMatch(script,/data-entry-mode=|id="room-code"|class="entry-tagline"/,
+ 'There must be no duplicate join option or welcome subtitle on the quiz landing');
+assert.match(home,/asgq_room_mode/, 'The Soulieteur join screen needs code recognition');
+assert.match(home,/asgq_join_room/, 'Official guests must join directly from Soulieteur');
+assert.match(home,/asgq_rehearsal_join_room/, 'Rehearsal guests must join directly from Soulieteur');
+
 const roundMigration=read('supabase/migrations/20261123010000_asgq_reveal_player_outcomes.sql');
 assert.equal((roundMigration.match(/'responses',case when ev\.phase='reveal'/g)||[]).length,2,
   'Both state endpoints must hide all player outcomes until manual reveal');
@@ -90,7 +126,7 @@ assert.match(script, /amazed:'amazed'/, 'Enthusiastic pose must use the uploaded
 assert.match(script, /doubt:'skeptical'/, 'Skeptical pose must use the uploaded photo');
 assert.match(script, /stage\('<h2>MI-TEMPS<\/h2><p>On souffle/, 'Halftime needs the approved subtitle');
 assert.match(script, /'thinking','halftime'/, 'Halftime needs the supplied thoughtful pose');
-assert.match(script, /isCreate\?'excited':'thinking','welcome'/, 'Creation welcomes with thumbs-up, joining uses the thinking pose');
+assert.match(script, /'excited','welcome'/, 'Creating the quiz must welcome the host with the thumbs-up pose');
 assert.match(script, /const resultPose = presenterPoseForReveal\(s, success, answered\)/, 'Result screens must select a pose by outcome');
 assert.match(script, /resultPose,'reveal'/, 'Result stage must use the selected reaction');
 const poseDefinition=script.match(/function presenterPoseForReveal\(s, success, answered\) \{[\s\S]*?\n\}/)?.[0];
@@ -115,11 +151,10 @@ assert.match(page, /<main id="app"/, 'Dedicated phone screen missing');
 assert.match(page, /\.\/app\.js/, 'Dedicated script missing');
 assert.match(page, /\.\.\/vendor\/supabase\.js/, 'Use the existing pinned Supabase client');
 assert.match(script, /\basgq_create\b/, 'Admin+ create RPC missing');
-assert.match(script, /\basgq_join_room\b/, 'Eight-digit guest join RPC missing');
-assert.match(script, /data-entry-mode="create"/, 'Create tab missing');
-assert.match(script, /data-entry-mode="join"/, 'Join tab missing');
+assert.match(home, /\basgq_join_room\b/, 'Guests enter by Soulieteur’s join screen');
+assert.doesNotMatch(script,/data-entry-mode=/, 'No redundant join tabs in the quiz');
 assert.match(script, /id="admin-password" type="password"/, 'Admin+ only on creation screen');
-assert.match(script, /id="room-code" type="text" inputmode="numeric"/, 'Guests use numeric 8-digit code');
+assert.match(home, /id="j-code" type="text" inputmode="numeric"/, 'Guests use the original Soulieteur code field');
 assert.doesNotMatch(script, /api\.rpc\('asgq_join',/, 'The old invitation-code RPC must not be used');
 assert.match(script, /\basgq_state\b/, 'Server-driven status missing');
 assert.match(script, /\basgq_answer\b/, 'Server-driven answer submission missing');
@@ -204,7 +239,7 @@ assert.match(script,/data-answer/, 'Participant choices must remain interactive'
 // All six approved sports-broadcast screen layouts must be present in the app.
 assert.match(style,/SIX SCREEN MATCHED MOCKUPS 2026/, 'Approved six-screen direction is missing');
 assert.match(script,/PRÊT POUR<br>LE GRAND<br>QUIZ \?/, 'Welcome should show the approved hero copy');
-assert.match(script,/class="entry-tagline"/, 'Welcome subtitle is missing');
+assert.doesNotMatch(script,/class="entry-tagline"|Entre dans l’émission/, 'User removed redundant tagline');
 assert.match(script,/JOUEURS \(\$\{count\}\)/, 'Lobby should count the visible players including the creator');
 assert.match(script,/class="show-progress"/, 'On-screen question progress dots are missing');
 assert.match(script,/allQuestions\(s\)/, 'Question count must show the whole episode');
