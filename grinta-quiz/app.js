@@ -163,9 +163,15 @@ function renderQuestion(s) {
     ${s.is_host ? `<p class="response-note" id="answer-counter" role="status" aria-live="polite">${waitingPlayersHtml(s)}</p>${hostControl(s,'RÉVÉLER LA RÉPONSE')}`
       : `<p class="response-note answer-feedback" role="status" aria-live="polite">${sendingAnswer ? 'Enregistrement…' : choice === null || choice === undefined ? '' : 'Réponse enregistrée · Tu peux changer ton choix.'}</p>`}`, 'question');
 }
+// Equal scores share a rank: 1, 1, 3, 4 (not the order in which they joined).
+function competitionRank(standings,index) {
+  const score=Number(standings[index]?.score ?? 0);
+  const first=standings.findIndex(player=>Number(player.score)===score);
+  return first>=0 ? first+1 : index+1;
+}
 function rankingRows(s, count = 5) {
   const standings=s.standings || [];
-  const makeRow=(p,i,extra='')=>`<li class="${p.id===s.me.id?'you':''} ${extra}"><span class="rank-no">${String(i+1).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`;
+  const makeRow=(p,i,extra='')=>`<li class="${p.id===s.me.id?'you':''} ${extra}"><span class="rank-no">${String(competitionRank(standings,i)).padStart(2,'0')}</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score}</b></li>`;
   const top=standings.slice(0,count).map((p,i)=>makeRow(p,i)).join('');
   const ownIndex=s.is_host ? -1 : standings.findIndex(p=>p.id===s.me.id);
   return top+(ownIndex>=count ? `<li class="rank-divider" aria-hidden="true">···</li>${makeRow(standings[ownIndex],ownIndex,'personal-rank')}` : '');
@@ -246,16 +252,22 @@ function renderHalftime(s) {
     ${hostControl(s,'LANCER LA 2E MI-TEMPS')}`, 'halftime');
 }
 function renderFinished(s) {
-  const top=(s.standings||[]).slice(0,3);
+  const standings=s.standings||[];
+  const top=standings.slice(0,3);
+  const winnerScore=top[0]?.score;
+  const winners=winnerScore===undefined ? [] : standings.filter(p=>Number(p.score)===Number(winnerScore));
+  const tied=winners.length>1;
   const order=top.length >= 3 ? [top[1],top[0],top[2]] : top.length===2?[top[1],top[0]]:top;
   const podium=order.map(p=> {
-    const position=top.indexOf(p)+1;
-    const tier=position===1?'first':position===3?'third':'second';
+    const position=competitionRank(standings,standings.indexOf(p));
+    const tier=position===1?'first':position===2?'second':'third';
     return `<div class="pod ${tier}"><span class="pod-crown" aria-hidden="true">♛</span><span class="name">${safe(p.name)}</span><span class="points">${p.score} pts</span><div class="step">${position}</div></div>`;
   }).join('');
-  const others=(s.standings||[]).slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${i+4}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
-  shell(`${stage('<h2>CHAMPION DU QUIZ</h2><p>Fin de l’émission · Merci à tous</p>','victory','podium')}
-    <h3 class="champion-name">${safe(top[0]?.name || 'AS Grinta')}</h3>
+  const others=standings.slice(3).map((p,i)=>`<li class="${p.id===s.me.id?'you':''}"><span class="rank-no">${competitionRank(standings,i+3)}e</span><span class="rank-name">${safe(p.name)}${p.id===s.me.id?' · toi':''}</span><b>${p.score} pts</b></li>`).join('');
+  const championNames=winners.length ? winners.map(p=>safe(p.name)).join(' · ') : 'AS Grinta';
+  shell(`${stage(`<h2>${tied?'CHAMPIONS DU QUIZ':'CHAMPION DU QUIZ'}</h2><p>Fin de l’émission · Merci à tous</p>`,'victory','podium')}
+    <h3 class="champion-name">${championNames}</h3>
+    ${tied? `<p class="joint-champions">${winners.length} CHAMPIONS EX ÆQUO</p>` : ''}
     <div class="podium">${podium}</div>
     ${others ? `<div class="section-title"><span class="eyebrow">CLASSEMENT FINAL</span></div>
     <div class="panel ranking-panel"><ol class="small-list">${others}</ol></div>` : ''}
