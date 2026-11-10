@@ -807,8 +807,8 @@ def run(browser, base):
         page.evaluate("() => localStorage.setItem('asgq-2026-participant','recovered-host-token')")
         page.reload(wait_until="load")
         page.locator('[data-act="tab"][data-tab="join"]').click()
-        assert page.locator('[data-act="asgq-resume"]').is_visible(), "Retour à la session officielle absent"
-        page.locator('[data-act="asgq-resume"]').click()
+        assert page.locator('#pane-join [data-act="asgq-resume"]').is_visible(), "Retour à la session officielle absent"
+        page.locator('#pane-join [data-act="asgq-resume"]').click()
         page.wait_for_url("**/grinta-quiz/",timeout=10000)
         assert page.locator('[data-screen="lobby"]').is_visible(), "Le retour ne reprend pas le vestiaire existant"
         assert page.evaluate("() => !window.__qaCalls.some(x=>x.name==='asgq_create')"), "La reprise a créé un autre événement"
