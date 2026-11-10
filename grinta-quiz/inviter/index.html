@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Invitation · Le Grand Quiz AS Grinta</title>
+  <meta name="description" content="Tu es invité au Grand Quiz AS Grinta. Rejoins les joueurs dans Le Soulieteur avec ton code de partie.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Le Grand Quiz AS Grinta 2026">
+  <meta property="og:description" content="Tu es invité à l'émission ! Entre ton prénom et rejoins les autres joueurs.">
+  <meta property="og:image" content="https://samihchaa-wq.github.io/Blanc-Manger-Pipo/grinta-quiz/as-grinta-crest.webp">
+  <meta property="og:image:alt" content="Écusson officiel AS Grinta">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Le Grand Quiz AS Grinta 2026">
+  <meta name="twitter:description" content="L'émission du club : rejoins les joueurs dans Le Soulieteur.">
+  <style>
+    html{color-scheme:dark;background:#071d3d;color:#fff5df;font-family:system-ui,sans-serif}
+    body{display:grid;place-items:center;min-height:100dvh;margin:0;padding:24px;text-align:center}
+    main{max-width:400px}
+    img{width:105px;height:auto}
+    h1{line-height:1.1}
+    a{display:inline-block;margin:20px 0;padding:14px 20px;border-radius:12px;background:#e5bb6a;color:#082245;font-weight:800;text-decoration:none}
+  </style>
+  <script>
+    // The social preview is AS Grinta, but players always enter the room in Le Soulieteur.
+    // No second code prompt is shown inside the Grand Quiz itself.
+    (function(){
+      const code=new URLSearchParams(location.search).get('code') || '';
+      const target=new URL('../../',location.href);
+      if(/^\d{8}$/.test(code)) target.searchParams.set('code',code);
+      location.replace(target.href);
+    })();
+  </script>
+</head>
+<body>
+  <main>
+    <img src="../as-grinta-crest.webp" width="105" height="118" alt="Écusson officiel AS Grinta">
+    <h1>LE GRAND QUIZ AS GRINTA</h1>
+    <p>Tu vas être redirigé vers Le Soulieteur pour rejoindre les autres joueurs.</p>
+    <a href="../../">Rejoindre les joueurs</a>
+  </main>
+</body>
+</html>
