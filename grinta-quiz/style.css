@@ -1617,11 +1617,11 @@ body{
 .scene[data-screen="question"] .question-card--long h2{
   font-size:clamp(23px,6.2vw,34px);line-height:1.18;
 }
-.scene[data-screen="finished"] .podium--one{
+.scene[data-screen="finished"] .podium--1{
   width:51%;margin-left:auto;margin-right:0;
 }
-.scene[data-screen="finished"] .podium--one .pod{max-width:175px}
-.scene[data-screen="finished"] .podium--two{
+.scene[data-screen="finished"] .podium--1 .pod{max-width:175px}
+.scene[data-screen="finished"] .podium--2{
   width:70%;margin-left:auto;margin-right:0;
 }
 .scene[data-screen="finished"] .champion-name.many-champions{
@@ -1638,8 +1638,8 @@ body{
     grid-template-columns:minmax(0,1fr);
   }
   .scene[data-screen="question"] .question-card--long{margin-top:215px}
-  .scene[data-screen="finished"] .podium--one{width:55%}
-  .scene[data-screen="finished"] .podium--two{width:75%}
+  .scene[data-screen="finished"] .podium--1{width:55%}
+  .scene[data-screen="finished"] .podium--2{width:75%}
 }
 @media(orientation:landscape) and (max-height:520px){
   /* Permit full vertical scrolling on short landscape phones. */
