@@ -369,4 +369,15 @@ assert.match(script,/if\(forceHostRecovery\) \{[\s\S]*?token=null;[\s\S]*?render
 const privatePreparation=read('docs/grinta-quiz-questions-privees.md');
 assert.match(privatePreparation,/Aucun départ automatique/, 'The official question preparation guide must describe manual kickoff');
 assert.doesNotMatch(privatePreparation,/compte à rebours de deux minutes démarre/, 'Obsolete timer instructions could mislead the host');
+// Every Supabase migration version must be unique. The earlier waiting-list
+// definition is superseded by the later rate-limited implementation.
+const migrationNames=fs.readdirSync(path.join(root,'supabase/migrations'))
+  .filter(name=>/^\d{14}_.*\.sql$/.test(name));
+const migrationVersions=migrationNames.map(name=>name.slice(0,14));
+assert.equal(new Set(migrationVersions).size,migrationVersions.length,
+  'Two migration files share a version: fresh SQL deployments may skip the hardened router');
+assert.match(read('supabase/migrations/20261123015000_asgq_pending_players_and_join_routing.sql'),
+  /public\.asgq_room_mode/, 'Old router remains in correct chronological order');
+assert.match(read('supabase/migrations/20261123020000_asgq_waiting_names_and_room_mode.sql'),
+  /v_requests>200 or v_failures>=12/, 'The final router must remain rate limited');
 console.log('ASGQ frontend / preflight checks OK');
