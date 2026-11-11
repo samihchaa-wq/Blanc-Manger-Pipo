@@ -252,7 +252,7 @@ def run():
     devices = []
     try:
         with sync_playwright() as play:
-            browser = play.chromium.launch()
+            browser = play.chromium.launch(channel="chrome", headless=True, args=["--no-sandbox"])
             try:
                 for token, width in (("qa-host", 390), ("qa-cam", 375),
                                      ("qa-nina", 320)):
