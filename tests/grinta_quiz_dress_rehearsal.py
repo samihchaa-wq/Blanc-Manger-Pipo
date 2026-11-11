@@ -343,13 +343,19 @@ def run():
 
                     refresh(host)
                     if position % 5 == 0:
-                        assert host.locator('#answer-counter .waiting-name').all_inner_texts() == [
-                            "Nina"]
+                        # The network reply and next 1.8s polling tick can race.
+                        host.wait_for_function("""() => {
+                          const names=[...document.querySelectorAll(
+                            '#answer-counter .waiting-name')].map(e=>e.textContent);
+                          return names.length===1 && names[0]==='Nina';
+                        }""", timeout=8500)
                         host.locator('[data-next-phase]').click()
                         host.locator('[data-confirm-reveal]').click()
                     else:
-                        assert "Tout le monde a répondu" in host.locator(
-                            '#answer-counter').inner_text()
+                        host.wait_for_function("""() =>
+                          document.querySelector('#answer-counter')?.textContent
+                            ?.includes('Tout le monde a répondu')
+                        """, timeout=8500)
                         host.locator('[data-next-phase]').click()
                     screen(host, "reveal")
                     screen(cam, "reveal")
