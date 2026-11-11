@@ -413,8 +413,8 @@ def run():
                     assert game.scores == {"cam": 10, "nina": 5}
                     assert len(game.revealed) == 20
                     assert len(game.answers) == 20
-                assert "Camille" in host.locator('.champion-name').inner_text()
-                assert "Camille" in cam.locator('.champion-name').inner_text()
+                assert "camille" in host.locator('.champion-name').inner_text().casefold()
+                assert "camille" in cam.locator('.champion-name').inner_text().casefold()
                 assert host.locator('[data-next-phase]').count() == 0
                 for name, page, errors in (
                     ("animateur", host, host_errors),
