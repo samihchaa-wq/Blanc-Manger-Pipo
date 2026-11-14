@@ -25,7 +25,7 @@ function home(){
     : '';
   return `
     <div class="home">
-      <h1><button type="button" class="logo" data-act="logo" aria-label="Le Soulièteur"><img src="design-studio/logo-officiel.webp" width="800" height="637" alt="Le Soulièteur" decoding="async" fetchpriority="high"></button><span class="shift" aria-hidden="true"></span></h1>
+      <h1><button type="button" class="copy-app-link" data-act="copy-app-link" aria-label="Copier le lien de l’application" title="Copier le lien de l’application"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg></button><button type="button" class="logo" data-act="logo" aria-label="Le Soulièteur"><img src="design-studio/logo-officiel.webp" width="800" height="637" alt="Le Soulièteur" decoding="async" fetchpriority="high"></button><span class="shift" aria-hidden="true"></span></h1>
 
       <div class="tabs" role="tablist">
         <button class="tab ${join ? '' : 'on'}" data-act="tab" data-tab="create" role="tab" aria-selected="${!join}">Créer</button>
@@ -128,6 +128,30 @@ function ouvrirGrintaQuiz(remplacer = false, onglet = null){
 }
 
 /* ---------- Actions ---------- */
+// Partager l'accueil lui-même, sans conserver le code d'une partie en cours.
+async function copyApplicationLink(){
+  const url = new URL('./', location.href).href;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard indisponible');
+    await navigator.clipboard.writeText(url);
+    toast('Lien de l’appli copié !');
+  } catch {
+    // Repli pour les navigateurs qui refusent l'API Clipboard.
+    const champ = document.createElement('textarea');
+    champ.value = url;
+    champ.readOnly = true;
+    champ.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.append(champ);
+    champ.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch {}
+    champ.remove();
+    if (copied) toast('Lien de l’appli copié !');
+    else prompt('Copie ce lien et envoie-le à tes amis :', url);
+  }
+}
+surAction('copy-app-link', () => copyApplicationLink(), { marque:false });
+
 let logoTaps = [];
 surAction('logo', () => {
   const t = Date.now();

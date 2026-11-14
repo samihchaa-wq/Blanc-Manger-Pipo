@@ -305,6 +305,11 @@ assert.match(homeView, /data-act="create"/, 'Créer une partie depuis l’accuei
 assert.match(homeView, /data-act="join"/, 'Rejoindre avec un code depuis l’accueil');
 assert.match(homeView, /data-act="mode"[\s\S]*<img src="games\/\$\{tileImg\(k\)\}"/, 'Les vignettes des jeux sont sur l’accueil');
 assert.doesNotMatch(homeView, /data-act="admin"/, 'Plus de bouton admin visible sur l’accueil');
+assert.match(homeView, /class="copy-app-link" data-act="copy-app-link"/, 'Copie du lien visible à gauche du logo');
+assert.match(scripts[0], /surAction\('copy-app-link', \(\) => copyApplicationLink\(\)/, 'Le bouton de partage est fonctionnel');
+assert.match(scripts[0], /new URL\('\.\/', location\.href\)\.href/, 'Le lien partagé reste celui de l’application sans code de partie');
+assert.equal(new URL('./', 'https://example.test/Blanc-Manger-Pipo/?code=12345678').href,
+  'https://example.test/Blanc-Manger-Pipo/', 'Le lien public ne contient pas de code de partie');
 // Taille identique lors des retours à l'accueil : pas de dépendance à la
 // hauteur du conteneur recalculée quand la barre de Safari disparaît.
 assert.ok(css.includes('@supports (height:100svh)'), 'Une hauteur de fenêtre stable est utilisée');

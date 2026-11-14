@@ -488,3 +488,16 @@ input:focus-visible,textarea:focus-visible,.seg-b:focus-visible,.btn:focus-visib
 .qe-form .qe-lab small{color:#61475a}
 .qe-form .field>span small{color:#61475a}
 .gamebox .qcmbox .eyebrow{color:#a72853;font-weight:800}
+
+/* Accueil : bouton compact à gauche, en haut du logo, sans modifier son
+   centrage ni les cinq appuis qui donnent accès à l’administration. */
+.home h1 .copy-app-link{
+  position:absolute;z-index:2;top:3px;left:max(2px,calc(50% - 158px));
+  display:grid;place-items:center;width:40px;height:40px;padding:0;
+  border:1.5px solid #e0b06e;border-radius:50%;
+  background:linear-gradient(#482849,#29162f);color:#ffe1a3;
+  box-shadow:0 3px 0 #180c1b,0 7px 15px rgba(0,0,0,.34);
+  cursor:pointer;touch-action:manipulation
+}
+.home h1 .copy-app-link:active{transform:translateY(2px);box-shadow:0 1px 0 #180c1b}
+.home h1 .copy-app-link:focus-visible{outline:3px solid #ffe1a3;outline-offset:3px}
